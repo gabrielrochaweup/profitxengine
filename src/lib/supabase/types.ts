@@ -153,6 +153,20 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["ai_usage_log"]["Insert"]>;
         Relationships: [];
       };
+      ai_provider_settings: {
+        Row: {
+          module: AiModule;
+          provider: AiProvider;
+          model: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["ai_provider_settings"]["Row"], "updated_at"> & {
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_provider_settings"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

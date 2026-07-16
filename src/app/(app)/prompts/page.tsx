@@ -1,13 +1,31 @@
-import { Library } from "lucide-react";
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { PromptsClient } from "./prompts-client";
 
-export default function PromptsPage() {
+export default async function PromptsPage() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const [{ data: prompts }, { data: profile }] = await Promise.all([
+    supabase.from("prompts").select("*").order("created_at", { ascending: false }),
+    supabase.from("profiles").select("role").eq("id", user.id).single(),
+  ]);
+
   return (
-    <PlaceholderPage
-      title="Biblioteca de Prompts"
-      description="Meus prompts salvos, reutilizáveis entre os módulos de conversas, mensagens e e-mails."
-      icon={Library}
-      phase="Fase 2"
-    />
+    <div>
+      <h1 className="text-[28px] font-semibold text-text-primary">Biblioteca de Prompts</h1>
+      <p className="mt-1 text-sm text-text-secondary">
+        Prompts reutilizáveis nos módulos de conversas, calendário de engajamento e e-mails.
+      </p>
+
+      <PromptsClient
+        initialPrompts={prompts ?? []}
+        currentUserId={user.id}
+        isAdmin={profile?.role === "admin"}
+      />
+    </div>
   );
 }
