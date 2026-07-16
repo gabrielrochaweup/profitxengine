@@ -43,7 +43,7 @@ cruzam vários módulos e precisam ser lembrados nas fases correspondentes:
   - Camada de abstração `/lib/ai/` (`generateText`, `generateImage`) com rotas
     server-side `/api/ai/*`, nunca expondo chaves ao client.
 
-- **Fase 3 — Simulador de Conversas**
+- **Fase 3 — Simulador de Conversas** ✅ concluída
   Editor de mensagens, preview fiel WhatsApp/Instagram, geração via IA
   **usando o `PromptPicker` da Fase 2**, exportação de imagem.
 
