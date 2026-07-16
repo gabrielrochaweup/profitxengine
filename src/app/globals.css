@@ -3,21 +3,58 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-app: #0a0a0c;
+  --bg-sidebar: #0d0d0f;
+  --bg-card: #141417;
+  --bg-card-hover: #1c1c20;
+  --bg-input: #18181b;
+  --border: #232327;
+  --border-strong: #2e2e33;
+  --text-primary: #f5f5f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #6b6b70;
+  --accent: #7c5cff;
+  --accent-hover: #6a48f0;
+  --accent-pink: #ff4fa3;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text-primary);
+  background: var(--bg-app);
+}
+
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.no-export {
+  /* elementos com essa classe são escondidos antes da captura de imagem (html-to-image) */
 }
 
 @layer utilities {
