@@ -47,10 +47,13 @@ cruzam vários módulos e precisam ser lembrados nas fases correspondentes:
   Editor de mensagens, preview fiel WhatsApp/Instagram, geração via IA
   **usando o `PromptPicker` da Fase 2**, exportação de imagem.
 
-- **Fase 4 — Calendário de Engajamento**
+- **Fase 4 — Calendário de Engajamento** ✅ concluída
   View de calendário, modal de geração texto+imagem (com `PromptPicker`),
   campo de resultado/nota, analytics básico, **atalho de notícia/evento
-  econômico cripto por dia (requisito 2 acima)**.
+  econômico cripto por dia (requisito 2 acima) — implementado via RSS
+  público (CoinDesk, Cointelegraph, Decrypt), sem custo/chave. Não cobre
+  calendário macro agendado (juros, CPI) com hora exata; se precisar disso
+  no futuro, avaliar Trading Economics ou Alpha Vantage.**
 
 - **Fase 5 — E-mails**
   Calendário de eventos, sugestão de notícias (mesma integração de notícias

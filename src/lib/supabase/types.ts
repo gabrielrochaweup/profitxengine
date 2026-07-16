@@ -105,6 +105,7 @@ export interface Database {
           result: EngagementResult;
           notes: string | null;
           tema: string | null;
+          news_reference: string | null;
           created_by: string | null;
           created_at: string;
         };
