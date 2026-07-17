@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { PromptPicker } from "@/components/prompt-picker";
 import { NewsShortcut } from "./news-shortcut";
+import { DynamicRunnerPanel } from "./dynamic-runner-panel";
+import { ApprovalContextPanel } from "./approval-context-panel";
 import type { Database, EngagementResult, EngagementStatus } from "@/lib/supabase/types";
 
 type EngagementMessage = Database["public"]["Tables"]["engagement_messages"]["Row"];
@@ -40,6 +42,7 @@ const EMPTY_FORM = {
 };
 
 export function DayPanel({ open, dateKey, messages, currentUserId, onClose, onSaved, onDeleted }: DayPanelProps) {
+  const [mode, setMode] = useState<"ia" | "dinamica">("ia");
   const [form, setForm] = useState(EMPTY_FORM);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
@@ -84,6 +87,7 @@ export function DayPanel({ open, dateKey, messages, currentUserId, onClose, onSa
               module: "mensagem",
               prompt: form.textPrompt,
               promptId: form.textPromptId ?? undefined,
+              performanceScope: "grupo",
             }),
           })
             .then(async (res) => {
@@ -189,7 +193,34 @@ export function DayPanel({ open, dateKey, messages, currentUserId, onClose, onSa
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={`Mensagens de ${dateKey.split("-").reverse().join("/")}`} className="max-w-2xl">
+    <Modal open={open} onClose={onClose} title={`Grupo — ${dateKey.split("-").reverse().join("/")}`} className="max-w-2xl">
+      <div className="mb-4 flex gap-1.5">
+        <button
+          type="button"
+          onClick={() => setMode("ia")}
+          className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
+            mode === "ia" ? "bg-accent text-white" : "border border-border-strong text-text-secondary hover:bg-card-hover"
+          }`}
+        >
+          Gerar com IA
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("dinamica")}
+          className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
+            mode === "dinamica"
+              ? "bg-accent text-white"
+              : "border border-border-strong text-text-secondary hover:bg-card-hover"
+          }`}
+        >
+          Dinâmica do dia
+        </button>
+      </div>
+
+      {mode === "dinamica" ? (
+        <DynamicRunnerPanel dateKey={dateKey} currentUserId={currentUserId} />
+      ) : (
+        <>
       {messages.length > 0 && (
         <div className="mb-4 flex flex-wrap gap-1.5">
           {messages.map((m) => (
@@ -218,6 +249,8 @@ export function DayPanel({ open, dateKey, messages, currentUserId, onClose, onSa
       )}
 
       <div className="space-y-4">
+        <ApprovalContextPanel scope="grupo" />
+
         <NewsShortcut
           onUseNews={(item) =>
             setForm((prev) => ({
@@ -399,6 +432,8 @@ export function DayPanel({ open, dateKey, messages, currentUserId, onClose, onSa
           </Button>
         </div>
       </div>
+        </>
+      )}
     </Modal>
   );
 }

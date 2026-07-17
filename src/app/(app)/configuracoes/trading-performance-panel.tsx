@@ -1,0 +1,242 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { calcAcerto } from "@/lib/dynamics/calc-engine";
+import type { Database, TradingProduct, TradingWindow } from "@/lib/supabase/types";
+
+type StatsRow = Database["public"]["Tables"]["trading_performance_stats"]["Row"];
+type ConfigRow = Database["public"]["Tables"]["trading_config"]["Row"];
+
+const PRODUCTS: { key: TradingProduct; label: string; icon: string }[] = [
+  { key: "pepe", label: "Pepe", icon: "🐸" },
+  { key: "live", label: "Live", icon: "📺" },
+  { key: "copy", label: "Copy Trader", icon: "💰" },
+];
+const WINDOWS: { key: TradingWindow; label: string }[] = [
+  { key: "dia", label: "Dia" },
+  { key: "semana", label: "Semana" },
+  { key: "mes", label: "Mês" },
+  { key: "total", label: "Total" },
+];
+
+type StatsState = Record<TradingProduct, Record<TradingWindow, { wins: number; losses: number; rendimentoPct: number }>>;
+
+function emptyStats(): StatsState {
+  const empty = { wins: 0, losses: 0, rendimentoPct: 0 };
+  const perWindow = () => ({ dia: { ...empty }, semana: { ...empty }, mes: { ...empty }, total: { ...empty } });
+  return { pepe: perWindow(), live: perWindow(), copy: perWindow() };
+}
+
+export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
+  const [stats, setStats] = useState<StatsState>(emptyStats());
+  const [config, setConfig] = useState<ConfigRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
+      const [{ data: statsRows }, { data: configRow }] = await Promise.all([
+        supabase.from("trading_performance_stats").select("*"),
+        supabase.from("trading_config").select("*").eq("id", 1).single(),
+      ]);
+
+      if (statsRows) {
+        setStats(() => {
+          const next = emptyStats();
+          (statsRows as StatsRow[]).forEach((row) => {
+            next[row.product][row.time_window] = {
+              wins: row.wins,
+              losses: row.losses,
+              rendimentoPct: row.rendimento_pct ?? 0,
+            };
+          });
+          return next;
+        });
+      }
+      if (configRow) setConfig(configRow);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  function updateStat(product: TradingProduct, window: TradingWindow, patch: Partial<{ wins: number; losses: number; rendimentoPct: number }>) {
+    setStats((prev) => ({
+      ...prev,
+      [product]: { ...prev[product], [window]: { ...prev[product][window], ...patch } },
+    }));
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const statsPayload = PRODUCTS.flatMap(({ key: product }) =>
+      WINDOWS.map(({ key: window }) => ({
+        product,
+        time_window: window,
+        wins: stats[product][window].wins,
+        losses: stats[product][window].losses,
+        rendimento_pct: product === "copy" ? stats[product][window].rendimentoPct : null,
+        updated_by: user?.id ?? null,
+      }))
+    );
+
+    await supabase.from("trading_performance_stats").upsert(statsPayload, { onConflict: "product,time_window" });
+
+    if (config) {
+      await supabase.from("trading_config").update(config).eq("id", 1);
+    }
+
+    setSaving(false);
+    setSavedAt(Date.now());
+    setTimeout(() => setSavedAt(null), 2000);
+  }
+
+  if (loading) {
+    return <Card className="px-6 py-10 text-center text-sm text-text-muted">Carregando performance...</Card>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-5">
+        <h3 className="mb-3 text-sm font-medium text-text-primary">Configuração global</h3>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <ConfigField
+            label="Cotação R$/USD"
+            value={config?.cotacao ?? 5.5}
+            disabled={!canEdit}
+            onChange={(v) => setConfig((c) => (c ? { ...c, cotacao: v } : c))}
+          />
+          <ConfigField
+            label="Payout Copy (%)"
+            value={config?.payout_copy ?? 72}
+            disabled={!canEdit}
+            onChange={(v) => setConfig((c) => (c ? { ...c, payout_copy: v } : c))}
+          />
+          <ConfigField
+            label="Payout Pepe/Live (%)"
+            value={config?.payout_pepe_live ?? 72}
+            disabled={!canEdit}
+            onChange={(v) => setConfig((c) => (c ? { ...c, payout_pepe_live: v } : c))}
+          />
+          <ConfigField
+            label="Banca Copy ($)"
+            value={config?.banca_copy ?? 5000}
+            disabled={!canEdit}
+            onChange={(v) => setConfig((c) => (c ? { ...c, banca_copy: v } : c))}
+          />
+          <ConfigField
+            label="Entrada Pepe ($)"
+            value={config?.entrada_pepe ?? 10}
+            disabled={!canEdit}
+            onChange={(v) => setConfig((c) => (c ? { ...c, entrada_pepe: v } : c))}
+          />
+          <ConfigField
+            label="Entrada Live ($)"
+            value={config?.entrada_live ?? 50}
+            disabled={!canEdit}
+            onChange={(v) => setConfig((c) => (c ? { ...c, entrada_live: v } : c))}
+          />
+        </div>
+      </Card>
+
+      {PRODUCTS.map(({ key: product, label, icon }) => (
+        <Card key={product} className="p-5">
+          <h3 className="mb-3 text-sm font-medium text-text-primary">
+            {icon} Resultados {label}
+          </h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {WINDOWS.map(({ key: window, label: windowLabel }) => {
+              const s = stats[product][window];
+              const acerto = calcAcerto(s.wins, s.losses);
+              return (
+                <div key={window} className="rounded-xl border border-border p-3">
+                  <p className="mb-2 text-xs font-medium text-text-secondary">{windowLabel}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-text-muted">Wins</label>
+                      <Input
+                        type="number"
+                        disabled={!canEdit}
+                        value={s.wins}
+                        onChange={(e) => updateStat(product, window, { wins: Number(e.target.value) || 0 })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-text-muted">Loss</label>
+                      <Input
+                        type="number"
+                        disabled={!canEdit}
+                        value={s.losses}
+                        onChange={(e) => updateStat(product, window, { losses: Number(e.target.value) || 0 })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                  {product === "copy" && (
+                    <div className="mt-2 space-y-1">
+                      <label className="text-[11px] text-text-muted">Rendimento (%)</label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        disabled={!canEdit}
+                        value={s.rendimentoPct}
+                        onChange={(e) => updateStat(product, window, { rendimentoPct: Number(e.target.value) || 0 })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  )}
+                  <p className="mt-2 rounded-lg bg-card-hover px-2 py-1.5 text-center text-xs font-semibold text-accent">
+                    {acerto}% acerto
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ))}
+
+      {canEdit && (
+        <Button type="button" onClick={handleSave} disabled={saving}>
+          {saving ? "Salvando..." : savedAt ? "Salvo!" : "Salvar performance"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function ConfigField({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  disabled?: boolean;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[11px] text-text-muted">{label}</label>
+      <Input
+        type="number"
+        step="0.01"
+        disabled={disabled}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        className="h-8 text-xs"
+      />
+    </div>
+  );
+}

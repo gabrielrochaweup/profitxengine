@@ -3,6 +3,7 @@ import { getSessionProfile, hasRole } from "@/lib/auth";
 import { getDecryptedKey, getProviderSettings, incrementPromptUsage } from "@/lib/ai/credentials";
 import { generateText } from "@/lib/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getApprovalContext, formatApprovalContext } from "@/lib/performance/message-approval";
 import type { AiModule, AiProvider } from "@/lib/supabase/types";
 
 interface GenerateTextBody {
@@ -12,6 +13,8 @@ interface GenerateTextBody {
   promptId?: string;
   provider?: AiProvider;
   model?: string;
+  /** Se informado, injeta o contexto de aprovação (Dia/Semana/Mês/Geral) desse escopo no prompt. */
+  performanceScope?: "grupo" | "direct";
 }
 
 export async function POST(request: Request) {
@@ -38,8 +41,18 @@ export async function POST(request: Request) {
   }
 
   try {
+    const performanceContext = body.performanceScope
+      ? formatApprovalContext(await getApprovalContext(body.performanceScope))
+      : undefined;
+
     const result = await generateText(
-      { prompt: body.prompt, system: body.system, provider: settings.provider, model: settings.model },
+      {
+        prompt: body.prompt,
+        system: body.system,
+        performanceContext,
+        provider: settings.provider,
+        model: settings.model,
+      },
       apiKey
     );
 

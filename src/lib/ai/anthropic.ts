@@ -1,6 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import type { GenerateTextParams, GenerateTextResult } from "./types";
+import { combineSystem, type GenerateTextParams, type GenerateTextResult } from "./types";
 
 export async function generateText(
   params: GenerateTextParams,
@@ -11,7 +11,7 @@ export async function generateText(
   const message = await client.messages.create({
     model: params.model,
     max_tokens: params.maxTokens ?? 2048,
-    system: params.system,
+    system: combineSystem(params),
     messages: [{ role: "user", content: params.prompt }],
   });
 

@@ -1,18 +1,19 @@
 import "server-only";
 import OpenAI from "openai";
-import type { GenerateTextParams, GenerateTextResult, GenerateImageParams, GenerateImageResult } from "./types";
+import { combineSystem, type GenerateTextParams, type GenerateTextResult, type GenerateImageParams, type GenerateImageResult } from "./types";
 
 export async function generateText(
   params: GenerateTextParams,
   apiKey: string
 ): Promise<GenerateTextResult> {
   const client = new OpenAI({ apiKey });
+  const system = combineSystem(params);
 
   const completion = await client.chat.completions.create({
     model: params.model,
     max_tokens: params.maxTokens ?? 2048,
     messages: [
-      ...(params.system ? [{ role: "system" as const, content: params.system }] : []),
+      ...(system ? [{ role: "system" as const, content: system }] : []),
       { role: "user" as const, content: params.prompt },
     ],
   });

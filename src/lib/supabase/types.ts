@@ -14,6 +14,26 @@ export interface ConversationMessage {
   read_status?: "sent" | "delivered" | "read";
 }
 
+export type TradingProduct = "pepe" | "live" | "copy";
+export type TradingWindow = "dia" | "semana" | "mes" | "total";
+export type StudentSegment = "iniciante" | "avancado" | "inativo";
+
+export interface VagasConfig {
+  mode?: "tiered" | "single" | "none";
+  turbo?: number;
+  suprema?: number;
+  lendaria?: number;
+  galactica?: number;
+  ignicao?: number;
+  curva?: "linear" | "agressiva" | "suave";
+}
+export type RotatingBanks = Record<string, string[]>;
+export type ExtraVars = Record<string, string>;
+export interface Top5Config {
+  enabled: boolean;
+  values: number[];
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -166,6 +186,131 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["ai_provider_settings"]["Insert"]>;
+        Relationships: [];
+      };
+      trading_performance_stats: {
+        Row: {
+          id: string;
+          product: TradingProduct;
+          time_window: TradingWindow;
+          wins: number;
+          losses: number;
+          rendimento_pct: number | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["trading_performance_stats"]["Row"], "id" | "updated_at"> & {
+          id?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["trading_performance_stats"]["Insert"]>;
+        Relationships: [];
+      };
+      trading_config: {
+        Row: {
+          id: number;
+          cotacao: number;
+          payout_copy: number;
+          payout_pepe_live: number;
+          banca_copy: number;
+          entrada_pepe: number;
+          entrada_live: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["trading_config"]["Row"], "updated_at"> & {
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["trading_config"]["Insert"]>;
+        Relationships: [];
+      };
+      message_dynamics: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          icon: string | null;
+          subtitle: string | null;
+          rules: string[];
+          vagas_config: VagasConfig;
+          rotating_banks: RotatingBanks;
+          extra_vars: ExtraVars;
+          top5_config: Top5Config | null;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["message_dynamics"]["Row"], "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["message_dynamics"]["Insert"]>;
+        Relationships: [];
+      };
+      message_dynamic_slots: {
+        Row: {
+          id: string;
+          dynamic_id: string;
+          position: number;
+          msg_key: string;
+          time_label: string | null;
+          role_label: string | null;
+          cta_tags: string[];
+          template: string;
+          media_suggestion: string | null;
+          expert_hint: string | null;
+          has_fonte_selector: boolean;
+          fonte_default: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["message_dynamic_slots"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["message_dynamic_slots"]["Insert"]>;
+        Relationships: [];
+      };
+      daily_dynamic_selection: {
+        Row: {
+          id: string;
+          scheduled_date: string;
+          dynamic_id: string | null;
+          fonte_overrides: Record<string, string>;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["daily_dynamic_selection"]["Row"], "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["daily_dynamic_selection"]["Insert"]>;
+        Relationships: [];
+      };
+      direct_messages: {
+        Row: {
+          id: string;
+          scheduled_date: string;
+          student_segment: StudentSegment | null;
+          text_prompt_id: string | null;
+          image_prompt_id: string | null;
+          generated_text: string | null;
+          generated_image_url: string | null;
+          status: EngagementStatus;
+          result: EngagementResult;
+          notes: string | null;
+          tema: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["direct_messages"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["direct_messages"]["Insert"]>;
         Relationships: [];
       };
     };

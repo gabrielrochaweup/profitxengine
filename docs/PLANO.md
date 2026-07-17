@@ -122,12 +122,18 @@ Isso é a **Fase 4.5**, entre Fase 4 e Fase 5.
   calendário macro agendado (juros, CPI) com hora exata; se precisar disso
   no futuro, avaliar Trading Economics ou Alpha Vantage.**
 
-- **Fase 4.5 — Dinâmicas de Grupo + Direct dos Alunos** (em andamento)
+- **Fase 4.5 — Dinâmicas de Grupo + Direct dos Alunos** ✅ concluída
   Ver "Adendo" acima (detalhado após análise dos 6 HTMLs anexados). Schema de
   dinâmicas/slots/performance de trading, engine de cálculo portada, seed dos
-  6 dynamics reais, tela de CRUD de Dinâmicas, tela de Performance de Trading,
-  modo "Dinâmica do dia" na sub-aba Grupo, sub-aba Direct (Alunos), contexto
-  de performance de aprovação (Dia/Semana/Mês/Geral) injetado no `generateText()`.
+  6 dynamics reais (166 slots ao todo), tela de CRUD de Dinâmicas, tela de
+  Performance de Trading, modo "Dinâmica do dia" na sub-aba Grupo, sub-aba
+  Direct (Alunos), contexto de performance de aprovação (Dia/Semana/Mês/Geral)
+  injetado no `generateText()`. Validado no navegador: os cálculos batem
+  exatamente com os HTMLs originais (ex: Pepe semana 147×20 → 88% acerto →
+  R$ 2.521 de lucro; TOP 5 da Maratona com fator progressivo correto).
+  Limitação conhecida: o mecanismo de escala progressiva + TOP 5 cumulativo da
+  Maratona foi pré-calculado na semeadura (valores base $600/$500/$400/$300/$200),
+  não é recalculado dinamicamente pela UI — para ajustar, precisa reseedar.
 
 - **Fase 5 — E-mails**
   Calendário de eventos, sugestão de notícias (mesma integração de notícias

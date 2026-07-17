@@ -1,32 +1,29 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMonthMatrix, toDateKey, MONTH_LABELS, WEEKDAY_LABELS } from "../lib/date-utils";
-import type { Database } from "@/lib/supabase/types";
 
-type EngagementMessage = Database["public"]["Tables"]["engagement_messages"]["Row"];
+export interface DayIndicator {
+  grupoCount: number;
+  directCount: number;
+  hasDynamic: boolean;
+}
 
 interface CalendarGridProps {
   year: number;
   month: number;
   onNavigate: (direction: -1 | 1) => void;
-  messagesByDate: Record<string, EngagementMessage[]>;
+  indicatorsByDate: Record<string, DayIndicator>;
   selectedDate: string | null;
   onSelectDay: (dateKey: string) => void;
 }
-
-const STATUS_DOT: Record<string, string> = {
-  rascunho: "bg-text-muted",
-  aprovada: "bg-warning",
-  enviada: "bg-success",
-};
 
 export function CalendarGrid({
   year,
   month,
   onNavigate,
-  messagesByDate,
+  indicatorsByDate,
   selectedDate,
   onSelectDay,
 }: CalendarGridProps) {
@@ -70,7 +67,7 @@ export function CalendarGrid({
           if (!date) return <div key={index} className="aspect-square" />;
 
           const dateKey = toDateKey(date);
-          const dayMessages = messagesByDate[dateKey] ?? [];
+          const indicator = indicatorsByDate[dateKey];
           const isSelected = selectedDate === dateKey;
           const isToday = dateKey === todayKey;
 
@@ -87,12 +84,22 @@ export function CalendarGrid({
                 isToday && !isSelected && "border-border-strong"
               )}
             >
-              <span>{date.getDate()}</span>
-              {dayMessages.length > 0 && (
-                <div className="flex gap-0.5">
-                  {dayMessages.slice(0, 3).map((m) => (
-                    <span key={m.id} className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[m.status])} />
-                  ))}
+              <span className="flex items-center gap-1">
+                {date.getDate()}
+                {indicator?.hasDynamic && <Sparkles size={10} className="text-accent" />}
+              </span>
+              {(indicator?.grupoCount || indicator?.directCount) && (
+                <div className="flex items-center gap-1">
+                  {indicator.grupoCount > 0 && (
+                    <span className="flex items-center gap-0.5 rounded-button bg-accent/20 px-1 text-[9px] font-medium text-accent">
+                      G{indicator.grupoCount}
+                    </span>
+                  )}
+                  {indicator.directCount > 0 && (
+                    <span className="flex items-center gap-0.5 rounded-button bg-accent-pink/20 px-1 text-[9px] font-medium text-accent-pink">
+                      D{indicator.directCount}
+                    </span>
+                  )}
                 </div>
               )}
             </button>
