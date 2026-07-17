@@ -88,7 +88,7 @@ export function CalendarGrid({
                 {date.getDate()}
                 {indicator?.hasDynamic && <Sparkles size={10} className="text-accent" />}
               </span>
-              {(indicator?.grupoCount || indicator?.directCount) && (
+              {((indicator?.grupoCount ?? 0) > 0 || (indicator?.directCount ?? 0) > 0) && (
                 <div className="flex items-center gap-1">
                   {indicator.grupoCount > 0 && (
                     <span className="flex items-center gap-0.5 rounded-button bg-accent/20 px-1 text-[9px] font-medium text-accent">

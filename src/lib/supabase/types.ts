@@ -278,6 +278,7 @@ export interface Database {
           scheduled_date: string;
           dynamic_id: string | null;
           fonte_overrides: Record<string, string>;
+          text_overrides: Record<string, string>;
           created_by: string | null;
           created_at: string;
           updated_at: string;

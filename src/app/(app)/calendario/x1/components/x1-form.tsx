@@ -3,23 +3,21 @@
 import { useEffect, useState } from "react";
 import { Sparkles, Copy, Download, Trash2, Plus, ThumbsUp, ThumbsDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { Modal } from "@/components/ui/modal";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { PromptPicker } from "@/components/prompt-picker";
-import { ApprovalContextPanel } from "./approval-context-panel";
+import { ApprovalContextPanel } from "../../components/approval-context-panel";
 import type { Database, EngagementResult, EngagementStatus, StudentSegment } from "@/lib/supabase/types";
 
 type DirectMessage = Database["public"]["Tables"]["direct_messages"]["Row"];
 
-interface DirectPanelProps {
-  open: boolean;
+interface X1FormProps {
   dateKey: string;
   messages: DirectMessage[];
   currentUserId: string;
-  onClose: () => void;
   onSaved: (message: DirectMessage) => void;
   onDeleted: (id: string) => void;
 }
@@ -45,7 +43,7 @@ const EMPTY_FORM = {
   tema: "",
 };
 
-export function DirectPanel({ open, dateKey, messages, currentUserId, onClose, onSaved, onDeleted }: DirectPanelProps) {
+export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }: X1FormProps) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
@@ -53,8 +51,8 @@ export function DirectPanel({ open, dateKey, messages, currentUserId, onClose, o
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (open) setForm(EMPTY_FORM);
-  }, [open, dateKey]);
+    setForm(EMPTY_FORM);
+  }, [dateKey]);
 
   function loadIntoForm(message: DirectMessage) {
     setForm({
@@ -195,9 +193,9 @@ export function DirectPanel({ open, dateKey, messages, currentUserId, onClose, o
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={`Direct (Alunos) — ${dateKey.split("-").reverse().join("/")}`} className="max-w-2xl">
+    <div className="space-y-4">
       {messages.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {messages.map((m) => (
             <button
               key={m.id}
@@ -209,7 +207,8 @@ export function DirectPanel({ open, dateKey, messages, currentUserId, onClose, o
                   : "border-border-strong text-text-secondary hover:bg-card-hover"
               }`}
             >
-              {SEGMENT_LABEL[(m.student_segment as StudentSegment) ?? "iniciante"]} · {m.tema || m.generated_text?.slice(0, 15) || "Sem título"}
+              {SEGMENT_LABEL[(m.student_segment as StudentSegment) ?? "iniciante"]} ·{" "}
+              {m.tema || m.generated_text?.slice(0, 15) || "Sem título"}
             </button>
           ))}
           <button
@@ -223,9 +222,9 @@ export function DirectPanel({ open, dateKey, messages, currentUserId, onClose, o
         </div>
       )}
 
-      <div className="space-y-4">
-        <ApprovalContextPanel scope="direct" />
+      <ApprovalContextPanel scope="direct" />
 
+      <Card className="p-4">
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-text-secondary">Segmento do aluno</label>
           <Select
@@ -239,172 +238,172 @@ export function DirectPanel({ open, dateKey, messages, currentUserId, onClose, o
             ))}
           </Select>
         </div>
+      </Card>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-text-secondary">Prompt de texto</label>
-              <PromptPicker
-                category="mensagem"
-                onSelect={(p) => setForm((prev) => ({ ...prev, textPrompt: p.content, textPromptId: p.id }))}
-              />
-            </div>
-            <Textarea
-              value={form.textPrompt}
-              onChange={(e) => setForm((prev) => ({ ...prev, textPrompt: e.target.value, textPromptId: null }))}
-              rows={4}
-              placeholder="Prompt para gerar a mensagem individual"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-text-secondary">Prompt de imagem (opcional)</label>
-              <PromptPicker
-                category="imagem"
-                onSelect={(p) => setForm((prev) => ({ ...prev, imagePrompt: p.content, imagePromptId: p.id }))}
-              />
-            </div>
-            <Textarea
-              value={form.imagePrompt}
-              onChange={(e) => setForm((prev) => ({ ...prev, imagePrompt: e.target.value, imagePromptId: null }))}
-              rows={4}
-              placeholder="Nem toda mensagem direct precisa de imagem"
-            />
-          </div>
-        </div>
-
-        {genError && <p className="text-sm text-danger">{genError}</p>}
-
-        <Button type="button" onClick={handleGenerate} disabled={generating} className="w-full">
-          <Sparkles size={16} />
-          {generating ? "Gerando..." : "Gerar"}
-        </Button>
-
-        {(form.generatedText || form.generatedImageUrl) && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-text-secondary">Mensagem gerada</label>
-                <Button type="button" variant="ghost" size="sm" onClick={handleCopy} className="h-6 px-2 text-[11px]">
-                  <Copy size={12} />
-                  {copied ? "Copiado!" : "Copiar formatado"}
-                </Button>
-              </div>
-              <Textarea
-                value={form.generatedText}
-                onChange={(e) => setForm((prev) => ({ ...prev, generatedText: e.target.value }))}
-                rows={6}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-text-secondary">Imagem gerada</label>
-              {form.generatedImageUrl ? (
-                <div className="space-y-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={form.generatedImageUrl}
-                    alt="Imagem gerada"
-                    className="w-full rounded-lg border border-border object-cover"
-                  />
-                  <a
-                    href={form.generatedImageUrl}
-                    download
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline"
-                  >
-                    <Download size={12} />
-                    Baixar imagem
-                  </a>
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border-strong px-3 py-6 text-center text-xs text-text-muted">
-                  Nenhuma imagem gerada ainda
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-text-secondary">Status</label>
-            <Select
-              value={form.status}
-              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as EngagementStatus }))}
-            >
-              <option value="rascunho">Rascunho</option>
-              <option value="aprovada">Aprovada</option>
-              <option value="enviada">Enviada</option>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-text-secondary">Tema/tag</label>
-            <Input
-              value={form.tema}
-              onChange={(e) => setForm((prev) => ({ ...prev, tema: e.target.value }))}
-              placeholder="reengajamento, upsell..."
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-text-secondary">Resultado</label>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => setForm((prev) => ({ ...prev, result: prev.result === "funcionou" ? null : "funcionou" }))}
-                className={`flex h-10 flex-1 items-center justify-center rounded-input border ${
-                  form.result === "funcionou"
-                    ? "border-success bg-success/15 text-success"
-                    : "border-border-strong text-text-secondary hover:bg-card-hover"
-                }`}
-              >
-                <ThumbsUp size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setForm((prev) => ({ ...prev, result: prev.result === "nao_funcionou" ? null : "nao_funcionou" }))
-                }
-                className={`flex h-10 flex-1 items-center justify-center rounded-input border ${
-                  form.result === "nao_funcionou"
-                    ? "border-danger bg-danger/15 text-danger"
-                    : "border-border-strong text-text-secondary hover:bg-card-hover"
-                }`}
-              >
-                <ThumbsDown size={15} />
-              </button>
-            </div>
-          </div>
-        </div>
-
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-text-secondary">Nota livre</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-text-secondary">Prompt de texto</label>
+            <PromptPicker
+              category="mensagem"
+              onSelect={(p) => setForm((prev) => ({ ...prev, textPrompt: p.content, textPromptId: p.id }))}
+            />
+          </div>
           <Textarea
-            value={form.notes}
-            onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-            rows={2}
-            placeholder="O que funcionou ou não com esse aluno/segmento?"
+            value={form.textPrompt}
+            onChange={(e) => setForm((prev) => ({ ...prev, textPrompt: e.target.value, textPromptId: null }))}
+            rows={4}
+            placeholder="Prompt para gerar a mensagem individual"
           />
         </div>
 
-        <div className="flex items-center justify-between border-t border-border pt-3">
-          {form.id ? (
-            <Button type="button" variant="danger" size="sm" onClick={handleDelete}>
-              <Trash2 size={14} />
-              Excluir
-            </Button>
-          ) : (
-            <span />
-          )}
-          <Button type="button" onClick={handleSave} disabled={saving}>
-            {saving ? "Salvando..." : form.id ? "Salvar alterações" : "Salvar mensagem"}
-          </Button>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-text-secondary">Prompt de imagem (opcional)</label>
+            <PromptPicker
+              category="imagem"
+              onSelect={(p) => setForm((prev) => ({ ...prev, imagePrompt: p.content, imagePromptId: p.id }))}
+            />
+          </div>
+          <Textarea
+            value={form.imagePrompt}
+            onChange={(e) => setForm((prev) => ({ ...prev, imagePrompt: e.target.value, imagePromptId: null }))}
+            rows={4}
+            placeholder="Nem toda mensagem direct precisa de imagem"
+          />
         </div>
       </div>
-    </Modal>
+
+      {genError && <p className="text-sm text-danger">{genError}</p>}
+
+      <Button type="button" onClick={handleGenerate} disabled={generating} className="w-full">
+        <Sparkles size={16} />
+        {generating ? "Gerando..." : "Gerar"}
+      </Button>
+
+      {(form.generatedText || form.generatedImageUrl) && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-text-secondary">Mensagem gerada</label>
+              <Button type="button" variant="ghost" size="sm" onClick={handleCopy} className="h-6 px-2 text-[11px]">
+                <Copy size={12} />
+                {copied ? "Copiado!" : "Copiar formatado"}
+              </Button>
+            </div>
+            <Textarea
+              value={form.generatedText}
+              onChange={(e) => setForm((prev) => ({ ...prev, generatedText: e.target.value }))}
+              rows={6}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-text-secondary">Imagem gerada</label>
+            {form.generatedImageUrl ? (
+              <div className="space-y-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={form.generatedImageUrl}
+                  alt="Imagem gerada"
+                  className="w-full rounded-lg border border-border object-cover"
+                />
+                <a
+                  href={form.generatedImageUrl}
+                  download
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline"
+                >
+                  <Download size={12} />
+                  Baixar imagem
+                </a>
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-border-strong px-3 py-6 text-center text-xs text-text-muted">
+                Nenhuma imagem gerada ainda
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-secondary">Status</label>
+          <Select
+            value={form.status}
+            onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as EngagementStatus }))}
+          >
+            <option value="rascunho">Rascunho</option>
+            <option value="aprovada">Aprovada</option>
+            <option value="enviada">Enviada</option>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-secondary">Tema/tag</label>
+          <Input
+            value={form.tema}
+            onChange={(e) => setForm((prev) => ({ ...prev, tema: e.target.value }))}
+            placeholder="reengajamento, upsell..."
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-secondary">Resultado</label>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setForm((prev) => ({ ...prev, result: prev.result === "funcionou" ? null : "funcionou" }))}
+              className={`flex h-10 flex-1 items-center justify-center rounded-input border ${
+                form.result === "funcionou"
+                  ? "border-success bg-success/15 text-success"
+                  : "border-border-strong text-text-secondary hover:bg-card-hover"
+              }`}
+            >
+              <ThumbsUp size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setForm((prev) => ({ ...prev, result: prev.result === "nao_funcionou" ? null : "nao_funcionou" }))
+              }
+              className={`flex h-10 flex-1 items-center justify-center rounded-input border ${
+                form.result === "nao_funcionou"
+                  ? "border-danger bg-danger/15 text-danger"
+                  : "border-border-strong text-text-secondary hover:bg-card-hover"
+              }`}
+            >
+              <ThumbsDown size={15} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-text-secondary">Nota livre</label>
+        <Textarea
+          value={form.notes}
+          onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+          rows={2}
+          placeholder="O que funcionou ou não com esse aluno/segmento?"
+        />
+      </div>
+
+      <div className="flex items-center justify-between border-t border-border pt-3">
+        {form.id ? (
+          <Button type="button" variant="danger" size="sm" onClick={handleDelete}>
+            <Trash2 size={14} />
+            Excluir
+          </Button>
+        ) : (
+          <span />
+        )}
+        <Button type="button" onClick={handleSave} disabled={saving}>
+          {saving ? "Salvando..." : form.id ? "Salvar alterações" : "Salvar mensagem"}
+        </Button>
+      </div>
+    </div>
   );
 }

@@ -96,6 +96,39 @@ no modo IA livre de Grupo). `generateText()` ganha o parâmetro `performanceCont
 
 Isso é a **Fase 4.5**, entre Fase 4 e Fase 5.
 
+## Adendo 2 — Reorganização das abas do Calendário (2026-07-17)
+
+Depois de usar a Fase 4.5, o usuário pediu pra reestruturar a navegação:
+**Calendário de Engajamento** passa a ter 3 abas irmãs por rota própria (sem
+sub-abas aninhadas Grupo→IA/Dinâmica como antes):
+
+1. **`/calendario`** — hub puro. Só grid mensal; clicar num dia abre um painel
+   inline (não modal) com notícias cripto do momento + status do dia (dinâmica
+   ativa? quantas mensagens X1/Grupo livre) + 3 botões de redirect com a data
+   na query string: Dinâmica do Dia, Gerar livre com IA, Mensagem X1. Não tem
+   mais nenhum formulário de criação nessa página.
+2. **`/calendario/dinamicas-do-dia`** — página própria com seletor de data
+   (`DateNav`, própria, não depende do hub) + toggle "Usar dinâmica"/"Gerar
+   livre com IA":
+   - Modo dinâmica: **tabela compacta** (uma linha por horário, colapsada por
+     padrão — bem menos vertical que o card list anterior) com gerador de
+     variação por IA por linha (atalhos "Mais curta"/"Mais longa"/"Trocar
+     CTA" + prompt livre). A variação fica em preview até confirmar "Usar esta
+     versão", que grava como override daquele horário/dia específico (não
+     altera o template da dinâmica) — novo campo `text_overrides` jsonb em
+     `daily_dynamic_selection`.
+   - Modo livre: o gerador por IA sem template base (o que era a Fase 4).
+   - Sub-abas internas: "Hoje" | "Analytics" (funcionou/não funcionou) e um
+     link pra "Gerenciar dinâmicas" (o CRUD de templates, que continua em
+     `/calendario/dinamicas`, inalterado).
+3. **`/calendario/x1`** — página própria (antes era um modal "Direct
+   (Alunos)"), com seletor de data próprio + sub-abas "Hoje"/"Histórico".
+
+Bug corrigido nessa reorganização: `CalendarGrid` renderizava o número `0`
+literal no dia quando os contadores de Grupo/Direct eram ambos zero, por causa
+de `{(count) && (<div>...)}` em vez de checar `> 0` explicitamente (clássico
+"falsy zero" do React/JS).
+
 ## Fases
 
 - **Fase 1 — Fundação** ✅ concluída

@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Trophy } from "lucide-react";
+import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Select } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   calcularMelhorCenario,
   calcularMelhorCenarioCopy,
@@ -16,23 +16,27 @@ import {
   type MelhorCenario,
 } from "@/lib/dynamics/calc-engine";
 import { renderSlot, type ProductStatsByWindow } from "@/lib/dynamics/render-message";
+import { MessageRow } from "./message-row";
 import type { Database, TradingWindow } from "@/lib/supabase/types";
 
 type MessageDynamic = Database["public"]["Tables"]["message_dynamics"]["Row"];
 type MessageDynamicSlot = Database["public"]["Tables"]["message_dynamic_slots"]["Row"];
 
-interface DynamicRunnerPanelProps {
+interface DynamicDayTableProps {
   dateKey: string;
   currentUserId: string;
 }
 
-const WINDOWS: TradingWindow[] = ["dia", "semana", "mes", "total"];
-
 function emptyStatsByWindow(): Record<TradingWindow, { wins: number; losses: number }> {
-  return { dia: { wins: 0, losses: 0 }, semana: { wins: 0, losses: 0 }, mes: { wins: 0, losses: 0 }, total: { wins: 0, losses: 0 } };
+  return {
+    dia: { wins: 0, losses: 0 },
+    semana: { wins: 0, losses: 0 },
+    mes: { wins: 0, losses: 0 },
+    total: { wins: 0, losses: 0 },
+  };
 }
 
-export function DynamicRunnerPanel({ dateKey, currentUserId }: DynamicRunnerPanelProps) {
+export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps) {
   const [dynamics, setDynamics] = useState<MessageDynamic[]>([]);
   const [selectedDynamicId, setSelectedDynamicId] = useState<string>("");
   const [slots, setSlots] = useState<MessageDynamicSlot[]>([]);
@@ -51,13 +55,15 @@ export function DynamicRunnerPanel({ dateKey, currentUserId }: DynamicRunnerPane
     entradaLive: 50,
   });
   const [fonteOverrides, setFonteOverrides] = useState<Record<string, TradingWindow>>({});
+  const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
   const [depoimento, setDepoimento] = useState<Depoimento | null>(null);
   const [loading, setLoading] = useState(true);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function load() {
+      setLoading(true);
       const supabase = createClient();
       const [{ data: dyns }, { data: statsRows }, { data: configRow }, { data: selection }] = await Promise.all([
         supabase.from("message_dynamics").select("*").eq("active", true).order("name"),
@@ -93,11 +99,9 @@ export function DynamicRunnerPanel({ dateKey, currentUserId }: DynamicRunnerPane
         });
       }
 
-      if (selection?.dynamic_id) {
-        setSelectedDynamicId(selection.dynamic_id);
-        setFonteOverrides((selection.fonte_overrides as Record<string, TradingWindow>) ?? {});
-      }
-
+      setSelectedDynamicId(selection?.dynamic_id ?? "");
+      setFonteOverrides((selection?.fonte_overrides as Record<string, TradingWindow>) ?? {});
+      setTextOverrides((selection?.text_overrides as Record<string, string>) ?? {});
       setLoading(false);
     }
     load();
@@ -135,14 +139,19 @@ export function DynamicRunnerPanel({ dateKey, currentUserId }: DynamicRunnerPane
     [stats.copy, stats.copyRendimento]
   );
 
-  async function persistSelection(dynamicId: string, overrides: Record<string, TradingWindow>) {
+  async function persistSelection(patch: {
+    dynamicId?: string;
+    fonteOverrides?: Record<string, TradingWindow>;
+    textOverrides?: Record<string, string>;
+  }) {
     setSaving(true);
     const supabase = createClient();
     await supabase.from("daily_dynamic_selection").upsert(
       {
         scheduled_date: dateKey,
-        dynamic_id: dynamicId,
-        fonte_overrides: overrides,
+        dynamic_id: patch.dynamicId ?? selectedDynamicId,
+        fonte_overrides: patch.fonteOverrides ?? fonteOverrides,
+        text_overrides: patch.textOverrides ?? textOverrides,
         created_by: currentUserId,
         updated_at: new Date().toISOString(),
       },
@@ -154,19 +163,27 @@ export function DynamicRunnerPanel({ dateKey, currentUserId }: DynamicRunnerPane
   function handleSelectDynamic(id: string) {
     setSelectedDynamicId(id);
     setFonteOverrides({});
-    if (id) persistSelection(id, {});
+    setTextOverrides({});
+    if (id) persistSelection({ dynamicId: id, fonteOverrides: {}, textOverrides: {} });
   }
 
   function handleFonteChange(msgKey: string, fonte: TradingWindow) {
     const next = { ...fonteOverrides, [msgKey]: fonte };
     setFonteOverrides(next);
-    persistSelection(selectedDynamicId, next);
+    persistSelection({ fonteOverrides: next });
   }
 
-  async function handleCopy(text: string, msgKey: string) {
-    await navigator.clipboard.writeText(text);
-    setCopiedKey(msgKey);
-    setTimeout(() => setCopiedKey(null), 1500);
+  function handleUseVariant(msgKey: string, text: string) {
+    const next = { ...textOverrides, [msgKey]: text };
+    setTextOverrides(next);
+    persistSelection({ textOverrides: next });
+  }
+
+  function handleRestoreOriginal(msgKey: string) {
+    const next = { ...textOverrides };
+    delete next[msgKey];
+    setTextOverrides(next);
+    persistSelection({ textOverrides: next });
   }
 
   if (loading) {
@@ -176,7 +193,7 @@ export function DynamicRunnerPanel({ dateKey, currentUserId }: DynamicRunnerPane
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Select value={selectedDynamicId} onChange={(e) => handleSelectDynamic(e.target.value)} className="flex-1">
+        <Select value={selectedDynamicId} onChange={(e) => handleSelectDynamic(e.target.value)} className="flex-1 max-w-sm">
           <option value="">Selecione a dinâmica do dia...</option>
           {dynamics.map((d) => (
             <option key={d.id} value={d.id}>
@@ -189,15 +206,24 @@ export function DynamicRunnerPanel({ dateKey, currentUserId }: DynamicRunnerPane
 
       {selectedDynamic && (
         <>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {melhorPepe && <MelhorBadge label="Pepe" cenario={melhorPepe} />}
             {melhorLive && <MelhorBadge label="Live" cenario={melhorLive} />}
             {melhorCopy && <MelhorBadge label="Copy" cenario={melhorCopy} />}
+            {selectedDynamic.rules.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setRulesOpen((v) => !v)}
+                className="ml-auto flex items-center gap-1 rounded-button border border-border-strong px-2.5 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
+              >
+                Regras universais
+                {rulesOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+            )}
           </div>
 
-          {selectedDynamic.rules.length > 0 && (
-            <div className="rounded-xl border-l-4 border-accent bg-card-hover p-3">
-              <p className="mb-1.5 text-xs font-semibold uppercase text-text-secondary">Regras universais</p>
+          {rulesOpen && (
+            <Card className="border-l-4 border-accent p-3">
               <ul className="space-y-0.5">
                 {selectedDynamic.rules.map((rule, i) => (
                   <li key={i} className="text-xs text-text-secondary">
@@ -205,12 +231,13 @@ export function DynamicRunnerPanel({ dateKey, currentUserId }: DynamicRunnerPane
                   </li>
                 ))}
               </ul>
-            </div>
+            </Card>
           )}
 
-          <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+          <div className="space-y-1.5">
             {slots.map((slot) => {
-              const fonte = fonteOverrides[slot.msg_key] ?? (slot.fonte_default as TradingWindow) ?? melhorPepe?.fonte ?? "semana";
+              const fonte =
+                fonteOverrides[slot.msg_key] ?? (slot.fonte_default as TradingWindow) ?? melhorPepe?.fonte ?? "semana";
               const { text, computedValues } = renderSlot({
                 template: slot.template,
                 position: slot.position,
@@ -223,88 +250,24 @@ export function DynamicRunnerPanel({ dateKey, currentUserId }: DynamicRunnerPane
                 config,
                 depoimento,
               });
-              const blocked = isResultBlocked(text, computedValues);
-              const { chars, level } = charCountLevel(text);
+              const override = textOverrides[slot.msg_key];
+              const blocked = !override && isResultBlocked(text, computedValues);
+              const { chars, level } = charCountLevel(override ?? text);
 
               return (
-                <div
+                <MessageRow
                   key={slot.id}
-                  className={`rounded-xl border p-3 ${
-                    blocked ? "border-danger bg-danger/10" : "border-border"
-                  }`}
-                >
-                  {blocked && (
-                    <p className="mb-2 rounded-lg bg-danger px-2 py-1.5 text-center text-[11px] font-bold text-white">
-                      ⚠️ RESULTADO NEGATIVO — NÃO ENVIAR ESTA MENSAGEM
-                    </p>
-                  )}
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-button bg-card-hover px-2 py-0.5 text-[11px] text-text-muted">
-                        {slot.time_label}
-                      </span>
-                      <span className="text-xs text-text-secondary">{slot.role_label}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {slot.has_fonte_selector && (
-                        <Select
-                          value={fonte}
-                          onChange={(e) => handleFonteChange(slot.msg_key, e.target.value as TradingWindow)}
-                          className="h-7 w-28 text-[11px]"
-                        >
-                          {WINDOWS.map((w) => (
-                            <option key={w} value={w}>
-                              {w}
-                            </option>
-                          ))}
-                        </Select>
-                      )}
-                      <span
-                        className={`rounded-button px-2 py-0.5 text-[10px] ${
-                          level === "veryhigh"
-                            ? "bg-danger/20 text-danger"
-                            : level === "high"
-                              ? "bg-warning/20 text-warning"
-                              : "bg-card-hover text-text-muted"
-                        }`}
-                      >
-                        {chars} chars
-                      </span>
-                    </div>
-                  </div>
-
-                  <p
-                    className={`mt-2 whitespace-pre-wrap rounded-lg bg-card-hover p-3 text-xs text-text-primary ${
-                      blocked ? "opacity-50 grayscale" : ""
-                    }`}
-                  >
-                    {text}
-                  </p>
-
-                  {slot.media_suggestion && (
-                    <p className="mt-2 rounded-lg border-l-2 border-accent-pink bg-accent-pink/10 px-2 py-1.5 text-[11px] text-text-secondary">
-                      🎬 {slot.media_suggestion}
-                    </p>
-                  )}
-                  {slot.expert_hint && (
-                    <p className="mt-1.5 rounded-lg border-l-2 border-accent bg-accent/10 px-2 py-1.5 text-[11px] text-text-secondary">
-                      🎙️ {slot.expert_hint}
-                    </p>
-                  )}
-
-                  <div className="mt-2 flex justify-end">
-                    <Button
-                      type="button"
-                      variant={blocked ? "secondary" : "primary"}
-                      size="sm"
-                      disabled={blocked}
-                      onClick={() => handleCopy(text, slot.msg_key)}
-                    >
-                      <Copy size={12} />
-                      {blocked ? "Bloqueado" : copiedKey === slot.msg_key ? "Copiado!" : "Copiar"}
-                    </Button>
-                  </div>
-                </div>
+                  slot={slot}
+                  computedText={text}
+                  overrideText={override}
+                  blocked={blocked}
+                  chars={chars}
+                  charLevel={level}
+                  fonte={fonte}
+                  onFonteChange={(f) => handleFonteChange(slot.msg_key, f)}
+                  onUseVariant={(variantText) => handleUseVariant(slot.msg_key, variantText)}
+                  onRestoreOriginal={() => handleRestoreOriginal(slot.msg_key)}
+                />
               );
             })}
           </div>
