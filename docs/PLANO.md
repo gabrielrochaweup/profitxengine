@@ -29,50 +29,72 @@ cruzam vários módulos e precisam ser lembrados nas fases correspondentes:
    Trading Economics ou Investing.com para calendário macro) — decidir na
    hora de implementar a Fase 4, considerando custo e limites de free tier.
 
-## Adendo — Mensagens de Grupo + Direct dos Alunos, com contexto de performance (adicionado em 2026-07-16)
+## Adendo — Mensagens de Grupo (dinâmicas) + Direct dos Alunos (adicionado em 2026-07-16, detalhado em 2026-07-16)
 
-Contexto: o usuário tem arquivos HTML prontos (base visual + lógica de cálculo)
-para essas mensagens, a serem colados/anexados na conversa. **Antes de construir
-qualquer componente deste adendo, analisar esses HTMLs**: estrutura visual,
-variáveis dinâmicas, e principalmente a lógica de cálculo já embutida (percentuais,
-comparativos). Evoluir esse padrão existente, não recriar do zero ignorando-o.
-Aguardando os arquivos serem colados/anexados na conversa antes de iniciar a Fase 4.5.
+O usuário anexou 6 arquivos HTML reais em uso (`Método TRIAD/DOCUMENTOS DINAMICAS/`):
+`batalha`, `bônus`, `kamikaze`, `maratona`, `mentoria`, `premium`. Análise completa:
 
-Escopo:
+**O que são**: não é geração por IA — é um sistema de **calculadora + templates
+pré-escritos** para uma sequência completa de 24 a 41 mensagens de WhatsApp ao
+longo do dia (08h–22h, cada uma com horário/papel fixo: abertura, pré-sessão,
+ao vivo, upgrade, depoimento, urgência, encerramento...). Os 6 arquivos
+compartilham a **mesma engine de cálculo** (mesmas funções JS, mesmos painéis de
+config/resultados/vagas) — só mudam o tema de vendas ("dinâmica do dia") e os
+textos das mensagens. Maratona é a mais distinta: 41 msgs em 2 dias (sáb+dom),
+mecânica de escala progressiva de leverage + TOP 5 cumulativo.
 
-1. **Sub-abas dentro do Calendário de Engajamento**: "Grupo" (o que já foi
-   construído na Fase 4) e "Direct (Alunos)" (nova). Mesmo calendário
-   visual/mês/semana compartilhado; cada dia mostra dois indicadores
-   separados (contagem de mensagens de Grupo vs. de Direct).
+**Lógica de cálculo confirmada** (a portar para `/lib/dynamics/`):
+- % acerto = wins / (wins+loss), por produto (Pepe/Live/Copy) × janela (Dia/Semana/Mês/Total)
+- Lucro Pepe = wins×entrada×payout − loss×entrada×3 (Martingale Gale 1)
+- Lucro Live = wins×entrada×payout − loss×entrada (sem gale)
+- Rendimento Copy = banca × rendimento%
+- "Melhor cenário": escolhe a janela com maior score ponderado (Semana×1.05 >
+  Mês×1.03 > Total×1.02 > Dia×1.00), badge 🏆 automático
+- Vagas por faixa (Turbo/Suprema/Lendária/Galáctica) decaem ao longo do dia
+  (curva linear/agressiva/suave) simulando escassez
+- Guard de segurança: se o lucro calculado der negativo E a mensagem menciona
+  lucro, o card fica bloqueado (visual vermelho pulsante) e o botão de copiar
+  é desabilitado — nunca deixa enviar uma mensagem prometendo lucro que na
+  real seria prejuízo
+- Bancos de textos rotativos (headers/CTAs/urgência/depoimentos) por `rotate(bank, msg_num)`
+  evitam repetição de copy dia a dia
+- Depoimento: nome/valor/situação sorteados em bancos paralelos pelo mesmo
+  índice (consistência matemática), com override manual
 
-2. **Sub-aba "Direct (Alunos)"**: prompt de texto (`PromptPicker` categoria
-   "mensagem"), prompt de imagem opcional, seletor de tom/segmento do aluno
-   (iniciante, avançado, inativo há X dias — esse contexto é injetado
-   automaticamente no prompt antes de gerar), botão Gerar, cópia formatada
-   WhatsApp, campo resultado (funcionou/não funcionou) + nota, histórico
-   filtrável por segmento e tema.
+**Decisões confirmadas com o usuário (2026-07-16)**:
+1. O modo "Dinâmica do dia" (calculadora/templates) é **adicional** ao modo
+   de geração livre por IA já construído na Fase 4 — os dois convivem na
+   sub-aba "Grupo".
+2. Números de performance de trading (Pepe/Live/Copy wins/loss por janela +
+   config global) ficam **salvos no banco**, editáveis numa tela central, e
+   compartilhados entre Grupo e Direct — não redigitados por dia.
+3. As 6 dinâmicas (e futuras) são **editáveis pela equipe dentro do app**:
+   metadados, regras, config de vagas, bancos rotativos e os templates de
+   cada slot de mensagem — não fixas no código. Precisa de uma tela de
+   CRUD de Dinâmicas.
 
-3. **Nova tabela `direct_messages`** (schema no histórico da conversa,
-   mesma forma de `engagement_messages` + `student_segment`), com RLS
-   seguindo o mesmo padrão admin/editor/viewer das demais tabelas de conteúdo.
+**Arquitetura de dados**:
+- `trading_performance_stats` (product, window, wins, losses, rendimento_pct) —
+  fonte central dos números reais.
+- `trading_config` (singleton: cotação, payouts, banca copy, entradas) — config global.
+- `message_dynamics` (slug, nome, ícone, subtitle, regras[], vagas_config jsonb,
+  rotating_banks jsonb, extra_vars jsonb, top5_config jsonb) — a dinâmica em si, editável.
+- `message_dynamic_slots` (dynamic_id, position, msg_key, time_label, role_label,
+  cta_tags, template, media_suggestion, expert_hint, has_fonte_selector) — os slots de mensagem.
+- `daily_dynamic_selection` (scheduled_date, dynamic_id, fonte_overrides jsonb) —
+  qual dinâmica rodou em cada dia do calendário + overrides manuais de fonte por slot.
+- `direct_messages` (schema conforme adendo original) — mensagens individuais aos alunos.
+- Seed: os 6 dynamics + seus slots + bancos são extraídos programaticamente dos
+  HTMLs anexados (script Node local) e inseridos via `service_role`, sem precisar
+  a equipe redigitar nada — "evoluir o que já existe", não recriar do zero.
 
-4. **Contexto de performance nas 4 janelas (Dia/Semana/Mês/Geral)**: antes de
-   cada geração (Grupo e Direct), calcular taxa de aprovação (`result`)
-   nessas 4 janelas — possivelmente segmentado por padrão/tag/abordagem se
-   os HTMLs anexados já tiverem essa lógica — injetar esse resumo como
-   contexto no prompt enviado à IA (ex: "mensagens com tom de urgência
-   tiveram 80% de aprovação nos últimos 7 dias..."), e também exibir esses 4
-   indicadores visualmente num painel acima do campo de geração, replicando
-   a lógica visual dos HTMLs anexados.
+**Contexto de performance (Dia/Semana/Mês/Geral) para a geração por IA** (item 4
+do adendo original) continua valendo — é uma métrica **diferente** da performance
+de trading acima: taxa de aprovação (`result` = funcionou/não_funcionou) das
+mensagens já enviadas, usada para influenciar a IA em Direct (e opcionalmente
+no modo IA livre de Grupo). `generateText()` ganha o parâmetro `performanceContext`.
 
-5. **`generateText()` em `/lib/ai`** precisa aceitar um parâmetro adicional
-   `performanceContext: string` (texto já montado a partir dos 4 indicadores),
-   incluído no prompt/system antes de cada chamada — tanto para Grupo quanto
-   para Direct.
-
-Isso vira efetivamente uma **Fase 4.5**, encaixada depois da Fase 4 e antes da
-Fase 5 (E-mails), já que Fase 5 também reaproveita o padrão de notícia/gancho
-construído na Fase 4.
+Isso é a **Fase 4.5**, entre Fase 4 e Fase 5.
 
 ## Fases
 
@@ -100,12 +122,12 @@ construído na Fase 4.
   calendário macro agendado (juros, CPI) com hora exata; se precisar disso
   no futuro, avaliar Trading Economics ou Alpha Vantage.**
 
-- **Fase 4.5 — Mensagens de Direct (Alunos) + contexto de performance**
-  Ver "Adendo" acima. Sub-aba "Direct (Alunos)" no Calendário, tabela
-  `direct_messages`, cálculo de performance em 4 janelas (Dia/Semana/Mês/
-  Geral) injetado no prompt de geração e exibido visualmente, replicando a
-  lógica dos HTMLs anexados pelo usuário. **Bloqueada até o usuário colar/
-  anexar os arquivos HTML de referência.**
+- **Fase 4.5 — Dinâmicas de Grupo + Direct dos Alunos** (em andamento)
+  Ver "Adendo" acima (detalhado após análise dos 6 HTMLs anexados). Schema de
+  dinâmicas/slots/performance de trading, engine de cálculo portada, seed dos
+  6 dynamics reais, tela de CRUD de Dinâmicas, tela de Performance de Trading,
+  modo "Dinâmica do dia" na sub-aba Grupo, sub-aba Direct (Alunos), contexto
+  de performance de aprovação (Dia/Semana/Mês/Geral) injetado no `generateText()`.
 
 - **Fase 5 — E-mails**
   Calendário de eventos, sugestão de notícias (mesma integração de notícias
