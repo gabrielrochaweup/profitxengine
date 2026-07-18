@@ -1042,3 +1042,65 @@ qualquer editor mesmo com a UI escondendo os botões (defesa em profundidade
 incompleta até rodar).
 
 **Validação**: `tsc --noEmit`, `next lint` e `next build` limpos.
+
+## Adendo 20 — Deploy em produção + 2 bugs reais encontrados pelo usuário já no ar (2026-07-18)
+
+**Deploy**: repositório GitHub privado (`gabrielrochaweup/profitxengine`) criado
+pelo usuário, remote configurado, todo o trabalho pendente desde o commit
+`5eede03` (Fases 5-7 completas + tudo dos Adendos 1-19) commitado e enviado.
+Projeto importado no Vercel, variáveis de ambiente (`NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+`CREDENTIALS_ENCRYPTION_KEY`) configuradas reaproveitando o mesmo projeto
+Supabase de desenvolvimento (decisão do usuário — já tinha as 11 migrations
+rodadas, buckets e usuário admin prontos). Site URL/Redirect URLs do Supabase
+Auth atualizados pra `https://profitxengine-one.vercel.app`. Login confirmado
+funcionando em produção pelo usuário.
+
+**Preferência registrada**: a partir daqui, mudanças validadas localmente
+(tsc/lint/build limpos) são commitadas e enviadas direto pra `main` sem pausa
+pra aprovação — o push já dispara o deploy automático no Vercel (integração
+GitHub nativa). Guardado em memória (`feedback_deploy_workflow`).
+
+**2 bugs reportados pelo usuário já usando em produção**:
+
+1. **Saudação errada ("Boa noite" às 15h)**: `getGreeting()` em
+   [dashboard/page.tsx](../src/app/(app)/dashboard/page.tsx) usava
+   `new Date().getHours()` — como a Dashboard é um Server Component, isso
+   roda no servidor da Vercel, que usa UTC, não o fuso do usuário. Às 15h no
+   Brasil (UTC-3) são 18h em UTC, que caía na faixa "Boa noite" (`hour >=
+   18`). Corrigido fixando `America/Sao_Paulo` via
+   `Intl.DateTimeFormat(...).format()` em vez de depender do fuso de onde a
+   função roda — coerente com o app ser 100% em português pra um público no
+   Brasil, sem necessidade de detectar o fuso do navegador.
+2. **Dashboard cortada no mobile (iPhone 14 Pro)**: os 2 últimos atalhos da
+   grade ficavam inacessíveis. Causa raiz: `(app)/layout.tsx` usava
+   `h-screen` (`100vh`) no container principal — bug clássico do Safari
+   mobile, onde `100vh` é calculado como se a barra de endereço estivesse
+   sempre escondida (maior que a área realmente visível quando ela está
+   visível), fazendo conteúdo do fim da página ficar inacessível por
+   scroll. Trocado por `h-dvh` (`100dvh`, unidade de viewport dinâmico,
+   suportada desde o Tailwind 3.4 e Safari 15.4+), que acompanha a barra de
+   endereço em tempo real. Complementar:
+   - `app/layout.tsx` ganhou `export const viewport` com `viewportFit:
+     "cover"` — sem isso, `env(safe-area-inset-*)` sempre retorna 0 e não
+     tem como respeitar a faixa do home indicator/notch.
+   - Menu inferior mobile ([sidebar.tsx](../src/components/layout/sidebar.tsx)):
+     posição `bottom` passou a usar `max(0.5rem, env(safe-area-inset-bottom)
+     + 0.25rem)` em vez de `bottom-2` fixo, pra não ficar colado na faixa do
+     home indicator em iPhones sem botão físico.
+   - `<main>` ganhou padding inferior com a mesma lógica de safe-area
+     (`pb-[max(6rem,calc(env(safe-area-inset-bottom)+5.5rem))]` no mobile).
+   - Dashboard ([dashboard/page.tsx](../src/app/(app)/dashboard/page.tsx))
+     também ganhou espaçamento mais compacto no mobile (saudação menor,
+     cards de atalho com padding reduzido) — não é a causa raiz, mas ajuda a
+     caber mais conteúdo sem depender só do scroll em telas pequenas.
+
+**Validação**: `tsc --noEmit`, `next lint` e `next build` limpos. Testado no
+navegador em viewport 393×852 (iPhone 14 Pro): saudação mostrando "Boa
+tarde" corretamente, os 6 atalhos da Dashboard visíveis sem cortar, e
+confirmado via `getBoundingClientRect()`/`window.innerHeight` (não só
+visualmente) que o menu inferior fica exatamente colado na base real do
+viewport sem sobra de scroll — o bug de `100vh` do Safari mobile não pode
+ser 100% reproduzido no ambiente de teste local (só a barra de endereço
+real de um Safari em iPhone físico dispara o comportamento), mas `h-dvh` é
+a correção padrão documentada e amplamente usada pra essa classe de bug.

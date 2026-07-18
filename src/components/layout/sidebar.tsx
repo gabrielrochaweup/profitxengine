@@ -82,8 +82,13 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
 
   return (
     <>
-      {/* Menu inferior mobile — some em md+, onde a sidebar de verdade assume. */}
-      <div className="fixed inset-x-2 bottom-2 z-30 flex items-center justify-around rounded-panel border border-border bg-sidebar px-1 py-1.5 md:hidden">
+      {/* Menu inferior mobile — some em md+, onde a sidebar de verdade assume.
+          bottom usa env(safe-area-inset-bottom) pra não ficar colado na faixa
+          do home indicator em iPhones sem botão físico. */}
+      <div
+        className="fixed inset-x-2 z-30 flex items-center justify-around rounded-panel border border-border bg-sidebar px-1 py-1.5 md:hidden"
+        style={{ bottom: "max(0.5rem, calc(env(safe-area-inset-bottom) + 0.25rem))" }}
+      >
         <button
           type="button"
           onClick={() => setMobileOpen(true)}

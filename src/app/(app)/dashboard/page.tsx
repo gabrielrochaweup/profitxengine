@@ -21,8 +21,17 @@ const SHORTCUTS = [
   { href: "/prompts", label: "Biblioteca de Prompts", icon: Library },
 ];
 
+// getHours() usa o fuso do servidor (UTC na Vercel), não o do usuário — como
+// o app é só em português pra um público no Brasil, fixamos America/Sao_Paulo
+// em vez de depender do fuso de onde a função roda.
 function getGreeting() {
-  const hour = new Date().getHours();
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo",
+      hour: "numeric",
+      hourCycle: "h23",
+    }).format(new Date())
+  );
   if (hour < 12) return "Bom dia";
   if (hour < 18) return "Boa tarde";
   return "Boa noite";
@@ -78,24 +87,24 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      <div className="flex flex-col items-center py-14 text-center">
-        <h1 className="text-5xl font-bold text-text-primary">
+      <div className="flex flex-col items-center py-6 text-center sm:py-14">
+        <h1 className="text-3xl font-bold text-text-primary sm:text-5xl">
           {greeting}{displayName ? `, ${displayName}` : ""}!
         </h1>
-        <p className="mt-3 text-base text-text-secondary">Comece a criar.</p>
+        <p className="mt-2 text-sm text-text-secondary sm:mt-3 sm:text-base">Comece a criar.</p>
       </div>
 
-      <div className="mx-auto grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mx-auto grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
         {SHORTCUTS.map((shortcut) => (
           <Link
             key={shortcut.href}
             href={shortcut.href}
-            className="flex flex-col items-center gap-3 rounded-card border border-border bg-card p-5 text-center transition-colors hover:border-accent hover:bg-card-hover"
+            className="flex flex-col items-center gap-2 rounded-card border border-border bg-card p-3 text-center transition-colors hover:border-accent hover:bg-card-hover sm:gap-3 sm:p-5"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
-              <shortcut.icon size={22} />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent sm:h-12 sm:w-12">
+              <shortcut.icon size={20} />
             </div>
-            <span className="text-sm font-medium text-text-secondary">{shortcut.label}</span>
+            <span className="text-xs font-medium text-text-secondary sm:text-sm">{shortcut.label}</span>
           </Link>
         ))}
       </div>
