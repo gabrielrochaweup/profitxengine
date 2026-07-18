@@ -1,34 +1,31 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getUser, getProfile } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Topbar } from "@/components/layout/topbar";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await getProfile(user.id);
+
+  if (profile?.status && profile.status !== "approved") {
+    redirect("/pendente");
+  }
 
   return (
-    <div className="min-h-screen bg-app">
-      <Sidebar />
-      <div className="md:pl-[280px]">
-        <Topbar
-          fullName={profile?.full_name ?? null}
-          email={user.email ?? null}
-          role={profile?.role ?? "editor"}
-        />
-        <main className="px-8 py-6">{children}</main>
+    <div className="flex h-screen flex-col bg-app md:flex-row md:gap-3 md:p-3">
+      <Sidebar
+        fullName={profile?.full_name ?? null}
+        email={user.email ?? null}
+        role={profile?.role ?? "editor"}
+      />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-card md:rounded-panel md:border md:border-border">
+        <main className="flex-1 overflow-y-auto px-3 pt-3 pb-24 sm:px-8 sm:pt-6 sm:pb-6">{children}</main>
       </div>
     </div>
   );

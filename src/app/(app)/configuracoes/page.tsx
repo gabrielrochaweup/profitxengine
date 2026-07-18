@@ -9,9 +9,9 @@ export default async function ConfiguracoesPage() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold text-text-primary">Configurações</h1>
+      <h1 className="text-[28px] font-semibold text-text-primary">Configurações da Plataforma</h1>
       <p className="mt-1 text-sm text-text-secondary">
-        Chaves de API (OpenAI/Anthropic) e preferências de geração por módulo.
+        Chaves de API (OpenAI/Anthropic), preferências de geração por módulo e performance de trading.
       </p>
 
       <ConfiguracoesClient isAdmin={profile.role === "admin"} />

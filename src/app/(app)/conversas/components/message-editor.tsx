@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import type { ConversationMessage } from "@/lib/supabase/types";
+import type { ConversationMessage, Platform } from "@/lib/supabase/types";
 
 interface MessageEditorProps {
+  platform: Platform;
   messages: ConversationMessage[];
   onChange: (messages: ConversationMessage[]) => void;
 }
 
-export function MessageEditor({ messages, onChange }: MessageEditorProps) {
+export function MessageEditor({ platform, messages, onChange }: MessageEditorProps) {
+  const isCrm = platform === "crm";
   function updateMessage(index: number, patch: Partial<ConversationMessage>) {
     const next = messages.map((m, i) => (i === index ? { ...m, ...patch } : m));
     onChange(next);
@@ -59,8 +61,17 @@ export function MessageEditor({ messages, onChange }: MessageEditorProps) {
               onChange={(e) => updateMessage(index, { sender: e.target.value as "left" | "right" })}
               className="h-8 w-32 text-xs"
             >
-              <option value="left">Contato (esquerda)</option>
-              <option value="right">Você (direita)</option>
+              {isCrm ? (
+                <>
+                  <option value="left">Agente/IA (esquerda)</option>
+                  <option value="right">Contato (direita)</option>
+                </>
+              ) : (
+                <>
+                  <option value="left">Contato (esquerda)</option>
+                  <option value="right">Você (direita)</option>
+                </>
+              )}
             </Select>
 
             <div className="flex items-center gap-1">
@@ -91,7 +102,7 @@ export function MessageEditor({ messages, onChange }: MessageEditorProps) {
               placeholder="14:32"
               className="h-8 w-24 text-xs"
             />
-            {message.sender === "right" && (
+            {!isCrm && message.sender === "right" && (
               <Select
                 value={message.read_status ?? "read"}
                 onChange={(e) =>

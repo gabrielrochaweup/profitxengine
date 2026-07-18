@@ -8,6 +8,9 @@ interface PhoneFrameProps {
 export const PHONE_WIDTH = 375;
 export const PHONE_HEIGHT = 812;
 
+export const CRM_WIDTH = 440;
+export const CRM_HEIGHT = 780;
+
 export function PhoneFrame({ showFrame, children }: PhoneFrameProps) {
   if (!showFrame) {
     return (
@@ -27,6 +30,17 @@ export function PhoneFrame({ showFrame, children }: PhoneFrameProps) {
         {children}
         <div className="absolute bottom-1.5 left-1/2 z-10 h-1 w-32 -translate-x-1/2 rounded-full bg-white/70" />
       </div>
+    </div>
+  );
+}
+
+export function CrmFrame({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="overflow-hidden rounded-2xl border border-white/10 bg-[#111318] shadow-2xl"
+      style={{ width: CRM_WIDTH, height: CRM_HEIGHT }}
+    >
+      {children}
     </div>
   );
 }

@@ -64,7 +64,7 @@ export function CalendarGrid({
 
       <div className="grid grid-cols-7 gap-1">
         {weeks.flat().map((date, index) => {
-          if (!date) return <div key={index} className="aspect-square" />;
+          if (!date) return <div key={index} className="h-16" />;
 
           const dateKey = toDateKey(date);
           const indicator = indicatorsByDate[dateKey];
@@ -77,7 +77,7 @@ export function CalendarGrid({
               type="button"
               onClick={() => onSelectDay(dateKey)}
               className={cn(
-                "flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border text-sm transition-colors",
+                "flex h-16 flex-col items-center justify-center gap-1 rounded-xl border text-sm transition-colors",
                 isSelected
                   ? "border-accent bg-accent/15 text-text-primary"
                   : "border-transparent text-text-secondary hover:bg-card-hover",

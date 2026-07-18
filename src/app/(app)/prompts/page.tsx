@@ -1,17 +1,17 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { PromptsClient } from "./prompts-client";
 
 export default async function PromptsPage() {
   const supabase = createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
   if (!user) redirect("/login");
 
   const [{ data: prompts }, { data: profile }] = await Promise.all([
     supabase.from("prompts").select("*").order("created_at", { ascending: false }),
-    supabase.from("profiles").select("role").eq("id", user.id).single(),
+    getProfile(user.id),
   ]);
 
   return (

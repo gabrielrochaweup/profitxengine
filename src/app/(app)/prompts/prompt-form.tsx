@@ -16,11 +16,12 @@ interface PromptFormProps {
   open: boolean;
   prompt: Prompt | null;
   currentUserId: string;
+  defaultCategory?: PromptCategory;
   onClose: () => void;
   onSaved: (prompt: Prompt, isNew: boolean) => void;
 }
 
-export function PromptForm({ open, prompt, currentUserId, onClose, onSaved }: PromptFormProps) {
+export function PromptForm({ open, prompt, currentUserId, defaultCategory, onClose, onSaved }: PromptFormProps) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<PromptCategory>("conversa");
   const [content, setContent] = useState("");
@@ -31,12 +32,12 @@ export function PromptForm({ open, prompt, currentUserId, onClose, onSaved }: Pr
   useEffect(() => {
     if (open) {
       setTitle(prompt?.title ?? "");
-      setCategory(prompt?.category ?? "conversa");
+      setCategory(prompt?.category ?? defaultCategory ?? "conversa");
       setContent(prompt?.content ?? "");
       setTags((prompt?.tags ?? []).join(", "));
       setError(null);
     }
-  }, [open, prompt]);
+  }, [open, prompt, defaultCategory]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();

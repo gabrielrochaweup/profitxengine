@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { Plus, Search, Pencil, Copy, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 import { PROMPT_CATEGORY_LABEL, PROMPT_CATEGORIES } from "@/lib/prompts";
 import type { Database, PromptCategory } from "@/lib/supabase/types";
 import { PromptForm } from "./prompt-form";
@@ -19,27 +20,41 @@ interface PromptsClientProps {
 }
 
 export function PromptsClient({ initialPrompts, currentUserId, isAdmin }: PromptsClientProps) {
+  const toast = useToast();
   const [prompts, setPrompts] = useState<Prompt[]>(initialPrompts);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<PromptCategory | "todas">("todas");
   const [formOpen, setFormOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
+  const [newPromptCategory, setNewPromptCategory] = useState<PromptCategory>("conversa");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverCategory, setDragOverCategory] = useState<PromptCategory | null>(null);
+  const [mobileCategory, setMobileCategory] = useState<PromptCategory>("conversa");
 
   const filtered = useMemo(() => {
-    return prompts.filter((p) => {
-      const matchesCategory = categoryFilter === "todas" || p.category === categoryFilter;
-      const query = search.trim().toLowerCase();
-      const matchesSearch =
-        !query ||
+    const query = search.trim().toLowerCase();
+    if (!query) return prompts;
+    return prompts.filter(
+      (p) =>
         p.title.toLowerCase().includes(query) ||
         p.content.toLowerCase().includes(query) ||
-        (p.tags ?? []).some((tag) => tag.toLowerCase().includes(query));
-      return matchesCategory && matchesSearch;
-    });
-  }, [prompts, search, categoryFilter]);
+        (p.tags ?? []).some((tag) => tag.toLowerCase().includes(query))
+    );
+  }, [prompts, search]);
 
-  function canEdit(prompt: Prompt) {
-    return isAdmin || prompt.created_by === currentUserId;
+  const byCategory = useMemo(() => {
+    const map: Record<PromptCategory, Prompt[]> = { conversa: [], mensagem: [], imagem: [], email: [] };
+    filtered.forEach((p) => map[p.category].push(p));
+    return map;
+  }, [filtered]);
+
+  function canEdit() {
+    return isAdmin;
+  }
+
+  function openNew(category: PromptCategory) {
+    setEditingPrompt(null);
+    setNewPromptCategory(category);
+    setFormOpen(true);
   }
 
   async function handleDelete(prompt: Prompt) {
@@ -48,6 +63,8 @@ export function PromptsClient({ initialPrompts, currentUserId, isAdmin }: Prompt
     const { error } = await supabase.from("prompts").delete().eq("id", prompt.id);
     if (!error) {
       setPrompts((prev) => prev.filter((p) => p.id !== prompt.id));
+    } else {
+      toast.error("Erro ao excluir o prompt. Tente novamente.");
     }
   }
 
@@ -66,6 +83,8 @@ export function PromptsClient({ initialPrompts, currentUserId, isAdmin }: Prompt
       .single();
     if (!error && data) {
       setPrompts((prev) => [data, ...prev]);
+    } else {
+      toast.error("Erro ao duplicar o prompt. Tente novamente.");
     }
   }
 
@@ -75,37 +94,140 @@ export function PromptsClient({ initialPrompts, currentUserId, isAdmin }: Prompt
     setEditingPrompt(null);
   }
 
-  return (
-    <div className="mt-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          <FilterTab
-            active={categoryFilter === "todas"}
-            label="Todas"
-            onClick={() => setCategoryFilter("todas")}
-          />
-          {PROMPT_CATEGORIES.map((category) => (
-            <FilterTab
-              key={category}
-              active={categoryFilter === category}
-              label={PROMPT_CATEGORY_LABEL[category]}
-              onClick={() => setCategoryFilter(category)}
-            />
-          ))}
+  async function handleDropOnCategory(category: PromptCategory) {
+    setDragOverCategory(null);
+    const promptId = draggingId;
+    setDraggingId(null);
+    if (!promptId) return;
+
+    const prompt = prompts.find((p) => p.id === promptId);
+    if (!prompt || prompt.category === category) return;
+    if (!canEdit()) return;
+
+    const previousCategory = prompt.category;
+    setPrompts((prev) => prev.map((p) => (p.id === promptId ? { ...p, category } : p)));
+
+    const supabase = createClient();
+    const { error } = await supabase.from("prompts").update({ category }).eq("id", promptId);
+    if (error) {
+      setPrompts((prev) => prev.map((p) => (p.id === promptId ? { ...p, category: previousCategory } : p)));
+      toast.error("Erro ao mover o prompt. Tente novamente.");
+    }
+  }
+
+  function renderColumn(category: PromptCategory, strong?: boolean) {
+    return (
+      <div
+        key={category}
+        onDragOver={(e) => {
+          if (!draggingId) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          if (dragOverCategory !== category) setDragOverCategory(category);
+        }}
+        onDragLeave={(e) => {
+          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+          setDragOverCategory((prev) => (prev === category ? null : prev));
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          handleDropOnCategory(category);
+        }}
+        className={`flex min-h-0 flex-col rounded-card border p-3 transition-colors ${
+          dragOverCategory === category
+            ? "border-accent bg-accent/5"
+            : strong
+              ? "border-border-strong bg-card-hover"
+              : "border-border bg-card"
+        }`}
+      >
+        <div className="mb-3 flex items-center justify-between px-1">
+          <h2 className="flex items-center gap-2 text-sm font-medium text-text-primary">
+            {PROMPT_CATEGORY_LABEL[category]}
+            <span className="rounded-button bg-card-hover px-1.5 py-0.5 text-[11px] text-text-muted">
+              {byCategory[category].length}
+            </span>
+          </h2>
+          {isAdmin && (
+            <IconButton onClick={() => openNew(category)} label={`Novo prompt de ${PROMPT_CATEGORY_LABEL[category]}`}>
+              <Plus size={14} />
+            </IconButton>
+          )}
         </div>
 
-        <Button
-          onClick={() => {
-            setEditingPrompt(null);
-            setFormOpen(true);
-          }}
-        >
-          <Plus size={16} />
-          Novo prompt
-        </Button>
-      </div>
+        <div className="max-h-[calc(100vh-320px)] space-y-2.5 overflow-y-auto pr-0.5">
+          {byCategory[category].length === 0 ? (
+            <p className="rounded-input border border-dashed border-border-strong px-3 py-6 text-center text-xs text-text-muted">
+              {dragOverCategory === category ? "Solte aqui" : "Nenhum prompt aqui ainda."}
+            </p>
+          ) : (
+            byCategory[category].map((prompt) => (
+              <Card
+                key={prompt.id}
+                draggable={canEdit()}
+                onDragStart={(e) => {
+                  setDraggingId(prompt.id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragEnd={() => {
+                  setDraggingId(null);
+                  setDragOverCategory(null);
+                }}
+                className={`p-3 transition-opacity ${canEdit() ? "cursor-grab active:cursor-grabbing" : ""} ${
+                  draggingId === prompt.id ? "opacity-40" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-xs font-medium text-text-primary">{prompt.title}</h3>
+                  <Badge>{prompt.usage_count}x</Badge>
+                </div>
 
-      <div className="relative mt-4 max-w-sm">
+                <p className="mt-1.5 line-clamp-4 text-xs text-text-secondary">{prompt.content}</p>
+
+                {prompt.tags && prompt.tags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {prompt.tags.map((tag) => (
+                      <span key={tag} className="rounded-button bg-card-hover px-1.5 py-0.5 text-[10px] text-text-muted">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-2 flex items-center justify-end gap-0.5 border-t border-border pt-2">
+                  {isAdmin && (
+                    <IconButton onClick={() => handleDuplicate(prompt)} label="Duplicar">
+                      <Copy size={13} />
+                    </IconButton>
+                  )}
+                  {canEdit() && (
+                    <>
+                      <IconButton
+                        onClick={() => {
+                          setEditingPrompt(prompt);
+                          setFormOpen(true);
+                        }}
+                        label="Editar"
+                      >
+                        <Pencil size={13} />
+                      </IconButton>
+                      <IconButton onClick={() => handleDelete(prompt)} label="Excluir" danger>
+                        <Trash2 size={13} />
+                      </IconButton>
+                    </>
+                  )}
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6">
+      <div className="relative max-w-sm">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
         <input
           value={search}
@@ -115,64 +237,28 @@ export function PromptsClient({ initialPrompts, currentUserId, isAdmin }: Prompt
         />
       </div>
 
-      {filtered.length === 0 ? (
-        <Card className="mt-6 px-6 py-16 text-center text-sm text-text-muted">
-          Nenhum prompt encontrado. Crie o primeiro com o botão &quot;Novo prompt&quot;.
-        </Card>
-      ) : (
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((prompt) => (
-            <Card key={prompt.id} className="flex flex-col p-5">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-sm font-medium text-text-primary">{prompt.title}</h3>
-                <Badge>{PROMPT_CATEGORY_LABEL[prompt.category]}</Badge>
-              </div>
-
-              <p className="mt-2 line-clamp-4 flex-1 text-sm text-text-secondary">{prompt.content}</p>
-
-              {prompt.tags && prompt.tags.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {prompt.tags.map((tag) => (
-                    <span key={tag} className="rounded-button bg-card-hover px-2 py-0.5 text-[11px] text-text-muted">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                <span className="text-xs text-text-muted">Usado {prompt.usage_count}x</span>
-                <div className="flex items-center gap-1">
-                  <IconButton onClick={() => handleDuplicate(prompt)} label="Duplicar">
-                    <Copy size={14} />
-                  </IconButton>
-                  {canEdit(prompt) && (
-                    <>
-                      <IconButton
-                        onClick={() => {
-                          setEditingPrompt(prompt);
-                          setFormOpen(true);
-                        }}
-                        label="Editar"
-                      >
-                        <Pencil size={14} />
-                      </IconButton>
-                      <IconButton onClick={() => handleDelete(prompt)} label="Excluir" danger>
-                        <Trash2 size={14} />
-                      </IconButton>
-                    </>
-                  )}
-                </div>
-              </div>
-            </Card>
+      {/* Mobile: uma categoria por vez, escolhida num dropdown */}
+      <div className="mt-4 sm:hidden">
+        <Select value={mobileCategory} onChange={(e) => setMobileCategory(e.target.value as PromptCategory)}>
+          {PROMPT_CATEGORIES.map((category) => (
+            <option key={category} value={category}>
+              {PROMPT_CATEGORY_LABEL[category]} ({byCategory[category].length})
+            </option>
           ))}
-        </div>
-      )}
+        </Select>
+        <div className="mt-3">{renderColumn(mobileCategory, true)}</div>
+      </div>
+
+      {/* Desktop/tablet: board com as 4 colunas lado a lado */}
+      <div className="mt-4 hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+        {PROMPT_CATEGORIES.map((category) => renderColumn(category))}
+      </div>
 
       <PromptForm
         open={formOpen}
         prompt={editingPrompt}
         currentUserId={currentUserId}
+        defaultCategory={newPromptCategory}
         onClose={() => {
           setFormOpen(false);
           setEditingPrompt(null);
@@ -180,21 +266,6 @@ export function PromptsClient({ initialPrompts, currentUserId, isAdmin }: Prompt
         onSaved={handleSaved}
       />
     </div>
-  );
-}
-
-function FilterTab({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
-        active
-          ? "bg-accent text-white"
-          : "border border-border-strong text-text-secondary hover:bg-card-hover"
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 

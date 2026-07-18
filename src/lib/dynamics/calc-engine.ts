@@ -202,6 +202,41 @@ export function sortearDepoimento(nomes: string[], valores: string[], situacoes:
 }
 
 // ============================================================
+// MARATONA — escala progressiva de alavancagem por depósito.
+// Fórmula reconstruída a partir dos exemplos reais dos templates
+// (conferida contra dezenas de pares depósito→resultado): de $200 a
+// $999 fica fixo em 50%; a partir de $1.000 cresce linearmente
+// +0,5% a cada $1 depositado (equivalente a +5% a cada $1.000), sem
+// teto. Ex.: $7.500 → 87,5% → lucro R$ 36.094 (cotação 5,5).
+// ============================================================
+export function pctEscalaMaratona(depositoUSD: number): number {
+  if (depositoUSD < 200) return 0;
+  if (depositoUSD < 1000) return 50;
+  return 50 + depositoUSD * 0.005;
+}
+
+export interface ResultadoMaratona {
+  pct: number;
+  lucroUSD: number;
+  lucroBRL: number;
+  totalUSD: number;
+  totalBRL: number;
+}
+
+export function calcResultadoMaratona(depositoUSD: number, cotacao: number): ResultadoMaratona {
+  const pct = pctEscalaMaratona(depositoUSD);
+  const lucroUSD = depositoUSD * (pct / 100);
+  const totalUSD = depositoUSD + lucroUSD;
+  return {
+    pct,
+    lucroUSD,
+    lucroBRL: lucroUSD * cotacao,
+    totalUSD,
+    totalBRL: totalUSD * cotacao,
+  };
+}
+
+// ============================================================
 // CARACTERES — aviso de mensagem muito longa pro WhatsApp.
 // ============================================================
 export type CharCountLevel = "normal" | "high" | "veryhigh";

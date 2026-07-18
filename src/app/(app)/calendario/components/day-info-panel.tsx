@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles, Users, MessageCircle, X } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Sparkles, Users, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DayNewsPreview } from "./day-news-preview";
 import type { DayIndicator } from "./calendar-grid";
@@ -10,26 +9,12 @@ import type { DayIndicator } from "./calendar-grid";
 interface DayInfoPanelProps {
   dateKey: string;
   indicator?: DayIndicator;
-  onClose: () => void;
 }
 
-export function DayInfoPanel({ dateKey, indicator, onClose }: DayInfoPanelProps) {
-  const dateLabel = dateKey.split("-").reverse().join("/");
-
+export function DayInfoPanel({ dateKey, indicator }: DayInfoPanelProps) {
   return (
-    <Card className="mt-4 max-w-2xl p-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-medium text-text-primary">{dateLabel}</h3>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-card-hover"
-        >
-          <X size={14} />
-        </button>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-text-secondary">
+    <div>
+      <div className="flex flex-wrap gap-2 text-xs text-text-secondary">
         {indicator?.hasDynamic ? (
           <span className="flex items-center gap-1 rounded-button bg-accent/15 px-2 py-1 text-accent">
             <Sparkles size={12} />
@@ -49,26 +34,26 @@ export function DayInfoPanel({ dateKey, indicator, onClose }: DayInfoPanelProps)
       </div>
 
       <div className="mt-4">
-        <DayNewsPreview />
+        <DayNewsPreview dateKey={dateKey} />
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-        <Link href={`/calendario/dinamicas-do-dia?date=${dateKey}`}>
+        <Link href={`/dinamicas-do-dia?data=${dateKey}`}>
           <Button type="button" size="sm">
             Ver/criar Dinâmica do Dia
           </Button>
         </Link>
-        <Link href={`/calendario/dinamicas-do-dia?date=${dateKey}&mode=livre`}>
+        <Link href={`/dinamicas-do-dia?data=${dateKey}&mode=livre`}>
           <Button type="button" variant="secondary" size="sm">
             Gerar mensagem livre com IA
           </Button>
         </Link>
-        <Link href={`/calendario/x1?date=${dateKey}`}>
+        <Link href={`/mensagens-x1?data=${dateKey}`}>
           <Button type="button" variant="secondary" size="sm">
             Criar Mensagem X1
           </Button>
         </Link>
       </div>
-    </Card>
+    </div>
   );
 }

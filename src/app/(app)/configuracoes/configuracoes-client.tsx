@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { LoadingState } from "@/components/ui/loading-state";
 
-type Provider = "openai" | "anthropic";
+type Provider = "openai" | "anthropic" | "google";
+type ImageProvider = "openai" | "google";
 type Module = "conversa" | "mensagem" | "imagem" | "email";
 
 interface CredentialStatus {
@@ -22,14 +24,74 @@ interface ProviderSetting {
   model: string;
 }
 
-const PROVIDER_LABEL: Record<Provider, string> = { openai: "OpenAI", anthropic: "Anthropic (Claude)" };
+const PROVIDER_LABEL: Record<Provider, string> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic (Claude)",
+  google: "Google (Gemini)",
+};
+
 const MODULE_LABEL: Record<Module, string> = {
   conversa: "Texto de conversas",
   mensagem: "Texto de mensagens do grupo",
   imagem: "Geração de imagem",
   email: "Texto de e-mails",
 };
-const DEFAULT_MODEL: Record<Provider, string> = { openai: "gpt-4o-mini", anthropic: "claude-sonnet-4-5" };
+
+// Módulos de texto aceitam os 3 provedores; imagem só os que geram imagem (Anthropic não gera).
+const MODULE_PROVIDERS: Record<Module, Provider[]> = {
+  conversa: ["openai", "anthropic", "google"],
+  mensagem: ["openai", "anthropic", "google"],
+  email: ["openai", "anthropic", "google"],
+  imagem: ["openai", "google"],
+};
+
+const TEXT_MODELS: Record<Provider, { id: string; label: string }[]> = {
+  openai: [
+    { id: "gpt-5.6-sol", label: "GPT-5.6 Sol (mais avançado)" },
+    { id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
+    { id: "gpt-5.6-luna", label: "GPT-5.6 Luna (rápido/econômico)" },
+    { id: "gpt-4o", label: "GPT-4o" },
+    { id: "gpt-4o-mini", label: "GPT-4o mini" },
+  ],
+  anthropic: [
+    { id: "claude-opus-4-8", label: "Claude Opus 4.8 (mais avançado)" },
+    { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
+    { id: "claude-fable-5", label: "Claude Fable 5" },
+    { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5 (rápido/econômico)" },
+  ],
+  google: [
+    { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro (mais avançado)" },
+    { id: "gemini-3-flash", label: "Gemini 3 Flash" },
+    { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+    { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite (rápido/econômico)" },
+  ],
+};
+
+const IMAGE_MODELS: Record<ImageProvider, { id: string; label: string }[]> = {
+  openai: [
+    { id: "gpt-image-2", label: "GPT Image 2 (mais novo)" },
+    { id: "gpt-image-1.5", label: "GPT Image 1.5" },
+    { id: "gpt-image-1", label: "GPT Image 1" },
+    { id: "dall-e-3", label: "DALL·E 3" },
+  ],
+  google: [
+    { id: "gemini-3-pro-image", label: "Nano Banana Pro (Gemini 3 Pro Image)" },
+    { id: "gemini-3.1-flash-image", label: "Nano Banana 2 (Gemini 3.1 Flash Image)" },
+    { id: "gemini-3.1-flash-lite-image", label: "Nano Banana 2 Lite" },
+    { id: "gemini-2.5-flash-image", label: "Nano Banana (legado)" },
+  ],
+};
+
+const DEFAULT_TEXT_MODEL: Record<Provider, string> = {
+  openai: TEXT_MODELS.openai[4].id,
+  anthropic: TEXT_MODELS.anthropic[3].id,
+  google: TEXT_MODELS.google[3].id,
+};
+
+const DEFAULT_IMAGE_MODEL: Record<ImageProvider, string> = {
+  openai: IMAGE_MODELS.openai[2].id,
+  google: IMAGE_MODELS.google[1].id,
+};
 
 export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
   const [credentials, setCredentials] = useState<CredentialStatus[] | null>(null);
@@ -38,18 +100,19 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
 
   useEffect(() => {
     async function load() {
-      const settingsRes = await fetch("/api/ai/provider-settings");
+      const [settingsRes, credRes] = await Promise.all([
+        fetch("/api/ai/provider-settings"),
+        isAdmin ? fetch("/api/ai/credentials") : Promise.resolve(null),
+      ]);
+
       if (settingsRes.ok) {
         const body = await settingsRes.json();
         setSettings(body.settings ?? []);
       }
 
-      if (isAdmin) {
-        const credRes = await fetch("/api/ai/credentials");
-        if (credRes.ok) {
-          const body = await credRes.json();
-          setCredentials(body.credentials ?? []);
-        }
+      if (credRes?.ok) {
+        const body = await credRes.json();
+        setCredentials(body.credentials ?? []);
       }
       setLoading(false);
     }
@@ -65,7 +128,7 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
       settings.find((s) => s.module === module) ?? {
         module,
         provider: "openai",
-        model: DEFAULT_MODEL.openai,
+        model: module === "imagem" ? DEFAULT_IMAGE_MODEL.openai : DEFAULT_TEXT_MODEL.openai,
       }
     );
   }
@@ -87,7 +150,9 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
 
   if (loading) {
     return (
-      <Card className="mt-6 px-6 py-10 text-center text-sm text-text-muted">Carregando configurações...</Card>
+      <Card className="mt-6">
+        <LoadingState message="Carregando configurações..." />
+      </Card>
     );
   }
 
@@ -101,8 +166,8 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
             : "Apenas administradores podem cadastrar ou alterar chaves de API."}
         </p>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-          {(["openai", "anthropic"] as Provider[]).map((provider) => (
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          {(["openai", "anthropic", "google"] as Provider[]).map((provider) => (
             <CredentialCard
               key={provider}
               provider={provider}
@@ -122,7 +187,7 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
       <section>
         <h2 className="text-base font-medium text-text-primary">Provedor por tipo de tarefa</h2>
         <p className="mt-1 text-sm text-text-muted">
-          Escolha qual IA usar em cada tipo de geração de conteúdo.
+          Escolha qual IA e qual modelo usar em cada tipo de geração de conteúdo.
         </p>
 
         <Card className="mt-4 divide-y divide-border">
@@ -156,6 +221,7 @@ function CredentialCard({
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<{ valid: boolean; error?: string } | null>(null);
+  const [editing, setEditing] = useState(!status);
 
   async function handleTest() {
     if (!apiKey) return;
@@ -185,6 +251,7 @@ function CredentialCard({
       onSaved({ provider, is_valid: body.is_valid, last_validated_at: new Date().toISOString() });
       setApiKey("");
       setTestResult(null);
+      setEditing(false);
     }
   }
 
@@ -193,6 +260,8 @@ function CredentialCard({
       ? { tone: "success" as const, label: "Conectada" }
       : { tone: "danger" as const, label: "Inválida" }
     : { tone: "neutral" as const, label: "Não configurada" };
+
+  const placeholder = provider === "openai" ? "sk-..." : provider === "anthropic" ? "sk-ant-..." : "AIza...";
 
   return (
     <Card className="p-5">
@@ -203,33 +272,62 @@ function CredentialCard({
 
       {isAdmin && (
         <div className="mt-4 space-y-3">
-          <Input
-            type="password"
-            placeholder={provider === "openai" ? "sk-..." : "sk-ant-..."}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-          />
+          {!editing && status ? (
+            <div className="flex items-center justify-between gap-2 rounded-input border border-border bg-input px-3 py-2.5">
+              <span className="text-sm text-text-secondary">•••••••••••••••• (chave registrada)</span>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="shrink-0 text-xs font-medium text-accent hover:underline"
+              >
+                Alterar
+              </button>
+            </div>
+          ) : (
+            <>
+              <Input
+                type="password"
+                placeholder={placeholder}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
 
-          {testResult && (
-            <p className={`text-xs ${testResult.valid ? "text-success" : "text-danger"}`}>
-              {testResult.valid ? "Conexão válida." : testResult.error || "Chave inválida."}
-            </p>
+              {testResult && (
+                <p className={`text-xs ${testResult.valid ? "text-success" : "text-danger"}`}>
+                  {testResult.valid ? "Conexão válida." : testResult.error || "Chave inválida."}
+                </p>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={!apiKey || testing}
+                  onClick={handleTest}
+                >
+                  {testing ? "Testando..." : "Testar conexão"}
+                </Button>
+                <Button type="button" size="sm" disabled={!apiKey || saving} onClick={handleSave}>
+                  {saving ? "Salvando..." : "Salvar chave"}
+                </Button>
+                {status && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditing(false);
+                      setApiKey("");
+                      setTestResult(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                )}
+              </div>
+            </>
           )}
-
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={!apiKey || testing}
-              onClick={handleTest}
-            >
-              {testing ? "Testando..." : "Testar conexão"}
-            </Button>
-            <Button type="button" size="sm" disabled={!apiKey || saving} onClick={handleSave}>
-              {saving ? "Salvando..." : "Salvar chave"}
-            </Button>
-          </div>
         </div>
       )}
     </Card>
@@ -252,12 +350,15 @@ function ModuleSettingRow({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const imageLocked = module === "imagem";
+  const isImage = module === "imagem";
+  const allowedProviders = MODULE_PROVIDERS[module];
+  const modelOptions = isImage ? IMAGE_MODELS[provider as ImageProvider] : TEXT_MODELS[provider];
+  const hasCustomModel = !modelOptions.some((m) => m.id === model);
 
   async function handleSave() {
     setSaving(true);
     setSaved(false);
-    const ok = await onSave(module, imageLocked ? "openai" : provider, model);
+    const ok = await onSave(module, provider, model);
     setSaving(false);
     if (ok) {
       setSaved(true);
@@ -269,29 +370,39 @@ function ModuleSettingRow({
     <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="text-sm font-medium text-text-primary">{MODULE_LABEL[module]}</p>
-        {imageLocked && <p className="text-xs text-text-muted">Geração de imagem só suporta OpenAI.</p>}
+        {isImage && <p className="text-xs text-text-muted">Geração de imagem suporta OpenAI e Google.</p>}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
         <Select
-          value={imageLocked ? "openai" : provider}
-          disabled={!isAdmin || imageLocked}
+          value={provider}
+          disabled={!isAdmin}
           onChange={(e) => {
             const next = e.target.value as Provider;
             setProvider(next);
-            setModel(DEFAULT_MODEL[next]);
+            setModel(isImage ? DEFAULT_IMAGE_MODEL[next as ImageProvider] : DEFAULT_TEXT_MODEL[next]);
           }}
-          className="w-40"
+          className="min-w-0 flex-1 sm:w-40 sm:flex-none"
         >
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
+          {allowedProviders.map((p) => (
+            <option key={p} value={p}>
+              {PROVIDER_LABEL[p]}
+            </option>
+          ))}
         </Select>
-        <Input
+        <Select
           value={model}
           disabled={!isAdmin}
           onChange={(e) => setModel(e.target.value)}
-          className="w-44"
-        />
+          className="min-w-0 flex-1 sm:w-56 sm:flex-none"
+        >
+          {hasCustomModel && <option value={model}>{model} (atual)</option>}
+          {modelOptions.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
+          ))}
+        </Select>
         {isAdmin && (
           <Button type="button" size="sm" variant="secondary" disabled={saving} onClick={handleSave}>
             {saving ? "..." : saved ? "Salvo" : "Salvar"}

@@ -1,4 +1,4 @@
-export type AiProvider = "openai" | "anthropic";
+export type AiProvider = "openai" | "anthropic" | "google";
 
 export interface GenerateTextParams {
   prompt: string;
@@ -15,11 +15,15 @@ export interface GenerateTextResult {
   tokensUsed: number | null;
 }
 
+export type ImageAspectRatio = "1:1" | "3:2" | "4:3" | "9:16" | "16:9";
+export type ImageQuality = "low" | "medium" | "high";
+
 export interface GenerateImageParams {
   prompt: string;
   provider: AiProvider;
   model: string;
-  size?: "1024x1024" | "1024x1792" | "1792x1024";
+  aspectRatio?: ImageAspectRatio;
+  quality?: ImageQuality;
 }
 
 export interface GenerateImageResult {
@@ -27,8 +31,9 @@ export interface GenerateImageResult {
 }
 
 export const DEFAULT_MODELS: Record<AiProvider, { text: string; image?: string }> = {
-  openai: { text: "gpt-4o-mini", image: "dall-e-3" },
-  anthropic: { text: "claude-sonnet-4-5" },
+  openai: { text: "gpt-4o-mini", image: "gpt-image-1" },
+  anthropic: { text: "claude-sonnet-5" },
+  google: { text: "gemini-3-flash", image: "gemini-3.1-flash-image" },
 };
 
 export function combineSystem(params: Pick<GenerateTextParams, "system" | "performanceContext">): string | undefined {

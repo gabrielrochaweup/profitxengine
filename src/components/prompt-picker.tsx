@@ -5,7 +5,7 @@ import { Library, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { PROMPT_CATEGORY_LABEL } from "@/lib/prompts";
+import { PROMPT_CATEGORY_LABEL, PROMPT_CATEGORIES } from "@/lib/prompts";
 import type { Database, PromptCategory } from "@/lib/supabase/types";
 
 type Prompt = Database["public"]["Tables"]["prompts"]["Row"];
@@ -17,31 +17,44 @@ interface PromptPickerProps {
 }
 
 /**
- * Seletor de prompts salvos na Biblioteca, filtrado por categoria.
- * Usado dentro de Conversas, Calendário de Engajamento e E-mails para
- * reaproveitar prompts já cadastrados em vez de redigitar.
+ * Seletor de prompts salvos na Biblioteca. Abre num popup com abas de
+ * categoria (parte da categoria do contexto, mas permite navegar pelas
+ * outras) — usado em todo lugar que tem uma ação de IA (Conversas,
+ * Dinâmicas do Dia, Mensagens X1, E-mails) pra reaproveitar prompts já
+ * cadastrados em vez de redigitar.
  */
 export function PromptPicker({ category, onSelect, trigger }: PromptPickerProps) {
   const [open, setOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<PromptCategory>(category);
   const [loading, setLoading] = useState(false);
-  const [prompts, setPrompts] = useState<Prompt[] | null>(null);
+  const [promptsByCategory, setPromptsByCategory] = useState<Partial<Record<PromptCategory, Prompt[]>>>({});
   const [search, setSearch] = useState("");
 
-  async function handleOpen() {
-    setOpen(true);
-    if (prompts === null) {
-      setLoading(true);
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("prompts")
-        .select("*")
-        .eq("category", category)
-        .order("usage_count", { ascending: false });
-      setPrompts(data ?? []);
-      setLoading(false);
-    }
+  async function loadCategory(target: PromptCategory) {
+    if (promptsByCategory[target] !== undefined) return;
+    setLoading(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("prompts")
+      .select("*")
+      .eq("category", target)
+      .order("usage_count", { ascending: false });
+    setPromptsByCategory((prev) => ({ ...prev, [target]: data ?? [] }));
+    setLoading(false);
   }
 
+  function handleOpen() {
+    setActiveCategory(category);
+    setOpen(true);
+    loadCategory(category);
+  }
+
+  function handleCategoryChange(next: PromptCategory) {
+    setActiveCategory(next);
+    loadCategory(next);
+  }
+
+  const prompts = promptsByCategory[activeCategory];
   const filtered = (prompts ?? []).filter((p) => {
     const query = search.trim().toLowerCase();
     if (!query) return true;
@@ -58,16 +71,29 @@ export function PromptPicker({ category, onSelect, trigger }: PromptPickerProps)
         {trigger ?? (
           <Button type="button" variant="secondary" size="sm">
             <Library size={14} />
-            Usar prompt salvo
+            Adicionar prompt
           </Button>
         )}
       </div>
 
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title={`Prompts salvos — ${PROMPT_CATEGORY_LABEL[category]}`}
-      >
+      <Modal open={open} onClose={() => setOpen(false)} title="Biblioteca de Prompts">
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {PROMPT_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => handleCategoryChange(cat)}
+              className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeCategory === cat
+                  ? "bg-accent text-white"
+                  : "border border-border-strong text-text-secondary hover:bg-card-hover"
+              }`}
+            >
+              {PROMPT_CATEGORY_LABEL[cat]}
+            </button>
+          ))}
+        </div>
+
         <div className="relative mb-3">
           <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
@@ -78,11 +104,11 @@ export function PromptPicker({ category, onSelect, trigger }: PromptPickerProps)
           />
         </div>
 
-        {loading ? (
+        {loading && prompts === undefined ? (
           <p className="py-8 text-center text-sm text-text-muted">Carregando...</p>
         ) : filtered.length === 0 ? (
           <p className="py-8 text-center text-sm text-text-muted">
-            Nenhum prompt de {PROMPT_CATEGORY_LABEL[category].toLowerCase()} encontrado. Crie um na
+            Nenhum prompt de {PROMPT_CATEGORY_LABEL[activeCategory].toLowerCase()} encontrado. Crie um na
             Biblioteca de Prompts.
           </p>
         ) : (

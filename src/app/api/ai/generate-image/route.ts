@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile, hasRole } from "@/lib/auth";
 import { getDecryptedKey, getProviderSettings, incrementPromptUsage } from "@/lib/ai/credentials";
-import { generateImage } from "@/lib/ai";
+import { generateImage, DEFAULT_MODELS } from "@/lib/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { AiModule } from "@/lib/supabase/types";
+import type { AiModule, ImageAspectRatio, ImageContextType, ImageQuality } from "@/lib/supabase/types";
 
 interface GenerateImageBody {
   module: AiModule;
   prompt: string;
   promptId?: string;
-  size?: "1024x1024" | "1024x1792" | "1792x1024";
+  aspectRatio?: ImageAspectRatio;
+  quality?: ImageQuality;
+  contextType?: ImageContextType;
+  contextId?: string;
 }
 
 export async function POST(request: Request) {
@@ -24,32 +27,37 @@ export async function POST(request: Request) {
   }
 
   const settings = await getProviderSettings(body.module);
-  if (settings.provider !== "openai") {
+  if (settings.provider === "anthropic") {
     return NextResponse.json(
-      { error: "Geração de imagem só está disponível com o provedor OpenAI. Ajuste em Configurações." },
+      { error: "Anthropic não suporta geração de imagens. Selecione OpenAI ou Google em Configurações." },
       { status: 422 }
     );
   }
 
-  const apiKey = await getDecryptedKey("openai");
+  const apiKey = await getDecryptedKey(settings.provider);
   if (!apiKey) {
     return NextResponse.json(
-      { error: "Nenhuma chave válida configurada para OpenAI. Configure em Configurações." },
+      { error: `Nenhuma chave válida configurada para ${settings.provider}. Configure em Configurações.` },
       { status: 422 }
     );
   }
 
+  const model = settings.model || DEFAULT_MODELS[settings.provider].image || DEFAULT_MODELS.openai.image!;
+
   try {
+    const aspectRatio = body.aspectRatio ?? "1:1";
+    const quality = body.quality ?? "medium";
+
     const result = await generateImage(
-      { prompt: body.prompt, provider: "openai", model: settings.model || "dall-e-3", size: body.size },
+      { prompt: body.prompt, provider: settings.provider, model, aspectRatio, quality },
       apiKey
     );
 
     const admin = createAdminClient();
     await admin.from("ai_usage_log").insert({
       module: body.module,
-      provider: "openai",
-      model: settings.model || "dall-e-3",
+      provider: settings.provider,
+      model,
       tokens_used: null,
       created_by: profile.userId,
     });
@@ -58,7 +66,28 @@ export async function POST(request: Request) {
       await incrementPromptUsage(body.promptId);
     }
 
-    return NextResponse.json({ url: result.url });
+    let generationId: string | null = null;
+    if (body.contextType && body.contextId) {
+      const { data } = await admin
+        .from("generated_images")
+        .insert({
+          context_type: body.contextType,
+          context_id: body.contextId,
+          prompt: body.prompt,
+          prompt_id: body.promptId ?? null,
+          image_url: result.url,
+          provider: settings.provider,
+          model,
+          format: aspectRatio,
+          quality,
+          created_by: profile.userId,
+        })
+        .select("id")
+        .single();
+      generationId = data?.id ?? null;
+    }
+
+    return NextResponse.json({ url: result.url, id: generationId });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro ao gerar imagem." },

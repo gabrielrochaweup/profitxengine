@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
+    "@google/genai": "^2.12.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
     "clsx": "^2.1.1",
     "fast-xml-parser": "^5.10.1",
+    "geist": "^1.7.2",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.24.0",
     "next": "14.2.35",

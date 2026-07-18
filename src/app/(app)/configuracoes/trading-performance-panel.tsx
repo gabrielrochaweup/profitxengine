@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
+import { useToast } from "@/components/ui/toast";
 import { calcAcerto } from "@/lib/dynamics/calc-engine";
 import type { Database, TradingProduct, TradingWindow } from "@/lib/supabase/types";
 
@@ -32,6 +34,7 @@ function emptyStats(): StatsState {
 }
 
 export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
+  const toast = useToast();
   const [stats, setStats] = useState<StatsState>(emptyStats());
   const [config, setConfig] = useState<ConfigRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,19 +93,31 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
       }))
     );
 
-    await supabase.from("trading_performance_stats").upsert(statsPayload, { onConflict: "product,time_window" });
+    const { error: statsError } = await supabase
+      .from("trading_performance_stats")
+      .upsert(statsPayload, { onConflict: "product,time_window" });
 
+    let configError = null;
     if (config) {
-      await supabase.from("trading_config").update(config).eq("id", 1);
+      const res = await supabase.from("trading_config").update(config).eq("id", 1);
+      configError = res.error;
     }
 
     setSaving(false);
+    if (statsError || configError) {
+      toast.error("Erro ao salvar a performance. Tente novamente.");
+      return;
+    }
     setSavedAt(Date.now());
     setTimeout(() => setSavedAt(null), 2000);
   }
 
   if (loading) {
-    return <Card className="px-6 py-10 text-center text-sm text-text-muted">Carregando performance...</Card>;
+    return (
+      <Card>
+        <LoadingState message="Carregando performance..." />
+      </Card>
+    );
   }
 
   return (

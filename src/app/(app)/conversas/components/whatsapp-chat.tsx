@@ -1,4 +1,4 @@
-import { ArrowLeft, Video, Phone as PhoneIcon, MoreVertical, Smile, Paperclip, Mic, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Video, Phone as PhoneIcon, MoreVertical, Plus, Camera, Mic, Check, CheckCheck } from "lucide-react";
 import { StatusBar } from "./status-bar";
 import type { ConversationMessage } from "@/lib/supabase/types";
 
@@ -18,37 +18,37 @@ export function WhatsappChat({
   messages,
 }: WhatsappChatProps) {
   return (
-    <div className="flex h-full flex-col bg-[#e5ddd5]">
-      <div className="bg-[#075e54]">
+    <div className="flex h-full flex-col bg-[#0b141a]">
+      <div className="bg-[#1f2c34]">
         <StatusBar time={statusBarTime} dark />
         <div className="flex items-center gap-3 px-3 pb-3 pt-1 text-white">
-          <ArrowLeft size={22} />
+          <ArrowLeft size={22} className="text-[#8696a0]" />
           <Avatar url={contactAvatarUrl} name={contactName} />
           <div className="flex-1 min-w-0">
             <p className="truncate text-[16px] font-medium leading-tight">{contactName || "Contato"}</p>
-            <p className="truncate text-[12px] text-white/80">{contactStatus || "online"}</p>
+            <p className="truncate text-[12px] text-white/60">{contactStatus || "online"}</p>
           </div>
           <VideoIconWrap />
           <CallIconWrap />
-          <MoreVertical size={20} />
+          <MoreVertical size={20} className="text-[#8696a0]" />
         </div>
       </div>
 
-      <div className="flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
+      <div className="flex flex-1 flex-col justify-end space-y-1.5 overflow-y-auto px-3 py-3">
         {messages.map((message, index) => (
           <div key={index} className={`flex ${message.sender === "right" ? "justify-end" : "justify-start"}`}>
             <div
               className={`relative max-w-[78%] rounded-lg px-2.5 py-1.5 shadow-sm ${
                 message.sender === "right"
-                  ? "rounded-tr-none bg-[#dcf8c6]"
-                  : "rounded-tl-none bg-white"
+                  ? "rounded-tr-none bg-[#005c4b]"
+                  : "rounded-tl-none bg-[#1f2c34]"
               }`}
             >
-              <p className="whitespace-pre-wrap break-words text-[14.5px] leading-snug text-[#111b21]">
+              <p className="whitespace-pre-wrap break-words text-[14.5px] leading-snug text-[#e9edef]">
                 {message.text}
               </p>
               <div className="mt-0.5 flex items-center justify-end gap-1">
-                <span className="text-[11px] text-[#667781]">{message.time}</span>
+                <span className="text-[11px] text-[#8696a0]">{message.time}</span>
                 {message.sender === "right" && <ReadTicks status={message.read_status} />}
               </div>
             </div>
@@ -56,15 +56,13 @@ export function WhatsappChat({
         ))}
       </div>
 
-      <div className="flex items-center gap-2 bg-[#f0f0f0] px-2 py-2">
-        <div className="flex flex-1 items-center gap-2 rounded-full bg-white px-3 py-2">
-          <Smile size={20} className="text-[#54656f]" />
+      <div className="flex items-center gap-2 bg-[#1f2c34] px-2 py-2">
+        <Plus size={22} className="shrink-0 text-[#8696a0]" />
+        <div className="flex flex-1 items-center rounded-full bg-[#2a3942] px-3 py-2">
           <span className="flex-1 text-[14px] text-[#8696a0]">Digite uma mensagem</span>
-          <Paperclip size={18} className="text-[#54656f]" />
         </div>
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#075e54]">
-          <Mic size={16} className="text-white" />
-        </div>
+        <Camera size={20} className="shrink-0 text-[#8696a0]" />
+        <Mic size={20} className="shrink-0 text-[#8696a0]" />
       </div>
     </div>
   );
@@ -83,14 +81,14 @@ function Avatar({ url, name }: { url: string | null; name: string }) {
 }
 
 function VideoIconWrap() {
-  return <Video size={20} />;
+  return <Video size={20} className="text-[#8696a0]" />;
 }
 function CallIconWrap() {
-  return <PhoneIcon size={19} />;
+  return <PhoneIcon size={19} className="text-[#8696a0]" />;
 }
 
 function ReadTicks({ status }: { status?: ConversationMessage["read_status"] }) {
-  if (!status || status === "sent") return <Check size={15} className="text-[#667781]" />;
-  const color = status === "read" ? "text-[#53bdeb]" : "text-[#667781]";
+  if (!status || status === "sent") return <Check size={15} className="text-[#8696a0]" />;
+  const color = status === "read" ? "text-[#53bdeb]" : "text-[#8696a0]";
   return <CheckCheck size={15} className={color} />;
 }

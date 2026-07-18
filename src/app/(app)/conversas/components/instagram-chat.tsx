@@ -33,7 +33,7 @@ export function InstagramChat({
         <Info size={21} className="ml-3" />
       </div>
 
-      <div className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
+      <div className="flex flex-1 flex-col justify-end space-y-1 overflow-y-auto px-3 py-3">
         {messages.map((message, index) => (
           <div key={index} className={`flex ${message.sender === "right" ? "justify-end" : "justify-start"}`}>
             <div

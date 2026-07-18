@@ -33,7 +33,7 @@ export function HistoryPanel({ conversations, onSelect, onDelete }: HistoryPanel
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-button border border-border-strong px-4 py-2 text-sm text-text-primary hover:bg-card-hover"
+        className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-button border border-border-strong px-4 py-2 text-sm text-text-primary hover:bg-card-hover"
       >
         <History size={16} />
         Minhas conversas ({conversations.length})
@@ -71,7 +71,13 @@ export function HistoryPanel({ conversations, onSelect, onDelete }: HistoryPanel
                     <span className="text-sm font-medium text-text-primary">
                       {conversation.title || conversation.contact_name || "Sem título"}
                     </span>
-                    <Badge>{conversation.platform === "whatsapp" ? "WhatsApp" : "Instagram"}</Badge>
+                    <Badge>
+                      {conversation.platform === "whatsapp"
+                        ? "WhatsApp"
+                        : conversation.platform === "instagram"
+                          ? "Instagram"
+                          : "CRM"}
+                    </Badge>
                   </div>
                   <p className="mt-0.5 text-xs text-text-muted">
                     {(conversation.messages as unknown[]).length} mensagens

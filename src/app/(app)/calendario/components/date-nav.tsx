@@ -23,34 +23,34 @@ export function DateNav({ dateKey, onChange }: DateNavProps) {
   });
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button
         type="button"
         onClick={() => shiftDay(-1)}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-strong text-text-secondary hover:bg-card-hover"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border-strong text-text-secondary hover:bg-card-hover"
       >
         <ChevronLeft size={16} />
       </button>
-      <div className="flex items-center gap-2 rounded-input border border-border bg-input px-3 py-2">
+      <div className="flex min-w-0 items-center gap-2 rounded-input border border-border bg-input px-3 py-2">
         <input
           type="date"
           value={dateKey}
           onChange={(e) => e.target.value && onChange(e.target.value)}
-          className="bg-transparent text-sm text-text-primary outline-none [color-scheme:dark]"
+          className="min-w-0 bg-transparent text-sm text-text-primary outline-none [color-scheme:dark]"
         />
-        <span className="text-xs capitalize text-text-muted">{label}</span>
+        <span className="hidden truncate text-xs capitalize text-text-muted sm:inline">{label}</span>
       </div>
       <button
         type="button"
         onClick={() => shiftDay(1)}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-strong text-text-secondary hover:bg-card-hover"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border-strong text-text-secondary hover:bg-card-hover"
       >
         <ChevronRight size={16} />
       </button>
       <button
         type="button"
         onClick={() => onChange(toDateKey(new Date()))}
-        className="rounded-button border border-border-strong px-3 py-2 text-xs text-text-secondary hover:bg-card-hover"
+        className="shrink-0 rounded-button border border-border-strong px-3 py-2 text-xs text-text-secondary hover:bg-card-hover"
       >
         Hoje
       </button>

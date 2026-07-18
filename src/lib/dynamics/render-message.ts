@@ -3,6 +3,7 @@ import {
   calcLucroLiveUSD,
   calcLucroPepeUSD,
   calcRendimentoCopy,
+  calcResultadoMaratona,
   fmtBR,
   fonteFraseLucro,
   fonteFrasePlacar,
@@ -14,6 +15,9 @@ import {
   type TradingConfigValues,
   type WindowCount,
 } from "./calc-engine";
+
+// Valores de depósito usados como exemplo nos templates da dinâmica "Maratona".
+const MARATONA_EXEMPLOS_USD = [500, 1000, 2000, 3000, 5000, 7500, 10000, 15000, 20000];
 
 export interface ProductStatsByWindow {
   pepe: Record<TradingWindow, WindowCount>;
@@ -90,7 +94,31 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
       : { turbo: 0, suprema: 0, lendaria: 0, galactica: 0, ignicao: 0 };
   const vagasTotais = (vagas.turbo ?? 0) + (vagas.suprema ?? 0) + (vagas.lendaria ?? 0) + (vagas.galactica ?? 0);
 
+  // Exemplos de resultado da escala progressiva da Maratona (${mLucroX}/${mTotalX}),
+  // calculados a partir da cotação real em vez de fixos no texto.
+  const maratonaExemplos = Object.fromEntries(
+    MARATONA_EXEMPLOS_USD.flatMap((valor) => {
+      const resultado = calcResultadoMaratona(valor, config.cotacao);
+      return [
+        [`mLucro${valor}`, fmtBR(resultado.lucroBRL)],
+        [`mTotal${valor}`, fmtBR(resultado.totalBRL)],
+      ];
+    })
+  );
+  const escalaMaratona = [
+    "$200 a $999 → *50%*",
+    `$1.000 → *${fmtBR(calcResultadoMaratona(1000, config.cotacao).pct)}%*`,
+    `$2.000 → *${fmtBR(calcResultadoMaratona(2000, config.cotacao).pct)}%*`,
+    `$3.000 → *${fmtBR(calcResultadoMaratona(3000, config.cotacao).pct)}%*`,
+    `$5.000 → *${fmtBR(calcResultadoMaratona(5000, config.cotacao).pct)}%*`,
+    `$10.000 → *${fmtBR(calcResultadoMaratona(10000, config.cotacao).pct)}%* (DOBRA a banca!)`,
+    `$20.000 → *${fmtBR(calcResultadoMaratona(20000, config.cotacao).pct)}%* (TRIPLICA!)`,
+    `$30.000 → *${fmtBR(calcResultadoMaratona(30000, config.cotacao).pct)}%* (QUADRUPLICA!)`,
+  ].join("\n");
+
   const vars: Record<string, string | number> = {
+    ...maratonaExemplos,
+    escalaMaratona,
     // Bancos rotativos genéricos — qualquer ${nomeDoBanco} definido em rotating_banks
     ...Object.fromEntries(Object.keys(rotatingBanks).map((name) => [name, bankValue(rotatingBanks, name, position)])),
     // Variáveis extras fixas/editáveis por dinâmica (links, cláusulas, etc.)

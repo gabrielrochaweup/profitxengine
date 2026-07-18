@@ -1,11 +1,15 @@
 export type UserRole = "admin" | "editor" | "viewer";
-export type AiProvider = "openai" | "anthropic";
+export type UserStatus = "pending" | "approved" | "rejected";
+export type AiProvider = "openai" | "anthropic" | "google";
 export type PromptCategory = "conversa" | "mensagem" | "imagem" | "email";
-export type Platform = "whatsapp" | "instagram";
+export type Platform = "whatsapp" | "instagram" | "crm";
 export type EngagementStatus = "rascunho" | "aprovada" | "enviada";
 export type EngagementResult = "funcionou" | "nao_funcionou" | null;
 export type EmailStatus = "rascunho" | "pronto" | "enviado";
 export type AiModule = "conversa" | "mensagem" | "imagem" | "email";
+export type ImageContextType = "dinamica_slot" | "livre_engagement" | "x1_message" | "email";
+export type ImageAspectRatio = "1:1" | "3:2" | "4:3" | "9:16" | "16:9";
+export type ImageQuality = "low" | "medium" | "high";
 
 export interface ConversationMessage {
   sender: "left" | "right";
@@ -42,6 +46,7 @@ export interface Database {
           id: string;
           full_name: string | null;
           role: UserRole;
+          status: UserStatus;
           created_at: string;
           last_active_at: string | null;
         };
@@ -49,6 +54,7 @@ export interface Database {
           id: string;
           full_name?: string | null;
           role?: UserRole;
+          status?: UserStatus;
           created_at?: string;
           last_active_at?: string | null;
         };
@@ -103,6 +109,10 @@ export interface Database {
           prompt_id: string | null;
           tema: string | null;
           export_format: string | null;
+          crm_instance_name: string | null;
+          crm_assignee_name: string | null;
+          crm_assignee_avatar_url: string | null;
+          crm_status: string | null;
           created_by: string | null;
           created_at: string;
         };
@@ -314,9 +324,43 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["direct_messages"]["Insert"]>;
         Relationships: [];
       };
+      generated_images: {
+        Row: {
+          id: string;
+          context_type: ImageContextType;
+          context_id: string;
+          prompt: string;
+          prompt_id: string | null;
+          image_url: string;
+          provider: string;
+          model: string;
+          format: ImageAspectRatio;
+          quality: ImageQuality;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["generated_images"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["generated_images"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      admin_list_users: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          email: string | null;
+          full_name: string | null;
+          role: UserRole;
+          status: UserStatus;
+          created_at: string;
+        }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

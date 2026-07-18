@@ -14,6 +14,12 @@ interface AiGeneratePanelProps {
 }
 
 function buildSystemPrompt(platform: Platform) {
+  if (platform === "crm") {
+    return `Você gera conversas fictícias para simular uma tela de atendimento estilo CRM/suporte ao cliente, com foco no universo de criptomoedas quando fizer sentido pelo contexto pedido.
+Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois) no formato de array de objetos seguindo este schema:
+[{"sender":"left"|"right","text":"string","time":"string"}]
+"left" é o agente/IA de atendimento, "right" é o contato/cliente. Formate "time" como "16 jul, 10:06" (dia abreviado do mês em português + horário). Gere no máximo 12 mensagens, com horários plausíveis e crescentes.`;
+  }
   const platformLabel = platform === "whatsapp" ? "WhatsApp" : "Instagram Direct";
   return `Você gera conversas fictícias para simular telas de chat de ${platformLabel}, com foco no universo de criptomoedas quando fizer sentido pelo contexto pedido.
 Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois) no formato de array de objetos seguindo este schema:

@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { ConversasClient } from "./conversas-client";
 
 export default async function ConversasPage() {
   const supabase = createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
   if (!user) redirect("/login");
 
   const { data: conversations } = await supabase

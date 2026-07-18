@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { CalendarGrid, type DayIndicator } from "./components/calendar-grid";
 import { DayInfoPanel } from "./components/day-info-panel";
+import { Modal } from "@/components/ui/modal";
 import type { Database } from "@/lib/supabase/types";
 
 type EngagementMessage = Database["public"]["Tables"]["engagement_messages"]["Row"];
@@ -69,9 +70,11 @@ export function CalendarioHubClient({
     setMonth(next.getMonth());
   }
 
+  const selectedDateLabel = selectedDate ? selectedDate.split("-").reverse().join("/") : "";
+
   return (
     <div className="mt-4">
-      <div className="max-w-2xl rounded-card border border-border bg-card p-5">
+      <div className="w-full rounded-card border border-border bg-card p-5">
         <CalendarGrid
           year={year}
           month={month}
@@ -95,13 +98,9 @@ export function CalendarioHubClient({
         </div>
       </div>
 
-      {selectedDate && (
-        <DayInfoPanel
-          dateKey={selectedDate}
-          indicator={indicatorsByDate[selectedDate]}
-          onClose={() => setSelectedDate(null)}
-        />
-      )}
+      <Modal open={!!selectedDate} onClose={() => setSelectedDate(null)} title={selectedDateLabel}>
+        {selectedDate && <DayInfoPanel dateKey={selectedDate} indicator={indicatorsByDate[selectedDate]} />}
+      </Modal>
     </div>
   );
 }

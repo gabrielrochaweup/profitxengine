@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
 
 export const metadata: Metadata = {
   title: "PROFITX Engine",
@@ -18,9 +14,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className={`${inter.variable} font-sans antialiased bg-app text-text-primary`}>
-        {children}
+    <html lang="pt-BR" className="dark" data-theme="dark">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try {
+  const theme = localStorage.getItem("theme") || "dark";
+  document.documentElement.dataset.theme = theme;
+} catch (e) {}`,
+          }}
+        />
+      </head>
+      <body className={`${GeistSans.variable} font-sans antialiased bg-app text-text-primary`}>
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );
