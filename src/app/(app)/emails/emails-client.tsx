@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { PromptPicker } from "@/components/prompt-picker";
 import { ImageGenerationPanel } from "@/components/image-generation-panel";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { DateNav } from "../calendario/components/date-nav";
 import { DayNewsPreview } from "../calendario/components/day-news-preview";
 import { toDateKey } from "../calendario/lib/date-utils";
@@ -70,6 +71,7 @@ export function EmailsClient({ initialCampaigns, currentUserId }: EmailsClientPr
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const [campaigns, setCampaigns] = useState(initialCampaigns);
   const [dateKey, setDateKey] = useState(searchParams.get("data") || toDateKey(new Date()));
@@ -213,7 +215,13 @@ export function EmailsClient({ initialCampaigns, currentUserId }: EmailsClientPr
 
   async function handleDelete() {
     if (!form.id) return;
-    if (!confirm("Excluir esta campanha de e-mail?")) return;
+    const ok = await confirm({
+      title: "Excluir campanha",
+      description: "Excluir esta campanha de e-mail?",
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
     const supabase = createClient();
     const { error } = await supabase.from("email_campaigns").delete().eq("id", form.id);
     if (!error) {

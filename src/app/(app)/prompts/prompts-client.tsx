@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { PROMPT_CATEGORY_LABEL, PROMPT_CATEGORIES } from "@/lib/prompts";
 import type { Database, PromptCategory } from "@/lib/supabase/types";
 import { PromptForm } from "./prompt-form";
@@ -21,6 +22,7 @@ interface PromptsClientProps {
 
 export function PromptsClient({ initialPrompts, currentUserId, isAdmin }: PromptsClientProps) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [prompts, setPrompts] = useState<Prompt[]>(initialPrompts);
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -58,7 +60,13 @@ export function PromptsClient({ initialPrompts, currentUserId, isAdmin }: Prompt
   }
 
   async function handleDelete(prompt: Prompt) {
-    if (!confirm(`Excluir o prompt "${prompt.title}"?`)) return;
+    const ok = await confirm({
+      title: "Excluir prompt",
+      description: `Excluir o prompt "${prompt.title}"?`,
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
     const supabase = createClient();
     const { error } = await supabase.from("prompts").delete().eq("id", prompt.id);
     if (!error) {

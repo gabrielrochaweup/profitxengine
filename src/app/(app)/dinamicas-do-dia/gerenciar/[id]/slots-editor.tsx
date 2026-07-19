@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import type { Database, TradingWindow } from "@/lib/supabase/types";
 
 type MessageDynamicSlot = Database["public"]["Tables"]["message_dynamic_slots"]["Row"];
@@ -25,6 +26,7 @@ const VAR_LEGEND =
 
 export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsEditorProps) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [expanded, setExpanded] = useState<string | null>(null);
 
   function updateSlot(id: string, patch: Partial<MessageDynamicSlot>) {
@@ -68,7 +70,13 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
   }
 
   async function deleteSlot(id: string) {
-    if (!confirm("Excluir esta mensagem da dinâmica?")) return;
+    const ok = await confirm({
+      title: "Excluir mensagem",
+      description: "Excluir esta mensagem da dinâmica?",
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
     const supabase = createClient();
     const { error } = await supabase.from("message_dynamic_slots").delete().eq("id", id);
     if (error) {

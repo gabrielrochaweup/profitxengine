@@ -38,7 +38,9 @@ export function WhatsappChat({
         {messages.map((message, index) => (
           <div key={index} className={`flex ${message.sender === "right" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`relative max-w-[78%] overflow-hidden rounded-lg shadow-sm ${
+              className={`relative overflow-hidden rounded-lg shadow-sm ${
+                message.image_url ? "w-56" : "max-w-[78%]"
+              } ${
                 message.sender === "right"
                   ? "rounded-tr-none bg-[#005c4b]"
                   : "rounded-tl-none bg-[#1f2c34]"
@@ -46,7 +48,7 @@ export function WhatsappChat({
             >
               {message.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={message.image_url} alt="" className="block w-full max-w-[240px] object-cover" />
+                <img src={message.image_url} alt="" className="block aspect-square w-full object-cover" />
               )}
               <div className="px-2.5 py-1.5">
                 {message.text && (

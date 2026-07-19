@@ -72,12 +72,12 @@ export function CrmChat({
                 {!isAgent && <Avatar url={contactAvatarUrl} name={instanceName || contactName} size={22} />}
                 <div
                   className={`overflow-hidden rounded-2xl text-[13px] leading-snug ${
-                    isAgent ? "rounded-br-sm bg-accent text-white" : "rounded-bl-sm bg-white/10 text-white"
-                  }`}
+                    message.image_url ? "w-56" : ""
+                  } ${isAgent ? "rounded-br-sm bg-accent text-white" : "rounded-bl-sm bg-white/10 text-white"}`}
                 >
                   {message.image_url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={message.image_url} alt="" className="block w-full max-w-[240px] object-cover" />
+                    <img src={message.image_url} alt="" className="block aspect-square w-full object-cover" />
                   )}
                   {message.text && <p className="whitespace-pre-wrap break-words px-3 py-2">{message.text}</p>}
                 </div>

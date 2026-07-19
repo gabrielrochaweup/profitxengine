@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import type { Database, VagasConfig } from "@/lib/supabase/types";
 import { SlotsEditor } from "./slots-editor";
 
@@ -24,6 +25,7 @@ interface DynamicEditorClientProps {
 
 export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: DynamicEditorClientProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [dynamic, setDynamic] = useState(initialDynamic);
   const [rulesText, setRulesText] = useState((initialDynamic.rules ?? []).join("\n"));
   const [banks, setBanks] = useState<{ name: string; items: string }[]>(
@@ -80,7 +82,13 @@ export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: D
   }
 
   async function handleDelete() {
-    if (!confirm(`Excluir a dinâmica "${dynamic.name}" e todas as suas ${slots.length} mensagens?`)) return;
+    const ok = await confirm({
+      title: "Excluir dinâmica",
+      description: `Excluir a dinâmica "${dynamic.name}" e todas as suas ${slots.length} mensagens? Essa ação não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
     const supabase = createClient();
     await supabase.from("message_dynamics").delete().eq("id", dynamic.id);
     router.push("/dinamicas-do-dia/gerenciar");

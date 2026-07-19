@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { PromptPicker } from "@/components/prompt-picker";
 import { ImageGenerationPanel } from "@/components/image-generation-panel";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ApprovalContextPanel } from "../../calendario/components/approval-context-panel";
 import type { Database, EngagementResult, EngagementStatus, StudentSegment } from "@/lib/supabase/types";
 
@@ -45,6 +46,7 @@ const EMPTY_FORM = {
 
 export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }: X1FormProps) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [form, setForm] = useState(EMPTY_FORM);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
@@ -151,7 +153,13 @@ export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }:
 
   async function handleDelete() {
     if (!form.id) return;
-    if (!confirm("Excluir esta mensagem?")) return;
+    const ok = await confirm({
+      title: "Excluir mensagem",
+      description: "Excluir esta mensagem?",
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
     const supabase = createClient();
     const { error } = await supabase.from("direct_messages").delete().eq("id", form.id);
     if (!error) {

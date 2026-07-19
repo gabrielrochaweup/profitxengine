@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { PhonePreview } from "./components/phone-preview";
 import { ExportCanvas } from "./components/export-canvas";
 import { ExportControls } from "./components/export-controls";
@@ -41,6 +42,7 @@ const DEFAULT_STATE = {
 
 export function ConversasClient({ initialConversations, currentUserId }: ConversasClientProps) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [conversations, setConversations] = useState<FakeConversation[]>(initialConversations);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [lastPromptId, setLastPromptId] = useState<string | null>(null);
@@ -142,7 +144,13 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
   }
 
   async function handleDelete(conversation: FakeConversation) {
-    if (!confirm(`Excluir a conversa "${conversation.title || conversation.contact_name || "sem título"}"?`)) return;
+    const ok = await confirm({
+      title: "Excluir conversa",
+      description: `Excluir a conversa "${conversation.title || conversation.contact_name || "sem título"}"? Essa ação não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
     const supabase = createClient();
     const { error } = await supabase.from("fake_conversations").delete().eq("id", conversation.id);
     if (!error) {

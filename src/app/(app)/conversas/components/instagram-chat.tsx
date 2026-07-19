@@ -37,13 +37,13 @@ export function InstagramChat({
         {messages.map((message, index) => (
           <div key={index} className={`flex ${message.sender === "right" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[75%] overflow-hidden rounded-[20px] ${
+              className={`overflow-hidden rounded-[20px] ${message.image_url ? "w-56" : "max-w-[75%]"} ${
                 message.sender === "right" ? "bg-[#3797f0] text-white" : "bg-[#262626] text-white"
               }`}
             >
               {message.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={message.image_url} alt="" className="block w-full max-w-[240px] object-cover" />
+                <img src={message.image_url} alt="" className="block aspect-square w-full object-cover" />
               )}
               {message.text && (
                 <p className="whitespace-pre-wrap break-words px-3.5 py-2 text-[14.5px] leading-snug">

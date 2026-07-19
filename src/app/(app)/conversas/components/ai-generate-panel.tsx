@@ -5,6 +5,7 @@ import { Sparkles } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { PromptPicker } from "@/components/prompt-picker";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import type { ConversationMessage, Platform } from "@/lib/supabase/types";
 
 interface AiGeneratePanelProps {
@@ -40,6 +41,7 @@ function parseMessages(raw: string): ConversationMessage[] {
 }
 
 export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: AiGeneratePanelProps) {
+  const confirm = useConfirm();
   const [prompt, setPrompt] = useState("");
   const [promptId, setPromptId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,8 +49,13 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
 
   async function handleGenerate() {
     if (!prompt.trim()) return;
-    if (hasExistingMessages && !confirm("Isso vai substituir as mensagens atuais do editor. Continuar?")) {
-      return;
+    if (hasExistingMessages) {
+      const ok = await confirm({
+        title: "Substituir mensagens",
+        description: "Isso vai substituir as mensagens atuais do editor. Continuar?",
+        confirmLabel: "Substituir",
+      });
+      if (!ok) return;
     }
 
     setLoading(true);

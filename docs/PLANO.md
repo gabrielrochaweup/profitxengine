@@ -1172,3 +1172,49 @@ contato) nos lados corretos.
 vivo: CRM com agente à direita e contato à esquerda (com avatar), WhatsApp
 com imagem + texto na bolha do lado correto, link de download confirmado
 usando blob URL via interceptação do clique.
+
+## Adendo 22 — Imagem preenchendo a bolha da mensagem + diálogos de confirmação com a cara do app (2026-07-19)
+
+1. **Imagem sobrando espaço na bolha do Simulador.** A bolha esticava a
+   largura pra caber o texto abaixo, enquanto a imagem tinha um
+   `max-width` fixo menor — sobrava espaço vazio do lado dela. Corrigido
+   nos 3 renderizadores
+   ([whatsapp-chat.tsx](../src/app/(app)/conversas/components/whatsapp-chat.tsx),
+   [instagram-chat.tsx](../src/app/(app)/conversas/components/instagram-chat.tsx),
+   [crm-chat.tsx](../src/app/(app)/conversas/components/crm-chat.tsx)):
+   quando a mensagem tem `image_url`, a bolha ganha largura fixa (`w-56`)
+   e a imagem usa `aspect-square w-full object-cover` — preenche o
+   quadrado todo, cortando a sobra em vez de espremer/esticar. Como pode
+   vir imagem de qualquer formato (print de tela, foto, etc.), preferimos
+   cortar (crop) a distorcer ou deixar vão — fica mais parecido com um
+   app de chat de verdade.
+2. **Caixas de diálogo nativas do sistema operacional.** Todo `confirm()`
+   do navegador (excluir conversa, excluir dinâmica, excluir mensagem,
+   excluir prompt, excluir campanha de e-mail, substituir mensagens
+   geradas por IA) usava o diálogo padrão do SO (aparência de Mac/Windows,
+   fora do design do app). Criado
+   [confirm-dialog.tsx](../src/components/ui/confirm-dialog.tsx): um
+   `ConfirmProvider`/`useConfirm()` no mesmo padrão do `ToastProvider` já
+   existente, que abre um modal com a cara do app (título, descrição,
+   botão de cancelar e confirmar, com variante vermelha/`danger` pra ações
+   destrutivas) e devolve uma Promise<boolean> — `const ok = await
+   confirm({...}); if (!ok) return;`. Montado em
+   [layout.tsx](../src/app/layout.tsx) dentro do `ToastProvider`. Todos os
+   8 pontos que usavam `confirm()` nativo foram convertidos: excluir
+   conversa ([conversas-client.tsx](../src/app/(app)/conversas/conversas-client.tsx)),
+   substituir mensagens geradas por IA ([ai-generate-panel.tsx](../src/app/(app)/conversas/components/ai-generate-panel.tsx)),
+   excluir dinâmica ([dynamic-editor-client.tsx](../src/app/(app)/dinamicas-do-dia/gerenciar/[id]/dynamic-editor-client.tsx)),
+   excluir mensagem de dinâmica ([slots-editor.tsx](../src/app/(app)/dinamicas-do-dia/gerenciar/[id]/slots-editor.tsx)),
+   excluir mensagem livre ([livre-generator.tsx](../src/app/(app)/dinamicas-do-dia/components/livre-generator.tsx)),
+   excluir campanha de e-mail ([emails-client.tsx](../src/app/(app)/emails/emails-client.tsx)),
+   excluir prompt ([prompts-client.tsx](../src/app/(app)/prompts/prompts-client.tsx)) e
+   excluir mensagem X1 ([x1-form.tsx](../src/app/(app)/mensagens-x1/components/x1-form.tsx)).
+   Não sobrou nenhum `confirm()`/`alert()`/`prompt()` nativo no código.
+
+**Validação**: `tsc --noEmit`, `next lint` e `next build` limpos (26
+páginas geradas sem erro). Verificação visual ao vivo no navegador não foi
+possível nesta rodada porque o ambiente de teste caiu na tela de login e
+entrar com senha é uma ação que não realizo por conta própria — a
+correção foi validada por leitura de código (mesmo padrão comprovado do
+`ToastProvider`, já usado e testado em produção) e pelos 3 checks
+automatizados batendo limpo.
