@@ -38,18 +38,26 @@ export function WhatsappChat({
         {messages.map((message, index) => (
           <div key={index} className={`flex ${message.sender === "right" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`relative max-w-[78%] rounded-lg px-2.5 py-1.5 shadow-sm ${
+              className={`relative max-w-[78%] overflow-hidden rounded-lg shadow-sm ${
                 message.sender === "right"
                   ? "rounded-tr-none bg-[#005c4b]"
                   : "rounded-tl-none bg-[#1f2c34]"
               }`}
             >
-              <p className="whitespace-pre-wrap break-words text-[14.5px] leading-snug text-[#e9edef]">
-                {message.text}
-              </p>
-              <div className="mt-0.5 flex items-center justify-end gap-1">
-                <span className="text-[11px] text-[#8696a0]">{message.time}</span>
-                {message.sender === "right" && <ReadTicks status={message.read_status} />}
+              {message.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={message.image_url} alt="" className="block w-full max-w-[240px] object-cover" />
+              )}
+              <div className="px-2.5 py-1.5">
+                {message.text && (
+                  <p className="whitespace-pre-wrap break-words text-[14.5px] leading-snug text-[#e9edef]">
+                    {message.text}
+                  </p>
+                )}
+                <div className="mt-0.5 flex items-center justify-end gap-1">
+                  <span className="text-[11px] text-[#8696a0]">{message.time}</span>
+                  {message.sender === "right" && <ReadTicks status={message.read_status} />}
+                </div>
               </div>
             </div>
           </div>

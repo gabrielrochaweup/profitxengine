@@ -65,17 +65,21 @@ export function CrmChat({
 
       <div className="flex flex-1 flex-col justify-end space-y-3 overflow-y-auto px-3 py-3">
         {messages.map((message, index) => {
-          const isAgent = message.sender === "left";
+          const isAgent = message.sender === "right";
           return (
-            <div key={index} className={`flex flex-col ${isAgent ? "items-start" : "items-end"}`}>
-              <div className={`flex max-w-[85%] items-end gap-2 ${isAgent ? "" : "flex-row-reverse"}`}>
-                {isAgent && <Avatar url={contactAvatarUrl} name={instanceName || contactName} size={22} />}
+            <div key={index} className={`flex flex-col ${isAgent ? "items-end" : "items-start"}`}>
+              <div className={`flex max-w-[85%] items-end gap-2 ${isAgent ? "flex-row-reverse" : ""}`}>
+                {!isAgent && <Avatar url={contactAvatarUrl} name={instanceName || contactName} size={22} />}
                 <div
-                  className={`rounded-2xl px-3 py-2 text-[13px] leading-snug ${
-                    isAgent ? "rounded-bl-sm bg-white/10 text-white" : "rounded-br-sm bg-accent text-white"
+                  className={`overflow-hidden rounded-2xl text-[13px] leading-snug ${
+                    isAgent ? "rounded-br-sm bg-accent text-white" : "rounded-bl-sm bg-white/10 text-white"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                  {message.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={message.image_url} alt="" className="block w-full max-w-[240px] object-cover" />
+                  )}
+                  {message.text && <p className="whitespace-pre-wrap break-words px-3 py-2">{message.text}</p>}
                 </div>
               </div>
               <span className="mt-1 px-1 text-[10px] text-white/35">{message.time}</span>

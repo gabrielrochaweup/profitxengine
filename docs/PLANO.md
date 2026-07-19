@@ -1104,3 +1104,71 @@ viewport sem sobra de scroll — o bug de `100vh` do Safari mobile não pode
 ser 100% reproduzido no ambiente de teste local (só a barra de endereço
 real de um Safari em iPhone físico dispara o comportamento), mas `h-dvh` é
 a correção padrão documentada e amplamente usada pra essa classe de bug.
+
+## Adendo 21 — Simulador de Conversas: lado do atendente, download no iOS, anexo de imagem na mensagem (2026-07-19)
+
+3 correções no Simulador de Conversas, todas testadas ao vivo.
+
+1. **CRM/Atendimento tinha o lado do atendente invertido em relação a
+   WhatsApp/Instagram.** Nesses dois, `sender="right"` sempre foi o dono
+   da conta (atendente/você); no CRM, por herança de uma decisão antiga,
+   `sender="left"` é que era o agente. Corrigido pra unificar a regra nos
+   3: agente/atendente sempre à direita, aluno/contato sempre à esquerda.
+   Mudança em [crm-chat.tsx](../src/app/(app)/conversas/components/crm-chat.tsx)
+   (`isAgent = sender === "right"`, e toda a lógica de lado/cantos
+   arredondados/avatar que dependia disso foi invertida junto — não bastava
+   trocar só a definição de `isAgent`, o restante do JSX também assumia o
+   sentido antigo), [message-editor.tsx](../src/app/(app)/conversas/components/message-editor.tsx)
+   (rótulos do seletor de remetente) e [ai-generate-panel.tsx](../src/app/(app)/conversas/components/ai-generate-panel.tsx)
+   (prompt de sistema que instrui a IA sobre o que "left"/"right" significam
+   pro CRM). Efeito colateral positivo: o avatar do bot/canal, que antes
+   aparecia ao lado das mensagens do agente (usando a foto do contato, o
+   que não fazia sentido), passou a aparecer ao lado das mensagens do
+   contato — mais coerente.
+2. **Download de imagem não funcionava no iPhone.** Causa raiz dupla: (a)
+   o link de download apontava pra uma `data:` URL (base64 direto no
+   `href`), que o Safari trata de forma inconsistente/pouco confiável,
+   especialmente em tamanhos maiores (export em 3x); (b) mesmo corrigindo
+   isso, `window.open()` no Safari iOS só funciona quando chamado de forma
+   síncrona dentro do gesto de clique — depois de qualquer `await`, o
+   navegador trata como popup e bloqueia. [export-controls.tsx](../src/app/(app)/conversas/components/export-controls.tsx)
+   reescrito: abre uma aba em branco *antes* de qualquer processamento
+   assíncrono (só no iOS, detectado por user agent), converte o PNG de
+   `data:` pra `blob:` URL via `fetch().blob()` (sem limite de tamanho
+   problemático), e no iOS navega a aba já aberta pra essa blob URL (o
+   usuário then segura o dedo na imagem e usa "Adicionar à Galeria" — fluxo
+   nativo do iOS, já que não existe "salvar arquivo" programático lá);
+   fora do iOS, mantém o `<a download>` de sempre, só que agora com blob
+   URL em vez de data URL. Testado: o link de download em desktop confirmado
+   apontando pra uma `blob:` URL (interceptado via monkey-patch de
+   `HTMLAnchorElement.prototype.click`); o comportamento específico do
+   Safari iOS não pôde ser 100% reproduzido no ambiente de teste (mesma
+   limitação do Adendo 20), mas a técnica (abrir aba síncrona + navegar
+   depois) é o workaround padrão documentado pra esse bug conhecido do iOS.
+3. **Anexar imagem numa mensagem** (ex: print que o aluno manda). Novo
+   campo `image_url` em `ConversationMessage`
+   ([types.ts](../src/lib/supabase/types.ts)). No
+   [message-editor.tsx](../src/app/(app)/conversas/components/message-editor.tsx),
+   cada mensagem ganhou um campo de URL + botão de upload (mesmo padrão já
+   usado pro avatar do contato — bucket `conversation-avatars`, agora
+   também recebendo uploads em `messages/`), com preview/trocar/remover
+   depois de anexada. Os 3 renderizadores de chat
+   ([whatsapp-chat.tsx](../src/app/(app)/conversas/components/whatsapp-chat.tsx),
+   [instagram-chat.tsx](../src/app/(app)/conversas/components/instagram-chat.tsx),
+   [crm-chat.tsx](../src/app/(app)/conversas/components/crm-chat.tsx))
+   passaram a mostrar a imagem dentro da bolha (sem padding, cantos
+   arredondados casando com a bolha) com o texto (se houver) abaixo —
+   testado ao vivo nos 3, incluindo o caso combinado com a correção 1
+   (imagem + texto do aluno aparecendo corretamente à esquerda no CRM).
+
+**Bug encontrado e corrigido durante a própria implementação**: ao inverter
+`isAgent` no crm-chat.tsx, o primeiro commit só trocou a linha da definição
+e esqueceu de inverter `items-start`/`items-end`, `flex-row-reverse` e os
+cantos arredondados que dependiam do valor antigo — pego e corrigido antes
+do build final, com teste ao vivo confirmando as duas mensagens (agente e
+contato) nos lados corretos.
+
+**Validação**: `tsc --noEmit`, `next lint` e `next build` limpos. Testado ao
+vivo: CRM com agente à direita e contato à esquerda (com avatar), WhatsApp
+com imagem + texto na bolha do lado correto, link de download confirmado
+usando blob URL via interceptação do clique.

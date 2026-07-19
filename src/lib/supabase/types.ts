@@ -16,6 +16,7 @@ export interface ConversationMessage {
   text: string;
   time: string;
   read_status?: "sent" | "delivered" | "read";
+  image_url?: string | null;
 }
 
 export type TradingProduct = "pepe" | "live" | "copy";
