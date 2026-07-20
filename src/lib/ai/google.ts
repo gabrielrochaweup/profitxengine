@@ -49,7 +49,12 @@ export async function generateImage(
 
   const response = await client.models.generateContent({
     model: params.model,
-    contents: params.prompt,
+    contents: params.referenceImage
+      ? [
+          { text: params.prompt },
+          { inlineData: { data: params.referenceImage.data, mimeType: params.referenceImage.mimeType } },
+        ]
+      : params.prompt,
     config: {
       imageConfig: {
         aspectRatio: params.aspectRatio ?? "1:1",

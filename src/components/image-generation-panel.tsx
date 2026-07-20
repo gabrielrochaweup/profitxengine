@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Image as ImageIcon, Download, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Image as ImageIcon, Download, X, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,6 +66,9 @@ export function ImageGenerationPanel({
   const [previewImage, setPreviewImage] = useState<GeneratedImage | null>(null);
   const [libraryImages, setLibraryImages] = useState<GeneratedImage[] | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [uploadingReference, setUploadingReference] = useState(false);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!contextId) {
@@ -89,6 +92,20 @@ export function ImageGenerationPanel({
     };
   }, [contextType, contextId]);
 
+  async function handleReferenceFileSelected(file: File) {
+    setUploadingReference(true);
+    const supabase = createClient();
+    const path = `refs/${crypto.randomUUID()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from("reference-images").upload(path, file);
+    if (!uploadError) {
+      const { data } = supabase.storage.from("reference-images").getPublicUrl(path);
+      setReferenceImageUrl(data.publicUrl);
+    } else {
+      setError("Erro ao enviar a imagem de referência. Tente novamente.");
+    }
+    setUploadingReference(false);
+  }
+
   async function handleGenerate() {
     if (!prompt.trim()) return;
     setGenerating(true);
@@ -105,6 +122,7 @@ export function ImageGenerationPanel({
           quality,
           contextType,
           contextId: contextId ?? undefined,
+          referenceImageUrl: referenceImageUrl ?? undefined,
         }),
       });
       const body = await res.json();
@@ -187,6 +205,50 @@ export function ImageGenerationPanel({
         placeholder={placeholder}
         className="w-full text-xs"
       />
+
+      <input
+        ref={referenceInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleReferenceFileSelected(file);
+          e.target.value = "";
+        }}
+      />
+
+      <div className="mt-2 flex items-center gap-2">
+        {referenceImageUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={referenceImageUrl}
+              alt="Imagem de referência"
+              className="h-9 w-9 rounded-md border border-border object-cover"
+            />
+            <span className="text-[11px] text-text-muted">Imagem de referência anexada</span>
+            <button
+              type="button"
+              onClick={() => setReferenceImageUrl(null)}
+              className="ml-auto flex items-center gap-1 rounded-button border border-border-strong px-2 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
+            >
+              <X size={11} />
+              Remover
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => referenceInputRef.current?.click()}
+            disabled={uploadingReference}
+            className="flex items-center gap-1.5 rounded-button border border-dashed border-border-strong px-2 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
+          >
+            <Paperclip size={11} />
+            {uploadingReference ? "Enviando..." : "Anexar imagem de referência"}
+          </button>
+        )}
+      </div>
 
       {contextId && (
         <div className="mt-2">

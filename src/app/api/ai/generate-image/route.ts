@@ -13,6 +13,9 @@ interface GenerateImageBody {
   quality?: ImageQuality;
   contextType?: ImageContextType;
   contextId?: string;
+  /** URL de uma imagem já enviada pro bucket 'reference-images' — usada
+   * como base visual da geração. */
+  referenceImageUrl?: string;
 }
 
 export async function POST(request: Request) {
@@ -48,8 +51,19 @@ export async function POST(request: Request) {
     const aspectRatio = body.aspectRatio ?? "1:1";
     const quality = body.quality ?? "medium";
 
+    let referenceImage: { data: string; mimeType: string } | undefined;
+    if (body.referenceImageUrl) {
+      const refRes = await fetch(body.referenceImageUrl);
+      if (!refRes.ok) {
+        return NextResponse.json({ error: "Não foi possível ler a imagem de referência." }, { status: 400 });
+      }
+      const mimeType = refRes.headers.get("content-type") ?? "image/png";
+      const buffer = Buffer.from(await refRes.arrayBuffer());
+      referenceImage = { data: buffer.toString("base64"), mimeType };
+    }
+
     const result = await generateImage(
-      { prompt: body.prompt, provider: settings.provider, model, aspectRatio, quality },
+      { prompt: body.prompt, provider: settings.provider, model, aspectRatio, quality, referenceImage },
       apiKey
     );
 

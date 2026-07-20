@@ -24,6 +24,9 @@ export interface GenerateImageParams {
   model: string;
   aspectRatio?: ImageAspectRatio;
   quality?: ImageQuality;
+  /** Imagem de referência anexada pelo usuário (ex: foto de uma pessoa) —
+   * usada como base visual pelo provedor além do texto do prompt. */
+  referenceImage?: { data: string; mimeType: string };
 }
 
 export interface GenerateImageResult {

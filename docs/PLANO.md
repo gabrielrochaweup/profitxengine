@@ -1279,3 +1279,49 @@ automatizados batendo limpo.
 Migrations 0012/0013/0014 rodadas pelo usuário no Supabase SQL Editor —
 confirmado visualmente que a dinâmica que motivou a correção (Copy
 Trader) ficou só com a %, sem sobra de placar ou variável quebrada.
+
+## Adendo 25 — 4 correções: "% DE ACERTO", Felipe Trader, dinâmica de Upgrade e imagem de referência (2026-07-20)
+
+1. **"X% acerto!" vira "X% DE ACERTO!"** (maiúsculo) em toda mensagem que
+   mostra resultado — 90 slots afetados, aplicado via
+   [0015_pct_de_acerto_e_felipe_trader.sql](../supabase/migrations/0015_pct_de_acerto_e_felipe_trader.sql).
+2. **"trader profissional" vira "Felipe Trader"** nas 24 mensagens que
+   citam o trader humano da Live — cuidado específico pra não mexer nas
+   18 menções a "Copy Trader profissional" (nome do produto, não da
+   pessoa); resolvido com lookbehind que protege esse caso, incluindo
+   variações em CAIXA ALTA. Mesmo arquivo 0015.
+3. **Nova dinâmica "Upgrade Direto"** ([0017_dinamica_upgrade_direto.sql](../supabase/migrations/0017_dinamica_upgrade_direto.sql)) —
+   sem alavancagem, foco 100% em upgrade de plano. Reduzida de ~24 pra 14
+   mensagens: mantém os 3 horários do Pepe (10h/14h/19h) e da Live (20h),
+   mantém a prova social (17h, mesmo banco de depoimentos das outras
+   dinâmicas), e troca todo o resto por gancho de "mais acesso/conteúdo"
+   (aprovado pelo usuário entre 3 opções de tom) com o mercado de
+   memecoin como gancho de conteúdo/urgência — sem prometer multiplicador
+   de banca. Uma mensagem (21h) fica propositalmente em aberto pra equipe
+   encaixar conteúdo ao vivo depois. Antes de escrever as 14 mensagens,
+   validei o esqueleto e 4 exemplos com o usuário; escrevi o restante só
+   depois da aprovação. Toda variável usada nos templates foi checada
+   programaticamente contra os bancos rotativos/`extra_vars`/variáveis
+   automáticas do motor — zero variável órfã.
+4. **Imagem de referência na geração de imagem** — pesquisado antes de
+   implementar: tanto a OpenAI quanto o Google já suportam imagem de
+   entrada nos endpoints que o app já chama (não precisou trocar de
+   modelo nem de arquitetura). Adicionado botão "Anexar imagem de
+   referência" no [image-generation-panel.tsx](../src/components/image-generation-panel.tsx)
+   (vale pra Dinâmicas do Dia, modo livre, Mensagens X1 e E-mails — todo
+   lugar que usa esse painel). Upload vai pro bucket novo
+   `reference-images` ([0016_reference_images_bucket.sql](../supabase/migrations/0016_reference_images_bucket.sql),
+   que já cria o bucket via SQL em vez de exigir passo manual no
+   dashboard). Na [rota da API](../src/app/api/ai/generate-image/route.ts),
+   a URL da referência é buscada no servidor e convertida pra base64.
+   No [provedor OpenAI](../src/lib/ai/openai.ts), troca automaticamente
+   de `images.generate` pra `images.edit` com `input_fidelity: "high"`
+   (parâmetro pensado justamente pra preservar rosto/traços de uma
+   pessoa na referência). No [provedor Google](../src/lib/ai/google.ts),
+   a imagem entra como uma parte `inlineData` extra no `contents` da
+   mesma chamada que já existia — sem trocar de endpoint.
+
+**Validação**: `tsc --noEmit`, `next lint` e `next build` limpos.
+Migrations 0015/0016/0017 escritas e verificadas programaticamente
+(SQL balanceado, zero variável de template órfã) antes de entregar —
+ainda não rodadas pelo usuário nesta sessão.

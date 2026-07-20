@@ -1,5 +1,5 @@
 import "server-only";
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 import {
   combineSystem,
   type GenerateTextParams,
@@ -62,13 +62,34 @@ export async function generateImage(
   // dall-e-3); resolvemos os valores certos em runtime — só o valor de cada
   // campo precisa de cast, não o objeto de params inteiro (isso faria o TS
   // escolher o overload de streaming e quebrar o tipo de retorno).
-  const result = await client.images.generate({
-    model: params.model,
-    prompt: params.prompt,
-    size: resolveOpenAiSize(params.model, params.aspectRatio) as OpenAI.Images.ImageGenerateParamsNonStreaming["size"],
-    quality: resolveOpenAiQuality(params.model, params.quality) as OpenAI.Images.ImageGenerateParamsNonStreaming["quality"],
-    n: 1,
-  });
+  const size = resolveOpenAiSize(params.model, params.aspectRatio) as OpenAI.Images.ImageGenerateParamsNonStreaming["size"];
+  const quality = resolveOpenAiQuality(params.model, params.quality) as OpenAI.Images.ImageGenerateParamsNonStreaming["quality"];
+
+  // Com imagem de referência anexada, usa o endpoint de edição em vez do de
+  // geração — é o que aceita uma imagem de entrada como base visual.
+  // input_fidelity "high" existe justamente pra preservar traços/rosto de
+  // uma pessoa na referência.
+  const result = params.referenceImage
+    ? await client.images.edit({
+        model: params.model,
+        prompt: params.prompt,
+        image: await toFile(
+          Buffer.from(params.referenceImage.data, "base64"),
+          `reference.${params.referenceImage.mimeType.split("/")[1] ?? "png"}`,
+          { type: params.referenceImage.mimeType }
+        ),
+        size,
+        quality,
+        input_fidelity: "high",
+        n: 1,
+      } as OpenAI.Images.ImageEditParamsNonStreaming)
+    : await client.images.generate({
+        model: params.model,
+        prompt: params.prompt,
+        size,
+        quality,
+        n: 1,
+      });
 
   const image = result.data?.[0];
   if (image?.url) {
