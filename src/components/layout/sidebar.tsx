@@ -26,12 +26,12 @@ import { ThemeToggle } from "./theme-toggle";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/conversas", label: "Simulador de Conversas", icon: MessageSquare },
-  { href: "/calendario", label: "Calendário", icon: CalendarDays },
   { href: "/dinamicas-do-dia", label: "Dinâmicas do Dia", icon: Zap },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/conversas", label: "Simulador de Conversas", icon: MessageSquare },
   { href: "/mensagens-x1", label: "Mensagens X1", icon: UsersRound },
   { href: "/emails", label: "E-mails", icon: Mail },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/calendario", label: "Calendário", icon: CalendarDays },
   { href: "/prompts", label: "Biblioteca de Prompts", icon: Library },
 ];
 
