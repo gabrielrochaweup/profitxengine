@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { fromDateKey, weekdayFromDateKey, WEEKDAY_LABELS } from "../calendario/lib/date-utils";
+import { fromDateKey, toDateKey, weekdayFromDateKey, WEEKDAY_LABELS } from "../calendario/lib/date-utils";
 import { RevenueLineChart, SimpleBarChart, DynamicPieChart } from "./components/charts";
 
 interface DayResult {
@@ -33,9 +33,11 @@ interface AnalyticsClientProps {
   dynamics: DynamicMeta[];
 }
 
-type Period = "7d" | "30d" | "90d" | "mes" | "tudo";
+type Period = "hoje" | "ontem" | "7d" | "30d" | "90d" | "mes" | "tudo";
 
 const PERIOD_OPTIONS: { key: Period; label: string }[] = [
+  { key: "hoje", label: "Hoje" },
+  { key: "ontem", label: "Ontem" },
   { key: "7d", label: "7 dias" },
   { key: "30d", label: "30 dias" },
   { key: "90d", label: "90 dias" },
@@ -71,6 +73,16 @@ export function AnalyticsClient({ initialResults, dynamics }: AnalyticsClientPro
   const filtered = useMemo(() => {
     if (period === "tudo") return initialResults;
     const now = new Date();
+    if (period === "hoje") {
+      const todayKey = toDateKey(now);
+      return initialResults.filter((r) => r.scheduled_date === todayKey);
+    }
+    if (period === "ontem") {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayKey = toDateKey(yesterday);
+      return initialResults.filter((r) => r.scheduled_date === yesterdayKey);
+    }
     if (period === "mes") {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       return initialResults.filter((r) => fromDateKey(r.scheduled_date) >= monthStart);
