@@ -6,14 +6,7 @@ import type { TradingWindow } from "@/lib/supabase/types";
  * mesmas fórmulas — só trocou de JS solto no HTML pra TS compartilhado.
  */
 
-export interface WindowCount {
-  wins: number;
-  losses: number;
-}
-
 export interface ProductResult {
-  wins: number;
-  losses: number;
   acerto: number;
   fonte: TradingWindow;
 }
@@ -38,24 +31,8 @@ export function fmtBR(n: number): string {
   return Math.round(n).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 }
 
-export function calcAcerto(wins: number, losses: number): number {
-  const total = wins + losses;
-  return total > 0 ? Math.round((wins / total) * 100) : 0;
-}
-
-export function getResult(wins: number, losses: number, fonte: TradingWindow): ProductResult {
-  return { wins, losses, acerto: calcAcerto(wins, losses), fonte };
-}
-
-// FÓRMULA PEPE: (wins × entrada × payout) − (losses × entrada × 3)
-// O 3× no loss = Martingale Gale 1 (entrada + 2× entrada).
-export function calcLucroPepeUSD(wins: number, losses: number, entrada: number, payout: number): number {
-  return wins * entrada * (payout / 100) - losses * entrada * 3;
-}
-
-// FÓRMULA LIVE: (wins × entrada × payout) − (losses × entrada). Sem gale fixo.
-export function calcLucroLiveUSD(wins: number, losses: number, entrada: number, payout: number): number {
-  return wins * entrada * (payout / 100) - losses * entrada;
+export function getResult(acerto: number, fonte: TradingWindow): ProductResult {
+  return { acerto, fonte };
 }
 
 export function toReais(usd: number, cotacao: number): number {
@@ -107,11 +84,10 @@ export interface MelhorCenario {
   score: number;
 }
 
-export function calcularMelhorCenario(stats: Record<TradingWindow, WindowCount>): MelhorCenario | null {
+export function calcularMelhorCenario(acertoPorJanela: Record<TradingWindow, number>): MelhorCenario | null {
   let best: MelhorCenario | null = null;
   for (const { window, peso } of WINDOW_WEIGHTS) {
-    const { wins, losses } = stats[window];
-    const acerto = calcAcerto(wins, losses);
+    const acerto = acertoPorJanela[window] ?? 0;
     const score = acerto * peso;
     if (!best || score > best.score) {
       best = { fonte: window, acerto, score };
@@ -121,13 +97,12 @@ export function calcularMelhorCenario(stats: Record<TradingWindow, WindowCount>)
 }
 
 export function calcularMelhorCenarioCopy(
-  stats: Record<TradingWindow, WindowCount>,
+  acertoPorJanela: Record<TradingWindow, number>,
   rendimentoPorJanela: Record<TradingWindow, number>
 ): MelhorCenario | null {
   let best: MelhorCenario | null = null;
   for (const { window, peso } of WINDOW_WEIGHTS) {
-    const { wins, losses } = stats[window];
-    const acerto = calcAcerto(wins, losses);
+    const acerto = acertoPorJanela[window] ?? 0;
     const rend = rendimentoPorJanela[window] ?? 0;
     const score = (rend * 10 + acerto) * peso;
     if (!best || score > best.score) {

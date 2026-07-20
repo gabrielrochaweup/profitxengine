@@ -54,13 +54,8 @@ interface DynamicDayTableProps {
   currentUserId: string;
 }
 
-function emptyStatsByWindow(): Record<TradingWindow, { wins: number; losses: number }> {
-  return {
-    dia: { wins: 0, losses: 0 },
-    semana: { wins: 0, losses: 0 },
-    mes: { wins: 0, losses: 0 },
-    total: { wins: 0, losses: 0 },
-  };
+function emptyStatsByWindow(): Record<TradingWindow, number> {
+  return { dia: 0, semana: 0, mes: 0, total: 0 };
 }
 
 export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps) {
@@ -109,7 +104,7 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
           copyRendimento: { dia: 0, semana: 0, mes: 0, total: 0 },
         };
         statsRows.forEach((row) => {
-          next[row.product][row.time_window] = { wins: row.wins, losses: row.losses };
+          next[row.product][row.time_window] = row.acerto_pct;
           if (row.product === "copy") next.copyRendimento[row.time_window] = row.rendimento_pct ?? 0;
         });
         setStats(next);

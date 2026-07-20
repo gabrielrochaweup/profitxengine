@@ -22,7 +22,7 @@ interface SlotsEditorProps {
 }
 
 const VAR_LEGEND =
-  "Variáveis disponíveis: ${winsP} ${lossP} ${acertoP} ${lucroPepeR} ${entradaP} · ${winsL} ${lossL} ${acertoL} ${lucroLiveR} ${entradaL} · ${winsC} ${lossC} ${acertoC} ${rendimentoCopyR} ${bancaCopy} · ${vagasT} ${vagasS} ${vagasL} ${vagasG} ${vagasI} ${vagasTotais} · ${cta} ${ctaP} ${ctaU} ${link} ${linkU} ${linkL} ${urgS} ${vagN2} · ${fontePlacar} ${fonteLucro} · ${depNome} ${depValor} ${depSituacao} · + qualquer banco rotativo cadastrado abaixo (ex: ${headerRot})";
+  "Variáveis disponíveis: ${acertoP} ${entradaP} · ${acertoL} ${entradaL} · ${acertoC} ${rendimentoCopyR} ${bancaCopy} · ${acertoT} · ${vagasT} ${vagasS} ${vagasL} ${vagasG} ${vagasI} ${vagasTotais} · ${cta} ${ctaP} ${ctaU} ${link} ${linkU} ${linkL} ${urgS} ${vagN2} · ${fontePlacar} ${fonteLucro} · ${depNome} ${depValor} ${depSituacao} · + qualquer banco rotativo cadastrado abaixo (ex: ${headerRot})";
 
 export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsEditorProps) {
   const toast = useToast();

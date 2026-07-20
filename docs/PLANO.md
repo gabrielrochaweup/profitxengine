@@ -1218,3 +1218,64 @@ entrar com senha é uma ação que não realizo por conta própria — a
 correção foi validada por leitura de código (mesmo padrão comprovado do
 `ToastProvider`, já usado e testado em produção) e pelos 3 checks
 automatizados batendo limpo.
+
+## Adendo 24 — Performance de trading vira só percentual (fim do placar wins x losses) (2026-07-20)
+
+1. **Placar (wins x losses) trocado por % direta.** Até aqui, Pepe/Live/Copy
+   guardavam contagem bruta de vitórias e derrotas por janela
+   (dia/semana/mês/total), e a % de acerto era sempre calculada a partir
+   dessas duas contagens. Isso obrigava o time a preencher 2 campos por
+   janela por produto, e qualquer template que citasse `${winsX}x${lossX}`
+   quebrava se a conta não fechasse certinho. Trocado por um único campo
+   `acerto_pct` gravado direto — [0012_result_pct_only.sql](../supabase/migrations/0012_result_pct_only.sql)
+   faz backfill da % a partir do wins/losses existente antes de derrubar
+   as colunas antigas. Tela de [Configurações → Performance de Trading](../src/app/(app)/configuracoes/trading-performance-panel.tsx)
+   agora tem só "% de acerto" por janela (Copy mantém "Rendimento (%)"
+   como já era, sem mudança). Motor de cálculo
+   ([calc-engine.ts](../src/lib/dynamics/calc-engine.ts),
+   [render-message.ts](../src/lib/dynamics/render-message.ts)) e a tabela
+   do dia ([dynamic-day-table.tsx](../src/app/(app)/dinamicas-do-dia/components/dynamic-day-table.tsx))
+   passaram a trabalhar com a % armazenada em vez de derivar de contagem.
+2. **Lucro em R$ do Pepe/Live removido** (escolha do usuário, entre 3
+   opções levantadas — ver decisão no histórico da conversa). Como a %
+   deixou de vir de uma contagem real de operações, não dava mais pra
+   calcular lucro em reais multiplicando wins/losses por entrada/payout.
+   Variáveis removidas do motor de templates: `${winsP} ${lossP} ${winsL}
+   ${lossL} ${winsC} ${lossC} ${lucroPepeR} ${lucroLiveR}
+   ${lucroLive50R/100R/500R/1000R/2000R} ${totalTriadR} ${totalWinsT}
+   ${totalLossT}`. Copy Trader não foi afetado — `${rendimentoCopyR}` já
+   era baseado só em % + banca, sem depender de contagem.
+3. **75 mensagens em 6 dinâmicas ainda citavam as variáveis removidas** —
+   descoberto pelo usuário ao ver `${winsC}x${lossC}` aparecer literal
+   numa mensagem gerada (a variável não existe mais, então não era mais
+   substituída). Rodada uma auditoria completa via query read-only no
+   Supabase (não uma suposição): 75 dos ~190 slots cadastrados usavam
+   `${lucroPepeR}`, `${lucroLiveR}` ou `${totalTriadR}` como parte do
+   gancho de venda ("Com entrada de $X, teria lucrado R$Y!"). Corrigido
+   com um script Python que reescreveu cada mensagem individualmente
+   (não um regex genérico às cegas): linhas 100% dependentes do valor em
+   R$ foram removidas (a % já aparece em outra linha da própria
+   mensagem), e o bloco "PLACAR ATUALIZADO DO MÉTODO TRIAD" — que somava
+   Pepe+Live+Copy em R$ — foi reescrito mantendo só o resultado real do
+   Copy Trader (texto aprovado previamente com o usuário, mostrando
+   antes/depois). Toda a leva de 75 mensagens foi verificada
+   programaticamente antes de gerar o SQL: zero variáveis quebradas
+   remanescentes, zero linha dupla em branco, zero cabeçalho órfão sem
+   conteúdo depois. Aplicado via [0013_strip_placar_mentions.sql](../supabase/migrations/0013_strip_placar_mentions.sql)
+   (limpeza inicial do par `${winsX}x${lossX}`) e
+   [0014_remove_lucro_rs_from_templates.sql](../supabase/migrations/0014_remove_lucro_rs_from_templates.sql)
+   (75 updates individuais, id por id, com o texto final já revisado).
+4. **Geração de variação por IA — checado, nenhuma mudança necessária.**
+   Perguntado se o botão "Gerar variação com IA" em
+   [message-row.tsx](../src/app/(app)/dinamicas-do-dia/components/message-row.tsx)
+   funcionava sem um prompt customizado. Conferido no código
+   (`generate()`, linha 69): a mensagem original já é sempre concatenada
+   ao prompt enviado pra IA (`` `${promptInstruction}\n\nMensagem
+   original:\n${activeText}` ``), tanto nos atalhos ("Mais curta"/"Mais
+   longa"/"Trocar CTA") quanto no campo livre — com ou sem prompt da
+   biblioteca. Já funcionava certo, sem alteração de código.
+
+**Validação**: `tsc --noEmit`, `next lint` e `next build` limpos.
+Migrations 0012/0013/0014 rodadas pelo usuário no Supabase SQL Editor —
+confirmado visualmente que a dinâmica que motivou a correção (Copy
+Trader) ficou só com a %, sem sobra de placar ou variável quebrada.

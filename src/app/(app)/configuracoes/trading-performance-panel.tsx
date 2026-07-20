@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 import { useToast } from "@/components/ui/toast";
-import { calcAcerto } from "@/lib/dynamics/calc-engine";
 import type { Database, TradingProduct, TradingWindow } from "@/lib/supabase/types";
 
 type StatsRow = Database["public"]["Tables"]["trading_performance_stats"]["Row"];
@@ -25,10 +24,10 @@ const WINDOWS: { key: TradingWindow; label: string }[] = [
   { key: "total", label: "Total" },
 ];
 
-type StatsState = Record<TradingProduct, Record<TradingWindow, { wins: number; losses: number; rendimentoPct: number }>>;
+type StatsState = Record<TradingProduct, Record<TradingWindow, { acertoPct: number; rendimentoPct: number }>>;
 
 function emptyStats(): StatsState {
-  const empty = { wins: 0, losses: 0, rendimentoPct: 0 };
+  const empty = { acertoPct: 0, rendimentoPct: 0 };
   const perWindow = () => ({ dia: { ...empty }, semana: { ...empty }, mes: { ...empty }, total: { ...empty } });
   return { pepe: perWindow(), live: perWindow(), copy: perWindow() };
 }
@@ -54,8 +53,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
           const next = emptyStats();
           (statsRows as StatsRow[]).forEach((row) => {
             next[row.product][row.time_window] = {
-              wins: row.wins,
-              losses: row.losses,
+              acertoPct: row.acerto_pct,
               rendimentoPct: row.rendimento_pct ?? 0,
             };
           });
@@ -68,7 +66,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
     load();
   }, []);
 
-  function updateStat(product: TradingProduct, window: TradingWindow, patch: Partial<{ wins: number; losses: number; rendimentoPct: number }>) {
+  function updateStat(product: TradingProduct, window: TradingWindow, patch: Partial<{ acertoPct: number; rendimentoPct: number }>) {
     setStats((prev) => ({
       ...prev,
       [product]: { ...prev[product], [window]: { ...prev[product][window], ...patch } },
@@ -86,8 +84,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
       WINDOWS.map(({ key: window }) => ({
         product,
         time_window: window,
-        wins: stats[product][window].wins,
-        losses: stats[product][window].losses,
+        acerto_pct: stats[product][window].acertoPct,
         rendimento_pct: product === "copy" ? stats[product][window].rendimentoPct : null,
         updated_by: user?.id ?? null,
       }))
@@ -172,31 +169,19 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {WINDOWS.map(({ key: window, label: windowLabel }) => {
               const s = stats[product][window];
-              const acerto = calcAcerto(s.wins, s.losses);
               return (
                 <div key={window} className="rounded-xl border border-border p-3">
                   <p className="mb-2 text-xs font-medium text-text-secondary">{windowLabel}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Wins</label>
-                      <Input
-                        type="number"
-                        disabled={!canEdit}
-                        value={s.wins}
-                        onChange={(e) => updateStat(product, window, { wins: Number(e.target.value) || 0 })}
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Loss</label>
-                      <Input
-                        type="number"
-                        disabled={!canEdit}
-                        value={s.losses}
-                        onChange={(e) => updateStat(product, window, { losses: Number(e.target.value) || 0 })}
-                        className="h-8 text-xs"
-                      />
-                    </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-text-muted">% de acerto</label>
+                    <Input
+                      type="number"
+                      step="1"
+                      disabled={!canEdit}
+                      value={s.acertoPct}
+                      onChange={(e) => updateStat(product, window, { acertoPct: Number(e.target.value) || 0 })}
+                      className="h-8 text-xs"
+                    />
                   </div>
                   {product === "copy" && (
                     <div className="mt-2 space-y-1">
@@ -211,9 +196,6 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
                       />
                     </div>
                   )}
-                  <p className="mt-2 rounded-lg bg-card-hover px-2 py-1.5 text-center text-xs font-semibold text-accent">
-                    {acerto}% acerto
-                  </p>
                 </div>
               );
             })}

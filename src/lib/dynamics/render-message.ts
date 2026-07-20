@@ -1,7 +1,5 @@
 import type { RotatingBanks, TradingWindow, VagasConfig } from "@/lib/supabase/types";
 import {
-  calcLucroLiveUSD,
-  calcLucroPepeUSD,
   calcRendimentoCopy,
   calcResultadoMaratona,
   fmtBR,
@@ -9,20 +7,18 @@ import {
   fonteFrasePlacar,
   getResult,
   rotate,
-  toReais,
   vagasNaPosicao,
   type Depoimento,
   type TradingConfigValues,
-  type WindowCount,
 } from "./calc-engine";
 
 // Valores de depósito usados como exemplo nos templates da dinâmica "Maratona".
 const MARATONA_EXEMPLOS_USD = [500, 1000, 2000, 3000, 5000, 7500, 10000, 15000, 20000];
 
 export interface ProductStatsByWindow {
-  pepe: Record<TradingWindow, WindowCount>;
-  live: Record<TradingWindow, WindowCount>;
-  copy: Record<TradingWindow, WindowCount>;
+  pepe: Record<TradingWindow, number>;
+  live: Record<TradingWindow, number>;
+  copy: Record<TradingWindow, number>;
   copyRendimento: Record<TradingWindow, number>;
 }
 
@@ -54,27 +50,13 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
   const { template, position, totalSlots, fonte, rotatingBanks, extraVars, vagasConfig, stats, config, depoimento } =
     input;
 
-  const pepe = getResult(stats.pepe[fonte].wins, stats.pepe[fonte].losses, fonte);
-  const live = getResult(stats.live[fonte].wins, stats.live[fonte].losses, fonte);
-  const copy = getResult(stats.copy[fonte].wins, stats.copy[fonte].losses, fonte);
+  const pepe = getResult(stats.pepe[fonte], fonte);
+  const live = getResult(stats.live[fonte], fonte);
+  const copy = getResult(stats.copy[fonte], fonte);
   const rendPct = stats.copyRendimento[fonte] ?? 0;
 
-  const lucroPepeUSD = calcLucroPepeUSD(pepe.wins, pepe.losses, config.entradaPepe, config.payoutPepeLive);
-  const lucroLiveUSD = calcLucroLiveUSD(live.wins, live.losses, config.entradaLive, config.payoutPepeLive);
-  const lucroPepeR = toReais(lucroPepeUSD, config.cotacao);
-  const lucroLiveR = toReais(lucroLiveUSD, config.cotacao);
   const rendimentoCopy = calcRendimentoCopy(config.bancaCopy, rendPct) * config.cotacao;
-
-  const live50 = toReais(calcLucroLiveUSD(live.wins, live.losses, 50, config.payoutPepeLive), config.cotacao);
-  const live100 = toReais(calcLucroLiveUSD(live.wins, live.losses, 100, config.payoutPepeLive), config.cotacao);
-  const live500 = toReais(calcLucroLiveUSD(live.wins, live.losses, 500, config.payoutPepeLive), config.cotacao);
-  const live1000 = toReais(calcLucroLiveUSD(live.wins, live.losses, 1000, config.payoutPepeLive), config.cotacao);
-  const live2000 = toReais(calcLucroLiveUSD(live.wins, live.losses, 2000, config.payoutPepeLive), config.cotacao);
-
-  const totalWins = pepe.wins + live.wins + copy.wins;
-  const totalLosses = pepe.losses + live.losses + copy.losses;
-  const acertoTotal = totalWins + totalLosses > 0 ? Math.round((totalWins / (totalWins + totalLosses)) * 100) : 0;
-  const totalTriadR = lucroPepeR + lucroLiveR + rendimentoCopy;
+  const acertoTotal = Math.round((pepe.acerto + live.acerto + copy.acerto) / 3);
 
   const vagasMode = vagasConfig.mode ?? "tiered";
   const vagas =
@@ -131,35 +113,19 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     vagasG: vagas.galactica,
     vagasTotais,
     // Pepe
-    winsP: pepe.wins,
-    lossP: pepe.losses,
     acertoP: pepe.acerto,
     fontePepe: fonte,
-    lucroPepeR: fmtBR(lucroPepeR),
     entradaP: config.entradaPepe,
     // Live
-    winsL: live.wins,
-    lossL: live.losses,
     acertoL: live.acerto,
     fonteLive: fonte,
-    lucroLiveR: fmtBR(lucroLiveR),
     entradaL: config.entradaLive,
-    lucroLive50R: fmtBR(live50),
-    lucroLive100R: fmtBR(live100),
-    lucroLive500R: fmtBR(live500),
-    lucroLive1000R: fmtBR(live1000),
-    lucroLive2000R: fmtBR(live2000),
     // Copy
-    winsC: copy.wins,
-    lossC: copy.losses,
     acertoC: copy.acerto,
     fonteCopy: fonte,
     rendimentoCopyR: fmtBR(rendimentoCopy),
     bancaCopy: fmtBR(config.bancaCopy),
     // TRIAD total
-    totalTriadR: fmtBR(totalTriadR),
-    totalWinsT: totalWins,
-    totalLossT: totalLosses,
     fonteTRIAD: fonte,
     acertoT: acertoTotal,
     // Fontes com preposição correta
@@ -184,6 +150,6 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
 
   return {
     text,
-    computedValues: [lucroPepeUSD, lucroLiveUSD, rendimentoCopy, totalTriadR],
+    computedValues: [rendimentoCopy],
   };
 }

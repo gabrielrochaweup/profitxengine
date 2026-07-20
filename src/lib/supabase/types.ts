@@ -204,8 +204,7 @@ export interface Database {
           id: string;
           product: TradingProduct;
           time_window: TradingWindow;
-          wins: number;
-          losses: number;
+          acerto_pct: number;
           rendimento_pct: number | null;
           updated_by: string | null;
           updated_at: string;
