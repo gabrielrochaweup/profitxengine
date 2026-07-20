@@ -1323,5 +1323,67 @@ Trader) ficou só com a %, sem sobra de placar ou variável quebrada.
 
 **Validação**: `tsc --noEmit`, `next lint` e `next build` limpos.
 Migrations 0015/0016/0017 escritas e verificadas programaticamente
-(SQL balanceado, zero variável de template órfã) antes de entregar —
-ainda não rodadas pelo usuário nesta sessão.
+(SQL balanceado, zero variável de template órfã) antes de entregar, e
+depois confirmadas ao vivo no banco após o usuário rodar: 0 mensagens
+com "% acerto!" minúsculo restante, 90 com "% DE ACERTO!", 0 menções
+genéricas de "trader profissional" restantes (as 24 menções ao produto
+"Copy Trader profissional" continuaram intactas), bucket
+`reference-images` criado e público, dinâmica "Upgrade Direto" ativa
+com as 14 mensagens batendo exatamente com o que foi aprovado.
+
+## Adendo 26 — Analytics: resultado do dia por dinâmica, com gráficos (2026-07-20)
+
+1. **"Resultado do dia" em Dinâmicas do Dia** — novo card
+   ([day-result-form.tsx](../src/app/(app)/dinamicas-do-dia/components/day-result-form.tsx))
+   acima do editor de mensagens, com campos de volume (Pepe/Live/Copy:
+   pessoas + valor), depósitos (valor + quantidade), faturamento
+   (bruto/líquido) e observações, mais um botão "Marcar como concluído".
+   Os dados ficam gravados na própria linha de `daily_dynamic_selection`
+   (1 linha por dia, já ligada à dinâmica que rodou) em vez de criar uma
+   tabela nova — evita join extra. Migration
+   [0018_daily_results.sql](../supabase/migrations/0018_daily_results.sql)
+   adiciona as colunas novas (todas nullable, com `concluded boolean
+   default false`).
+   **Detalhe de correção durante a implementação**: o formulário faz seu
+   próprio fetch/save da linha (independente do `DynamicDayTable`, que já
+   mexe na mesma linha pra gravar `dynamic_id`/overrides) — na primeira
+   versão o `upsert` reenviava de volta o snapshot antigo de
+   `dynamic_id`/`fonte_overrides`/`text_overrides` que tinha acabado de
+   buscar, o que podia sobrescrever uma mudança feita pelo outro
+   componente na mesma sessão com dado desatualizado. Corrigido tirando
+   esses 3 campos do payload do formulário — como já têm default no banco
+   (`null`/`'{}'::jsonb`), dá pra omitir sem quebrar o insert, e no
+   update eles simplesmente não são tocados.
+2. **Calendário mostra qual dinâmica rodou** — trocado o ✨ genérico pelo
+   ícone real da dinâmica (com um ✓ verde se o dia foi concluído), e o
+   popup do dia ganhou um atalho "Ver Analytics"
+   ([day-info-panel.tsx](../src/app/(app)/calendario/components/day-info-panel.tsx),
+   [calendar-grid.tsx](../src/app/(app)/calendario/components/calendar-grid.tsx)).
+   O nome/ícone da dinâmica vem de um segundo fetch (`message_dynamics`)
+   e é cruzado no client — não usei nested select do Supabase
+   (`message_dynamics(name, icon)`) porque a tabela `daily_dynamic_selection`
+   não tinha metadado de `Relationships` nos types gerados, e o client
+   devolve `SelectQueryError` em tempo de tipo nesse caso; mais simples
+   buscar as duas tabelas separadas e juntar na mão (mesmo padrão já
+   usado em `dynamic-day-table.tsx`).
+3. **Nova página /analytics** (item próprio no menu lateral, entre
+   Dinâmicas do Dia e Mensagens X1) —
+   [analytics-client.tsx](../src/app/(app)/analytics/analytics-client.tsx) +
+   [charts.tsx](../src/app/(app)/analytics/components/charts.tsx). Filtro
+   de período (7/30/90 dias, este mês, tudo), 6 KPIs (Pepe/Live/Copy
+   pessoas+valor, depósitos valor+qtd, faturamento bruto/líquido), e 4
+   gráficos com a biblioteca **recharts** (adicionada ao projeto — não
+   havia nenhuma lib de gráfico instalada antes, só um SVG feito à mão no
+   painel de engajamento de mensagens de Dinâmicas do Dia, que é uma
+   página diferente/já existente e não foi tocada): linha (faturamento
+   por dia), 2 barras (faturamento líquido por dia da semana, pessoas na
+   Live por dia da semana) e pizza (faturamento líquido por dinâmica).
+   Tabela no rodapé lista cada dia concluído no período. Só dias com
+   `concluded = true` entram nos números — dia em aberto não polui a
+   média.
+
+**Validação**: `tsc --noEmit`, `next lint` e `next build` limpos (27
+páginas, incluindo a nova `/analytics`). Não testei visualmente porque
+exige login (não faço por conta própria) — a migration 0018 precisa
+rodar antes de qualquer teste, já que o código já espera as colunas
+novas.

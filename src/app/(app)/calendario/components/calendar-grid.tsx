@@ -8,6 +8,9 @@ export interface DayIndicator {
   grupoCount: number;
   directCount: number;
   hasDynamic: boolean;
+  dynamicName?: string | null;
+  dynamicIcon?: string | null;
+  concluded?: boolean;
 }
 
 interface CalendarGridProps {
@@ -86,7 +89,13 @@ export function CalendarGrid({
             >
               <span className="flex items-center gap-1">
                 {date.getDate()}
-                {indicator?.hasDynamic && <Sparkles size={10} className="text-accent" />}
+                {indicator?.hasDynamic &&
+                  (indicator.dynamicIcon ? (
+                    <span className="text-[11px] leading-none">{indicator.dynamicIcon}</span>
+                  ) : (
+                    <Sparkles size={10} className="text-accent" />
+                  ))}
+                {indicator?.concluded && <span className="text-[9px] leading-none text-success">✓</span>}
               </span>
               {((indicator?.grupoCount ?? 0) > 0 || (indicator?.directCount ?? 0) > 0) && (
                 <div className="flex items-center gap-1">

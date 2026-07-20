@@ -292,11 +292,64 @@ export interface Database {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          concluded: boolean;
+          concluded_at: string | null;
+          concluded_by: string | null;
+          pepe_pessoas: number | null;
+          pepe_valor: number | null;
+          live_pessoas: number | null;
+          live_valor: number | null;
+          copy_pessoas: number | null;
+          copy_valor: number | null;
+          depositos_valor: number | null;
+          depositos_qtd: number | null;
+          faturamento_bruto: number | null;
+          faturamento_liquido: number | null;
+          observacoes: string | null;
         };
-        Insert: Omit<Database["public"]["Tables"]["daily_dynamic_selection"]["Row"], "id" | "created_at" | "updated_at"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["daily_dynamic_selection"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "dynamic_id"
+          | "fonte_overrides"
+          | "text_overrides"
+          | "concluded"
+          | "concluded_at"
+          | "concluded_by"
+          | "pepe_pessoas"
+          | "pepe_valor"
+          | "live_pessoas"
+          | "live_valor"
+          | "copy_pessoas"
+          | "copy_valor"
+          | "depositos_valor"
+          | "depositos_qtd"
+          | "faturamento_bruto"
+          | "faturamento_liquido"
+          | "observacoes"
+        > & {
           id?: string;
           created_at?: string;
           updated_at?: string;
+          dynamic_id?: string | null;
+          fonte_overrides?: Record<string, string>;
+          text_overrides?: Record<string, string>;
+          concluded?: boolean;
+          concluded_at?: string | null;
+          concluded_by?: string | null;
+          pepe_pessoas?: number | null;
+          pepe_valor?: number | null;
+          live_pessoas?: number | null;
+          live_valor?: number | null;
+          copy_pessoas?: number | null;
+          copy_valor?: number | null;
+          depositos_valor?: number | null;
+          depositos_qtd?: number | null;
+          faturamento_bruto?: number | null;
+          faturamento_liquido?: number | null;
+          observacoes?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["daily_dynamic_selection"]["Insert"]>;
         Relationships: [];

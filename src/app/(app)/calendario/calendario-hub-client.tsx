@@ -8,18 +8,21 @@ import type { Database } from "@/lib/supabase/types";
 
 type EngagementMessage = Database["public"]["Tables"]["engagement_messages"]["Row"];
 type DirectMessage = Database["public"]["Tables"]["direct_messages"]["Row"];
-type DynamicSelection = { scheduled_date: string; dynamic_id: string | null };
+type DynamicSelection = { scheduled_date: string; dynamic_id: string | null; concluded: boolean };
+type DynamicMeta = { id: string; name: string; icon: string | null };
 
 interface CalendarioHubClientProps {
   initialMessages: EngagementMessage[];
   initialDirectMessages: DirectMessage[];
   initialDynamicSelections: DynamicSelection[];
+  dynamics: DynamicMeta[];
 }
 
 export function CalendarioHubClient({
   initialMessages,
   initialDirectMessages,
   initialDynamicSelections,
+  dynamics,
 }: CalendarioHubClientProps) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -42,27 +45,43 @@ export function CalendarioHubClient({
     return map;
   }, [initialDirectMessages]);
 
-  const dynamicDates = useMemo(
-    () => new Set(initialDynamicSelections.filter((d) => d.dynamic_id).map((d) => d.scheduled_date)),
-    [initialDynamicSelections]
-  );
+  const dynamicsById = useMemo(() => {
+    const map: Record<string, DynamicMeta> = {};
+    dynamics.forEach((d) => {
+      map[d.id] = d;
+    });
+    return map;
+  }, [dynamics]);
+
+  const dynamicByDate = useMemo(() => {
+    const map: Record<string, DynamicSelection> = {};
+    initialDynamicSelections.forEach((d) => {
+      if (d.dynamic_id) map[d.scheduled_date] = d;
+    });
+    return map;
+  }, [initialDynamicSelections]);
 
   const indicatorsByDate = useMemo(() => {
     const map: Record<string, DayIndicator> = {};
     const allDates = new Set([
       ...Object.keys(messagesByDate),
       ...Object.keys(directByDate),
-      ...Array.from(dynamicDates),
+      ...Object.keys(dynamicByDate),
     ]);
     allDates.forEach((date) => {
+      const selection = dynamicByDate[date];
+      const dynamic = selection?.dynamic_id ? dynamicsById[selection.dynamic_id] : null;
       map[date] = {
         grupoCount: messagesByDate[date]?.length ?? 0,
         directCount: directByDate[date]?.length ?? 0,
-        hasDynamic: dynamicDates.has(date),
+        hasDynamic: !!selection,
+        dynamicName: dynamic?.name ?? null,
+        dynamicIcon: dynamic?.icon ?? null,
+        concluded: selection?.concluded ?? false,
       };
     });
     return map;
-  }, [messagesByDate, directByDate, dynamicDates]);
+  }, [messagesByDate, directByDate, dynamicByDate, dynamicsById]);
 
   function handleNavigate(direction: -1 | 1) {
     const next = new Date(year, month + direction, 1);

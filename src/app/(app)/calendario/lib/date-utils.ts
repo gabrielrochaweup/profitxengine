@@ -26,3 +26,16 @@ export const MONTH_LABELS = [
 ];
 
 export const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+/** Dia da semana (0=Dom...6=Sáb) a partir de uma dateKey "YYYY-MM-DD", em
+ * hora local — evita o fuso desviar o dia quando se usa `new Date(string)`
+ * direto (que o navegador interpreta como UTC meia-noite). */
+export function weekdayFromDateKey(dateKey: string): number {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return new Date(y, m - 1, d).getDay();
+}
+
+export function fromDateKey(dateKey: string): Date {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}

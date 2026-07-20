@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles, Users, MessageCircle } from "lucide-react";
+import { Sparkles, Users, MessageCircle, BarChart3, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DayNewsPreview } from "./day-news-preview";
 import type { DayIndicator } from "./calendar-grid";
@@ -17,8 +17,9 @@ export function DayInfoPanel({ dateKey, indicator }: DayInfoPanelProps) {
       <div className="flex flex-wrap gap-2 text-xs text-text-secondary">
         {indicator?.hasDynamic ? (
           <span className="flex items-center gap-1 rounded-button bg-accent/15 px-2 py-1 text-accent">
-            <Sparkles size={12} />
-            Dinâmica ativa nesse dia
+            {indicator.dynamicIcon ?? <Sparkles size={12} />}
+            {indicator.dynamicName ?? "Dinâmica ativa nesse dia"}
+            {indicator.concluded && <CheckCircle2 size={12} className="text-success" />}
           </span>
         ) : (
           <span className="rounded-button bg-card-hover px-2 py-1 text-text-muted">Nenhuma dinâmica rodou ainda</span>
@@ -51,6 +52,12 @@ export function DayInfoPanel({ dateKey, indicator }: DayInfoPanelProps) {
         <Link href={`/mensagens-x1?data=${dateKey}`}>
           <Button type="button" variant="secondary" size="sm">
             Criar Mensagem X1
+          </Button>
+        </Link>
+        <Link href="/analytics" className="ml-auto">
+          <Button type="button" variant="secondary" size="sm">
+            <BarChart3 size={14} />
+            Ver Analytics
           </Button>
         </Link>
       </div>

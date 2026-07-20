@@ -9,11 +9,13 @@ export default async function CalendarioPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const [{ data: messages }, { data: directMessages }, { data: dynamicSelections }] = await Promise.all([
-    supabase.from("engagement_messages").select("*").order("scheduled_date", { ascending: false }),
-    supabase.from("direct_messages").select("*").order("scheduled_date", { ascending: false }),
-    supabase.from("daily_dynamic_selection").select("scheduled_date, dynamic_id"),
-  ]);
+  const [{ data: messages }, { data: directMessages }, { data: dynamicSelections }, { data: dynamics }] =
+    await Promise.all([
+      supabase.from("engagement_messages").select("*").order("scheduled_date", { ascending: false }),
+      supabase.from("direct_messages").select("*").order("scheduled_date", { ascending: false }),
+      supabase.from("daily_dynamic_selection").select("scheduled_date, dynamic_id, concluded"),
+      supabase.from("message_dynamics").select("id, name, icon"),
+    ]);
 
   return (
     <div>
@@ -27,6 +29,7 @@ export default async function CalendarioPage() {
         initialMessages={messages ?? []}
         initialDirectMessages={directMessages ?? []}
         initialDynamicSelections={dynamicSelections ?? []}
+        dynamics={dynamics ?? []}
       />
     </div>
   );

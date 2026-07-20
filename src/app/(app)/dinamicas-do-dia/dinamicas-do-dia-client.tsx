@@ -8,6 +8,7 @@ import { DateNav } from "../calendario/components/date-nav";
 import { AnalyticsPanel } from "./components/analytics-panel";
 import { DynamicDayTable } from "./components/dynamic-day-table";
 import { LivreGenerator } from "./components/livre-generator";
+import { DayResultForm } from "./components/day-result-form";
 import { toDateKey } from "../calendario/lib/date-utils";
 import type { Database } from "@/lib/supabase/types";
 
@@ -86,6 +87,10 @@ export function DinamicasDoDiaClient({ initialMessages, currentUserId }: Dinamic
               <ModeButton active={mode === "livre"} onClick={() => updateMode("livre")}>
                 Gerar livre com IA
               </ModeButton>
+            </div>
+
+            <div className="mb-4">
+              <DayResultForm dateKey={dateKey} currentUserId={currentUserId} />
             </div>
 
             {mode === "dinamica" ? (
