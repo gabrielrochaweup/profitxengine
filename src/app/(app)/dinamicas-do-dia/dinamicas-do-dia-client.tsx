@@ -17,12 +17,13 @@ type EngagementMessage = Database["public"]["Tables"]["engagement_messages"]["Ro
 interface DinamicasDoDiaClientProps {
   initialMessages: EngagementMessage[];
   currentUserId: string;
+  canEditResult: boolean;
 }
 
 type Mode = "dinamica" | "livre";
 type InnerTab = "hoje" | "analytics";
 
-export function DinamicasDoDiaClient({ initialMessages, currentUserId }: DinamicasDoDiaClientProps) {
+export function DinamicasDoDiaClient({ initialMessages, currentUserId, canEditResult }: DinamicasDoDiaClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -89,10 +90,6 @@ export function DinamicasDoDiaClient({ initialMessages, currentUserId }: Dinamic
               </ModeButton>
             </div>
 
-            <div className="mb-4">
-              <DayResultForm dateKey={dateKey} currentUserId={currentUserId} />
-            </div>
-
             {mode === "dinamica" ? (
               <DynamicDayTable dateKey={dateKey} currentUserId={currentUserId} />
             ) : (
@@ -104,6 +101,10 @@ export function DinamicasDoDiaClient({ initialMessages, currentUserId }: Dinamic
                 onDeleted={handleDeleted}
               />
             )}
+
+            <div className="mt-4">
+              <DayResultForm dateKey={dateKey} currentUserId={currentUserId} canEdit={canEditResult} />
+            </div>
           </>
         )}
       </div>

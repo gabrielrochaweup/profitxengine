@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
+import { getSessionProfile, hasRole } from "@/lib/auth";
 import { LoadingState } from "@/components/ui/loading-state";
 import { DinamicasDoDiaClient } from "./dinamicas-do-dia-client";
 
@@ -10,6 +11,8 @@ export default async function DinamicasDoDiaPage() {
     data: { user },
   } = await getUser();
   if (!user) redirect("/login");
+
+  const profile = await getSessionProfile();
 
   const { data: messages } = await supabase
     .from("engagement_messages")
@@ -26,7 +29,11 @@ export default async function DinamicasDoDiaPage() {
 
       <div className="mt-6">
         <Suspense fallback={<LoadingState />}>
-          <DinamicasDoDiaClient initialMessages={messages ?? []} currentUserId={user.id} />
+          <DinamicasDoDiaClient
+            initialMessages={messages ?? []}
+            currentUserId={user.id}
+            canEditResult={hasRole(profile?.role ?? "viewer", "editor")}
+          />
         </Suspense>
       </div>
     </div>

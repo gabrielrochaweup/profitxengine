@@ -16,6 +16,10 @@ type DailyDynamicSelection = Database["public"]["Tables"]["daily_dynamic_selecti
 interface DayResultFormProps {
   dateKey: string;
   currentUserId: string;
+  /** Preencher/concluir é restrito a editor+/admin — mesma regra da
+   * Performance de Trading. Ver (Analytics e este card) é liberado pra
+   * todo mundo, já que os números são globais, não por usuário. */
+  canEdit: boolean;
 }
 
 const EMPTY_FORM = {
@@ -44,7 +48,7 @@ function strToNum(s: string): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
-export function DayResultForm({ dateKey, currentUserId }: DayResultFormProps) {
+export function DayResultForm({ dateKey, currentUserId, canEdit }: DayResultFormProps) {
   const toast = useToast();
   const [row, setRow] = useState<DailyDynamicSelection | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -141,7 +145,9 @@ export function DayResultForm({ dateKey, currentUserId }: DayResultFormProps) {
         className="flex w-full items-center justify-between text-left"
       >
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium text-text-primary">Resultado do dia</h3>
+          <h3 className="text-sm font-medium text-text-primary">
+            Resultado do dia <span className="text-text-muted">— {dateKey.split("-").reverse().join("/")}</span>
+          </h3>
           {row?.concluded && (
             <Badge tone="success" className="flex items-center gap-1">
               <CheckCircle2 size={11} />
@@ -156,16 +162,16 @@ export function DayResultForm({ dateKey, currentUserId }: DayResultFormProps) {
         <div className="mt-4 space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <FieldGroup label="🐸 Pepe">
-              <NumberField label="Pessoas" value={form.pepePessoas} onChange={(v) => update({ pepePessoas: v })} />
-              <NumberField label="Valor (R$)" value={form.pepeValor} onChange={(v) => update({ pepeValor: v })} />
+              <NumberField label="Pessoas" value={form.pepePessoas} onChange={(v) => update({ pepePessoas: v })} disabled={!canEdit} />
+              <NumberField label="Valor (R$)" value={form.pepeValor} onChange={(v) => update({ pepeValor: v })} disabled={!canEdit} />
             </FieldGroup>
             <FieldGroup label="📺 Live">
-              <NumberField label="Pessoas" value={form.livePessoas} onChange={(v) => update({ livePessoas: v })} />
-              <NumberField label="Valor (R$)" value={form.liveValor} onChange={(v) => update({ liveValor: v })} />
+              <NumberField label="Pessoas" value={form.livePessoas} onChange={(v) => update({ livePessoas: v })} disabled={!canEdit} />
+              <NumberField label="Valor (R$)" value={form.liveValor} onChange={(v) => update({ liveValor: v })} disabled={!canEdit} />
             </FieldGroup>
             <FieldGroup label="💰 Copy">
-              <NumberField label="Pessoas" value={form.copyPessoas} onChange={(v) => update({ copyPessoas: v })} />
-              <NumberField label="Valor (R$)" value={form.copyValor} onChange={(v) => update({ copyValor: v })} />
+              <NumberField label="Pessoas" value={form.copyPessoas} onChange={(v) => update({ copyPessoas: v })} disabled={!canEdit} />
+              <NumberField label="Valor (R$)" value={form.copyValor} onChange={(v) => update({ copyValor: v })} disabled={!canEdit} />
             </FieldGroup>
           </div>
 
@@ -174,21 +180,25 @@ export function DayResultForm({ dateKey, currentUserId }: DayResultFormProps) {
               label="Valor dos depósitos (R$)"
               value={form.depositosValor}
               onChange={(v) => update({ depositosValor: v })}
+              disabled={!canEdit}
             />
             <NumberField
               label="Qtd. depósitos/pessoas"
               value={form.depositosQtd}
               onChange={(v) => update({ depositosQtd: v })}
+              disabled={!canEdit}
             />
             <NumberField
               label="Faturamento bruto (R$)"
               value={form.faturamentoBruto}
               onChange={(v) => update({ faturamentoBruto: v })}
+              disabled={!canEdit}
             />
             <NumberField
               label="Faturamento líquido (R$)"
               value={form.faturamentoLiquido}
               onChange={(v) => update({ faturamentoLiquido: v })}
+              disabled={!canEdit}
             />
           </div>
 
@@ -200,6 +210,7 @@ export function DayResultForm({ dateKey, currentUserId }: DayResultFormProps) {
               rows={2}
               placeholder="Algo que valha registrar sobre o dia..."
               className="text-xs"
+              disabled={!canEdit}
             />
           </div>
 
@@ -209,13 +220,23 @@ export function DayResultForm({ dateKey, currentUserId }: DayResultFormProps) {
                 Concluído em {new Date(row.concluded_at).toLocaleString("pt-BR")}
               </span>
             )}
-            <Button type="button" variant="secondary" size="sm" disabled={saving} onClick={() => persist(row?.concluded ?? false)}>
-              {saving ? "Salvando..." : "Salvar resultado"}
-            </Button>
-            <Button type="button" size="sm" disabled={saving} onClick={() => persist(true)}>
-              <CheckCircle2 size={14} />
-              Marcar como concluído
-            </Button>
+            {canEdit && (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={saving}
+                  onClick={() => persist(row?.concluded ?? false)}
+                >
+                  {saving ? "Salvando..." : "Salvar resultado"}
+                </Button>
+                <Button type="button" size="sm" disabled={saving} onClick={() => persist(true)}>
+                  <CheckCircle2 size={14} />
+                  Marcar como concluído
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -236,10 +257,12 @@ function NumberField({
   label,
   value,
   onChange,
+  disabled,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-1">
@@ -248,6 +271,7 @@ function NumberField({
         type="number"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
         className="h-8 text-xs"
       />
     </div>

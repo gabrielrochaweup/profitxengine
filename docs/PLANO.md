@@ -1387,3 +1387,52 @@ páginas, incluindo a nova `/analytics`). Não testei visualmente porque
 exige login (não faço por conta própria) — a migration 0018 precisa
 rodar antes de qualquer teste, já que o código já espera as colunas
 novas.
+
+## Adendo 27 — Filtros Hoje/Ontem, reordenação do menu, favicon e 3 ajustes finos no Analytics (2026-07-20/21)
+
+1. **Filtros "Hoje" e "Ontem"** adicionados ao período do
+   [/analytics](../src/app/(app)/analytics/analytics-client.tsx), antes
+   de "7 dias". Como só dia marcado como concluído entra na conta, "Hoje"
+   fica vazio até o dia ser fechado — comportamento esperado.
+2. **Reordenação do menu lateral** — nova ordem: Dashboard, Dinâmicas do
+   Dia, Simulador de Conversas, Mensagens X1, E-mails, Analytics,
+   Calendário, Biblioteca de Prompts.
+3. **Favicon** — o `favicon.ico` era o padrão genérico do scaffold do
+   Next.js, nunca trocado. Substituído por
+   [icon.svg](../src/app/icon.svg) (convenção de arquivo do App Router),
+   usando o mesmo SVG do "X" verde já usado no topo da sidebar.
+4. **Download de imagem abrindo aba em vez de baixar** — causa raiz: a
+   detecção de iOS em
+   [export-controls.tsx](../src/app/(app)/conversas/components/export-controls.tsx)
+   (`platform === "MacIntel" && maxTouchPoints > 1`) é o truque padrão
+   pra pegar iPad em modo "site de desktop" (que se identifica como
+   Mac), mas dá falso positivo em Macs de verdade onde o trackpad
+   reporta `maxTouchPoints` maior que zero — aí o código tratava o
+   desktop como iOS e abria uma aba em branco em vez de baixar direto.
+   Corrigido acrescentando um filtro por `pointer: fine` (media query):
+   um Mac com mouse/trackpad tem ponteiro "fino", um iPad tem ponteiro
+   "grosso" (touch) — só entra no fluxo de iOS quando os dois sinais
+   batem. Não reproduzi o bug exato neste ambiente (aqui `maxTouchPoints`
+   é 0), mas validei a lógica isoladamente antes/depois da correção.
+5. **"Resultado do dia" reposicionado pra depois do conteúdo da
+   dinâmica** (antes ficava acima, agora fica abaixo, pra preencher só
+   depois de rolar o dia todo) — mudança em
+   [dinamicas-do-dia-client.tsx](../src/app/(app)/dinamicas-do-dia/dinamicas-do-dia-client.tsx).
+   O card agora mostra a data que está sendo editada no cabeçalho
+   (ex: "Resultado do dia — 21/07/2026"), o que já deixa claro quando
+   dá pra preencher retroativo — preencher um dia passado já funcionava
+   (o formulário segue a data do `DateNav`, independente de hoje), só
+   não estava óbvio na UI; a data no cabeçalho resolve isso sem precisar
+   de nenhum campo novo.
+6. **Permissão de edição do resultado do dia restrita a editor+/admin**
+   — mesma regra já usada em Performance de Trading
+   (`hasRole(profile.role, "editor")`). Visualizar (o card e a página
+   /analytics inteira) continua liberado pra todo mundo, já que os
+   números são globais (uma linha por dia, não por usuário) — só quem
+   pode *editar* mudou. Threading do `canEditResult` desde
+   [dinamicas-do-dia/page.tsx](../src/app/(app)/dinamicas-do-dia/page.tsx)
+   até o [day-result-form.tsx](../src/app/(app)/dinamicas-do-dia/components/day-result-form.tsx),
+   que agora desabilita os campos e esconde os botões de salvar/concluir
+   quando `canEdit` é falso.
+
+**Validação**: `tsc --noEmit`, `next lint` e `next build` limpos.

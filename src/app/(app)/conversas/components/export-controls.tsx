@@ -13,7 +13,15 @@ interface ExportControlsProps {
 
 function isIOS() {
   if (typeof navigator === "undefined") return false;
-  return /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (/iP(hone|od|ad)/.test(navigator.userAgent)) return true;
+  // iPadOS Safari se identifica como "Macintosh" desde o iOS 13 (modo
+  // "site de desktop" por padrão), então também checamos touch. Mas
+  // maxTouchPoints > 0 sozinho dá falso positivo em alguns Mac com
+  // trackpad — por isso exige também um ponteiro "grosso" (touch), já
+  // que um Mac de verdade com mouse/trackpad reporta pointer:fine.
+  if (navigator.platform !== "MacIntel" || navigator.maxTouchPoints <= 1) return false;
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  return !window.matchMedia("(pointer: fine)").matches;
 }
 
 export function ExportControls({ platform }: ExportControlsProps) {
