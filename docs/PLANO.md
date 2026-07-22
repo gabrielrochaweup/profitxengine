@@ -1436,3 +1436,49 @@ novas.
    quando `canEdit` é falso.
 
 **Validação**: `tsc --noEmit`, `next lint` e `next build` limpos.
+
+## Adendo 28 — Biblioteca de Prompts: colunas de categoria viram totalmente gerenciáveis (2026-07-21)
+
+1. **Categorias fixas → tabela `prompt_categories`.** Antes, `prompts.category`
+   era um `text` com `CHECK (category in ('conversa','mensagem','imagem','email'))`
+   — 4 colunas fixas, sem como criar/renomear/reordenar/excluir. Agora
+   ([0019_prompt_categories.sql](../supabase/migrations/0019_prompt_categories.sql)):
+   nova tabela `prompt_categories` (id, `slug`, `name`, `position`), e
+   `prompts.category_id` vira FK pra ela. As 4 categorias antigas foram
+   migradas como as 4 colunas iniciais, preservando os prompts existentes
+   (`update prompts set category_id = ... from prompt_categories where slug = category`
+   antes de derrubar a coluna `category` velha). RLS pra `prompt_categories`
+   segue o mesmo padrão admin-only já usado em `prompts`
+   (`prompts_insert_admin_only` etc., da Adendo de "Restringir criação a
+   admin").
+2. **[Biblioteca de Prompts](../src/app/(app)/prompts/prompts-client.tsx)
+   ganhou gestão de colunas** (só admin): "Nova coluna" (botão + input
+   inline), renomear (lápis vira input inline, Enter confirma/Esc
+   cancela), mover pra esquerda/direita (troca de `position`, persistido
+   igual ao padrão já usado pra reordenar slots de dinâmica), excluir
+   (bloqueada com toast de erro se a coluna ainda tiver prompt dentro —
+   evita perder prompt sem querer; "mova ou exclua os prompts primeiro").
+   O board trocou de `grid-cols-4` fixo pra uma linha com scroll
+   horizontal (`flex overflow-x-auto`), já que o número de colunas deixou
+   de ser fixo. Drag-and-drop de prompt entre colunas continua igual, só
+   trocou `category` por `category_id`.
+3. **Decisão de design — como o resto do app continua sugerindo uma
+   categoria inicial.** 6 lugares (painel de geração de imagem, Simulador
+   de Conversas, E-mails, Mensagens X1, Dinâmicas do Dia × 2) abrem o
+   `PromptPicker` já numa aba específica (ex: o painel de imagem sempre
+   abria em "Imagem"). Como agora um admin pode renomear/excluir
+   qualquer coluna, não dá pra continuar amarrado num nome fixo. Solução:
+   as 4 categorias seed guardam um `slug` estável (`imagem`, `conversa`,
+   `mensagem`, `email`) que não aparece na UI e não é editável — os 6
+   call sites passam esse slug como sugestão (`preferredSlug`) em vez do
+   nome da categoria. Se o admin apagar essa coluna, o picker cai de
+   volta pra primeira categoria disponível, sem quebrar — não bloqueia a
+   liberdade de excluir, só degrada bem.
+4. Removido `src/lib/prompts.ts` (as constantes `PROMPT_CATEGORIES`/
+   `PROMPT_CATEGORY_LABEL` não fazem mais sentido com categorias
+   dinâmicas) e o tipo `PromptCategory` do `types.ts`.
+
+**Validação**: `tsc --noEmit`, `next lint` e `next build` limpos (todas as
+6 telas que usam `PromptPicker` atualizadas pro novo prop). Confirmei
+que a rota `/prompts` compila e redireciona pro login sem erro de
+servidor — não testei o board em si porque exige login.

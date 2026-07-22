@@ -290,7 +290,7 @@ export function EmailsClient({ initialCampaigns, currentUserId }: EmailsClientPr
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-text-secondary">Prompt do e-mail</label>
               <PromptPicker
-                category="email"
+                preferredSlug="email"
                 onSelect={(p) => setForm((prev) => ({ ...prev, prompt: p.content, promptId: p.id }))}
               />
             </div>

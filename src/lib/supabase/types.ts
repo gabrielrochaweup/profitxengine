@@ -1,7 +1,6 @@
 export type UserRole = "admin" | "editor" | "viewer";
 export type UserStatus = "pending" | "approved" | "rejected";
 export type AiProvider = "openai" | "anthropic" | "google";
-export type PromptCategory = "conversa" | "mensagem" | "imagem" | "email";
 export type Platform = "whatsapp" | "instagram" | "crm";
 export type EngagementStatus = "rascunho" | "aprovada" | "enviada";
 export type EngagementResult = "funcionou" | "nao_funcionou" | null;
@@ -83,7 +82,7 @@ export interface Database {
         Row: {
           id: string;
           title: string;
-          category: PromptCategory;
+          category_id: string;
           content: string;
           tags: string[] | null;
           usage_count: number;
@@ -96,6 +95,23 @@ export interface Database {
           usage_count?: number;
         };
         Update: Partial<Database["public"]["Tables"]["prompts"]["Insert"]>;
+        Relationships: [];
+      };
+      prompt_categories: {
+        Row: {
+          id: string;
+          slug: string | null;
+          name: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["prompt_categories"]["Row"], "id" | "created_at" | "slug"> & {
+          id?: string;
+          created_at?: string;
+          slug?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["prompt_categories"]["Insert"]>;
         Relationships: [];
       };
       fake_conversations: {

@@ -7,23 +7,32 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PROMPT_CATEGORY_LABEL, PROMPT_CATEGORIES } from "@/lib/prompts";
-import type { Database, PromptCategory } from "@/lib/supabase/types";
+import type { Database } from "@/lib/supabase/types";
 
 type Prompt = Database["public"]["Tables"]["prompts"]["Row"];
+type PromptCategoryRow = Database["public"]["Tables"]["prompt_categories"]["Row"];
 
 interface PromptFormProps {
   open: boolean;
   prompt: Prompt | null;
+  categories: PromptCategoryRow[];
   currentUserId: string;
-  defaultCategory?: PromptCategory;
+  defaultCategoryId?: string;
   onClose: () => void;
   onSaved: (prompt: Prompt, isNew: boolean) => void;
 }
 
-export function PromptForm({ open, prompt, currentUserId, defaultCategory, onClose, onSaved }: PromptFormProps) {
+export function PromptForm({
+  open,
+  prompt,
+  categories,
+  currentUserId,
+  defaultCategoryId,
+  onClose,
+  onSaved,
+}: PromptFormProps) {
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState<PromptCategory>("conversa");
+  const [categoryId, setCategoryId] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [saving, setSaving] = useState(false);
@@ -32,12 +41,12 @@ export function PromptForm({ open, prompt, currentUserId, defaultCategory, onClo
   useEffect(() => {
     if (open) {
       setTitle(prompt?.title ?? "");
-      setCategory(prompt?.category ?? defaultCategory ?? "conversa");
+      setCategoryId(prompt?.category_id ?? defaultCategoryId ?? categories[0]?.id ?? "");
       setContent(prompt?.content ?? "");
       setTags((prompt?.tags ?? []).join(", "));
       setError(null);
     }
-  }, [open, prompt, defaultCategory]);
+  }, [open, prompt, defaultCategoryId, categories]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -54,7 +63,7 @@ export function PromptForm({ open, prompt, currentUserId, defaultCategory, onClo
     if (prompt) {
       const { data, error: updateError } = await supabase
         .from("prompts")
-        .update({ title, category, content, tags: parsedTags })
+        .update({ title, category_id: categoryId, content, tags: parsedTags })
         .eq("id", prompt.id)
         .select()
         .single();
@@ -68,7 +77,7 @@ export function PromptForm({ open, prompt, currentUserId, defaultCategory, onClo
     } else {
       const { data, error: insertError } = await supabase
         .from("prompts")
-        .insert({ title, category, content, tags: parsedTags, created_by: currentUserId })
+        .insert({ title, category_id: categoryId, content, tags: parsedTags, created_by: currentUserId })
         .select()
         .single();
 
@@ -91,10 +100,10 @@ export function PromptForm({ open, prompt, currentUserId, defaultCategory, onClo
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-text-secondary">Categoria</label>
-          <Select value={category} onChange={(e) => setCategory(e.target.value as PromptCategory)}>
-            {PROMPT_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {PROMPT_CATEGORY_LABEL[c]}
+          <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
               </option>
             ))}
           </Select>
@@ -122,7 +131,7 @@ export function PromptForm({ open, prompt, currentUserId, defaultCategory, onClo
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={saving || !categoryId}>
             {saving ? "Salvando..." : "Salvar"}
           </Button>
         </div>

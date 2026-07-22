@@ -89,7 +89,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
       <div className="flex items-center justify-between">
         <label className="text-xs font-medium text-text-secondary">Descreva a conversa desejada</label>
         <PromptPicker
-          category="conversa"
+          preferredSlug="conversa"
           onSelect={(saved) => {
             setPrompt(saved.content);
             setPromptId(saved.id);

@@ -209,7 +209,7 @@ export function LivreGenerator({ dateKey, messages, currentUserId, onSaved, onDe
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-text-secondary">Prompt de texto</label>
           <PromptPicker
-            category="mensagem"
+            preferredSlug="mensagem"
             onSelect={(p) => setForm((prev) => ({ ...prev, textPrompt: p.content, textPromptId: p.id }))}
           />
         </div>

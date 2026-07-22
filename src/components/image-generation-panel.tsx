@@ -187,7 +187,7 @@ export function ImageGenerationPanel({
           {label}
         </p>
         <PromptPicker
-          category="imagem"
+          preferredSlug="imagem"
           onSelect={(p) => {
             setPrompt(p.content);
             setPromptId(p.id);
