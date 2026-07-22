@@ -234,7 +234,7 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
           e.preventDefault();
           handleDropOnCategory(category.id);
         }}
-        className={`flex w-full min-h-0 shrink-0 flex-col rounded-card border p-3 transition-colors sm:w-72 ${
+        className={`flex w-full min-h-0 shrink-0 flex-col overflow-hidden rounded-card border p-3 transition-colors sm:w-72 ${
           dragOverCategoryId === category.id
             ? "border-accent bg-accent/5"
             : strong
@@ -242,6 +242,8 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
               : "border-border bg-card"
         }`}
       >
+        <div className="-mx-3 -mt-3 mb-3 h-1.5 shrink-0 bg-success" />
+
         <div className="mb-3 flex items-center justify-between gap-1 px-1">
           {renamingId === category.id ? (
             <div className="flex flex-1 items-center gap-1">
@@ -265,7 +267,7 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
           ) : (
             <h2 className="flex min-w-0 items-center gap-2 text-sm font-medium text-text-primary">
               <span className="truncate">{category.name}</span>
-              <span className="shrink-0 rounded-button bg-card-hover px-1.5 py-0.5 text-[11px] text-text-muted">
+              <span className="shrink-0 rounded-button bg-success/15 px-1.5 py-0.5 text-[11px] font-medium text-success">
                 {items.length}
               </span>
             </h2>
@@ -275,19 +277,19 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
             <div className="flex shrink-0 items-center gap-0.5">
               {isAdmin && (
                 <>
-                  <IconButton onClick={() => moveColumn(index, -1)} label="Mover pra esquerda">
+                  <IconButton onClick={() => moveColumn(index, -1)} label="Mover pra esquerda" tone="success">
                     <ChevronLeft size={13} />
                   </IconButton>
-                  <IconButton onClick={() => moveColumn(index, 1)} label="Mover pra direita">
+                  <IconButton onClick={() => moveColumn(index, 1)} label="Mover pra direita" tone="success">
                     <ChevronRight size={13} />
                   </IconButton>
-                  <IconButton onClick={() => startRename(category)} label="Renomear coluna">
+                  <IconButton onClick={() => startRename(category)} label="Renomear coluna" tone="success">
                     <Pencil size={13} />
                   </IconButton>
                   <IconButton onClick={() => handleDeleteColumn(category)} label="Excluir coluna" danger>
                     <Trash2 size={13} />
                   </IconButton>
-                  <IconButton onClick={() => openNew(category.id)} label={`Novo prompt de ${category.name}`}>
+                  <IconButton onClick={() => openNew(category.id)} label={`Novo prompt de ${category.name}`} tone="success">
                     <Plus size={14} />
                   </IconButton>
                 </>
@@ -314,7 +316,7 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
                   setDraggingId(null);
                   setDragOverCategoryId(null);
                 }}
-                className={`p-3 transition-opacity ${canEdit() ? "cursor-grab active:cursor-grabbing" : ""} ${
+                className={`border-success/20 p-3 transition-opacity ${canEdit() ? "cursor-grab active:cursor-grabbing" : ""} ${
                   draggingId === prompt.id ? "opacity-40" : ""
                 }`}
               >
@@ -457,19 +459,21 @@ function IconButton({
   onClick,
   label,
   danger,
+  tone,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   label: string;
   danger?: boolean;
+  tone?: "success";
 }) {
   return (
     <button
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-card-hover ${
-        danger ? "hover:text-danger" : "hover:text-text-primary"
+      className={`flex h-7 w-7 items-center justify-center rounded-lg hover:bg-card-hover ${
+        danger ? "text-text-muted hover:text-danger" : tone === "success" ? "text-success/70 hover:text-success" : "text-text-muted hover:text-text-primary"
       }`}
     >
       {children}

@@ -1482,3 +1482,36 @@ novas.
 6 telas que usam `PromptPicker` atualizadas pro novo prop). Confirmei
 que a rota `/prompts` compila e redireciona pro login sem erro de
 servidor — não testei o board em si porque exige login.
+
+## Adendo 29 — Toque verde na Biblioteca de Prompts + import de 30 prompts do PDF (2026-07-22)
+
+1. **Identidade visual verde nas colunas** —
+   [prompts-client.tsx](../src/app/(app)/prompts/prompts-client.tsx): cada
+   coluna ganhou uma faixa verde no topo (`bg-success`, sangrando até a
+   borda via margem negativa), o badge de contagem de prompts virou verde
+   (`bg-success/15 text-success`), e os ícones de ação do cabeçalho da
+   coluna (mover, renomear, adicionar — exceto excluir, que continua
+   vermelho) ganharam um `tone="success"` no `IconButton`. Cada card de
+   prompt ganhou borda com tom verde (`border-success/20`) pra criar a
+   separação verde entre eles. Reaproveitei o token `--success` já usado
+   em todo o app (mesmo verde do ✓ de "concluído" no Analytics/Calendário)
+   em vez de inventar uma cor nova.
+2. **Import de 30 prompts do PDF "Biblioteca de Prompts ProfitX v2"**
+   ([0020_import_pdf_prompts.sql](../supabase/migrations/0020_import_pdf_prompts.sql)) —
+   o usuário anexou um PDF com prompts de geração de imagem pro Freepik
+   Spaces, já organizados em 7 seções (Pepe, Robson, Felipe, Dupla
+   Robson+Felipe, Copy Trader/Robô, Dinâmicas Temáticas, Cards
+   Comparativos). Criei 7 colunas novas espelhando exatamente essas
+   seções (Imagens Pepe, Imagens Robson, Imagens Felipe, Imagens Robson +
+   Felipe, Imagens Copy Trader, Imagens Dinâmicas Temáticas, Imagens
+   Cards Comparativos) e um prompt por item do documento (3+6+3+3+5+8+2 =
+   30, conferido por script antes de gerar o SQL). Cada prompt guarda o
+   bloco de variáveis, o prompt completo em inglês e as restrições fixas
+   — a mesma estrutura do PDF, só que dentro do campo `content` da
+   Biblioteca, pronta pra copiar e preencher.
+
+**Validação**: `tsc --noEmit`, `next lint` e `next build` limpos. SQL de
+import verificado por script (contagem de INSERTs, aspas balanceadas,
+contagem de prompts por categoria batendo exatamente com o sumário do
+PDF) antes de escrever o arquivo. Não testei visualmente porque exige
+login.
