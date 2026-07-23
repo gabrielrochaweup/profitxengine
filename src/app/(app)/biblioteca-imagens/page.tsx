@@ -9,8 +9,9 @@ export default async function BibliotecaImagensPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const [{ data: images }, { data: profile }] = await Promise.all([
+  const [{ data: images }, { data: folders }, { data: profile }] = await Promise.all([
     supabase.from("generated_images").select("*").order("created_at", { ascending: false }).limit(1000),
+    supabase.from("image_folders").select("*").order("position"),
     getProfile(user.id),
   ]);
 
@@ -18,12 +19,13 @@ export default async function BibliotecaImagensPage() {
     <div>
       <h1 className="text-[28px] font-semibold text-text-primary">Biblioteca de Imagens</h1>
       <p className="mt-1 text-sm text-text-secondary">
-        Todas as imagens geradas por qualquer pessoa da equipe, em qualquer dispositivo — organizadas em
-        pastas de acordo com onde foram criadas.
+        Todas as imagens geradas por qualquer pessoa da equipe, em qualquer dispositivo — arraste pra dentro
+        das pastas pra organizar do seu jeito.
       </p>
 
       <BibliotecaImagensClient
         initialImages={images ?? []}
+        initialFolders={folders ?? []}
         currentUserId={user.id}
         isAdmin={profile?.role === "admin"}
       />

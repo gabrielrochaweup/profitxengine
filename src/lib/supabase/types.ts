@@ -420,14 +420,31 @@ export interface Database {
           model: string;
           format: ImageAspectRatio;
           quality: ImageQuality;
+          folder_id: string | null;
           created_by: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["generated_images"]["Row"], "id" | "created_at"> & {
+        Insert: Omit<Database["public"]["Tables"]["generated_images"]["Row"], "id" | "created_at" | "folder_id"> & {
+          id?: string;
+          created_at?: string;
+          folder_id?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["generated_images"]["Insert"]>;
+        Relationships: [];
+      };
+      image_folders: {
+        Row: {
+          id: string;
+          name: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["image_folders"]["Row"], "id" | "created_at"> & {
           id?: string;
           created_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["generated_images"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["image_folders"]["Insert"]>;
         Relationships: [];
       };
     };

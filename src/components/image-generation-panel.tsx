@@ -142,6 +142,7 @@ export function ImageGenerationPanel({
             model: "",
             format: aspectRatio,
             quality,
+            folder_id: null,
             created_by: null,
             created_at: new Date().toISOString(),
           },
