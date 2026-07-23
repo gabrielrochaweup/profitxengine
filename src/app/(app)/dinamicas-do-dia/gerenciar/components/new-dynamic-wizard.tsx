@@ -154,7 +154,6 @@ export function NewDynamicWizard({ open, onClose, dynamics, onCreated }: NewDyna
         vagas_config: source.vagas_config,
         rotating_banks: source.rotating_banks,
         extra_vars: source.extra_vars,
-        top5_config: source.top5_config,
         active: true,
         created_by: user?.id ?? null,
       })
@@ -217,7 +216,6 @@ export function NewDynamicWizard({ open, onClose, dynamics, onCreated }: NewDyna
         vagas_config: { mode: "none" },
         rotating_banks: {},
         extra_vars: { link: "", linkU: "", linkL: "" },
-        top5_config: null,
         active: true,
         created_by: user?.id ?? null,
       })

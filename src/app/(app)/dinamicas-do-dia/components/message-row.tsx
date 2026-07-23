@@ -19,6 +19,7 @@ interface MessageRowProps {
   computedText: string;
   overrideText?: string;
   blocked: boolean;
+  hasTop5: boolean;
   chars: number;
   charLevel: "normal" | "high" | "veryhigh";
   fonte: TradingWindow;
@@ -34,6 +35,7 @@ export function MessageRow({
   computedText,
   overrideText,
   blocked,
+  hasTop5,
   chars,
   charLevel,
   fonte,
@@ -93,11 +95,22 @@ export function MessageRow({
         type="button"
         onClick={() => setOpen(true)}
         className={`w-full rounded-xl border p-3 text-left transition-colors hover:border-accent ${
-          blocked ? "border-danger bg-danger/10" : "border-border"
+          blocked
+            ? "border-danger bg-danger/10"
+            : hasTop5
+              ? "border-warning bg-warning/10"
+              : "border-border"
         }`}
       >
+        {hasTop5 && (
+          <p className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold text-warning">
+            🏆 TOP 5 — não agendar antes de atualizar em Performance de Trading
+          </p>
+        )}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-text-primary">{slot.time_label}</span>
+          <span className={`text-xs font-medium ${hasTop5 ? "text-warning" : "text-text-primary"}`}>
+            {slot.time_label}
+          </span>
           <span
             className={`shrink-0 rounded-button px-2 py-0.5 text-[10px] ${
               charLevel === "veryhigh"

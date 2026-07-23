@@ -41,19 +41,39 @@ export interface RenderSlotInput {
   stats: ProductStatsByWindow;
   config: TradingConfigValues;
   depoimento?: Depoimento | null;
-  top5Config?: Top5Config | null;
+  top5?: Top5Config | null;
 }
 
 const TOP5_MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
+const TOP5_PLACEHOLDER = "${top5_bloco}";
 
-// Monta o bloco "TOP 5 ACUMULADO" a partir dos valores configurados na
-// dinâmica. Sem config habilitada (ou sem valores), some por completo — o
-// ${top5_bloco} deixado no template não fica órfão nem aparece literal.
-function buildTop5Bloco(config: Top5Config | null | undefined): string {
-  if (!config?.enabled || config.values.length === 0) return "";
-  const linhas = config.values
-    .slice(0, 5)
-    .map((valor, i) => `${TOP5_MEDALS[i] ?? `${i + 1}º`} ${i + 1}º → *$${Math.round(valor).toLocaleString("en-US")}*`);
+// Enquanto ninguém preenche o TOP 5 real em Performance de Trading, o bloco
+// não pode ficar vazio — usa esse valor fictício pré-estipulado por posição
+// (1º a 5º lugar) e vai crescendo a cada mensagem enviada no dia, pra
+// simular resultado se acumulando organicamente. Assim que o admin preenche
+// os valores reais (top5.enabled = true), esse cálculo fictício deixa de
+// valer e os 5 valores fixos passam a aparecer sempre iguais.
+const TOP5_FICTICIO_BASE = [3000, 2200, 1600, 1100, 700];
+const TOP5_FICTICIO_CRESCIMENTO_POR_SLOT = [200, 150, 100, 70, 40];
+
+// Usado pra sinalizar na lista de mensagens (Dinâmicas do Dia) quais slots
+// dependem do TOP 5 global — essas não podem ser agendadas antes de alguém
+// atualizar os valores em Performance de Trading.
+export function hasTop5Placeholder(template: string): boolean {
+  return template.includes(TOP5_PLACEHOLDER);
+}
+
+// Monta o bloco "TOP 5 ACUMULADO". Com valores reais preenchidos (Performance
+// de Trading → TOP 5, igual ao placar/% de acerto), usa eles fixos. Sem
+// preenchimento, usa o fictício crescente acima com base na posição da
+// mensagem no dia.
+function buildTop5Bloco(config: Top5Config | null | undefined, position: number): string {
+  const values = config?.enabled
+    ? config.values.slice(0, 5)
+    : TOP5_FICTICIO_BASE.map((base, i) => base + TOP5_FICTICIO_CRESCIMENTO_POR_SLOT[i] * position);
+  const linhas = values.map(
+    (valor, i) => `${TOP5_MEDALS[i] ?? `${i + 1}º`} ${i + 1}º → *$${Math.round(valor).toLocaleString("en-US")}*`
+  );
   return ["🏆 *TOP 5 ACUMULADO DO FDS:*", ...linhas].join("\n");
 }
 
@@ -80,7 +100,7 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     stats,
     config,
     depoimento,
-    top5Config,
+    top5,
   } = input;
 
   const pepe = getResult(stats.pepe[fonte], fonte);
@@ -180,8 +200,8 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     depNome: depoimento?.nome ?? "",
     depValor: (depoimento?.valor ?? "").replace("R$ ", ""),
     depSituacao: depoimento?.situacao ?? "",
-    // TOP 5 acumulado (configurado por dinâmica em top5_config)
-    top5_bloco: buildTop5Bloco(top5Config),
+    // TOP 5 acumulado (global, Performance de Trading)
+    top5_bloco: buildTop5Bloco(top5, position),
   };
 
   let text = template;

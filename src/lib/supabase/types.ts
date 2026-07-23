@@ -78,19 +78,6 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["ai_credentials"]["Insert"]>;
         Relationships: [];
       };
-      webhook_secrets: {
-        Row: {
-          key: string;
-          encrypted_secret: string;
-          updated_by: string | null;
-          updated_at: string;
-        };
-        Insert: Omit<Database["public"]["Tables"]["webhook_secrets"]["Row"], "updated_at"> & {
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["webhook_secrets"]["Insert"]>;
-        Relationships: [];
-      };
       prompts: {
         Row: {
           id: string;
@@ -265,6 +252,20 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["trading_config"]["Insert"]>;
         Relationships: [];
       };
+      top5_stats: {
+        Row: {
+          id: number;
+          enabled: boolean;
+          values: number[];
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["top5_stats"]["Row"], "updated_at"> & {
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["top5_stats"]["Insert"]>;
+        Relationships: [];
+      };
       message_dynamics: {
         Row: {
           id: string;
@@ -276,7 +277,6 @@ export interface Database {
           vagas_config: VagasConfig;
           rotating_banks: RotatingBanks;
           extra_vars: ExtraVars;
-          top5_config: Top5Config | null;
           active: boolean;
           created_by: string | null;
           created_at: string;

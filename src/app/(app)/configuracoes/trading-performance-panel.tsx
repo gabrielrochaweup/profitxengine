@@ -47,6 +47,8 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
   const toast = useToast();
   const [stats, setStats] = useState<StatsState>(emptyStats());
   const [config, setConfig] = useState<ConfigRow | null>(null);
+  const [top5Enabled, setTop5Enabled] = useState(false);
+  const [top5Values, setTop5Values] = useState<number[]>([0, 0, 0, 0, 0]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -54,9 +56,10 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
   useEffect(() => {
     async function load() {
       const supabase = createClient();
-      const [{ data: statsRows }, { data: configRow }] = await Promise.all([
+      const [{ data: statsRows }, { data: configRow }, { data: top5Row }] = await Promise.all([
         supabase.from("trading_performance_stats").select("*"),
         supabase.from("trading_config").select("*").eq("id", 1).single(),
+        supabase.from("top5_stats").select("*").eq("id", 1).single(),
       ]);
 
       if (statsRows) {
@@ -74,6 +77,10 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
         });
       }
       if (configRow) setConfig(configRow);
+      if (top5Row) {
+        setTop5Enabled(top5Row.enabled);
+        setTop5Values(top5Row.values);
+      }
       setLoading(false);
     }
     load();
@@ -118,8 +125,13 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
       configError = res.error;
     }
 
+    const { error: top5Error } = await supabase
+      .from("top5_stats")
+      .update({ enabled: top5Enabled, values: top5Values, updated_by: user?.id ?? null })
+      .eq("id", 1);
+
     setSaving(false);
-    if (statsError || configError) {
+    if (statsError || configError || top5Error) {
       toast.error("Erro ao salvar a performance. Tente novamente.");
       return;
     }
@@ -176,6 +188,47 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
             disabled={!canEdit}
             onChange={(v) => setConfig((c) => (c ? { ...c, entrada_live: v } : c))}
           />
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-text-primary">🏆 TOP 5 acumulado do fim de semana</h3>
+          <label className="flex items-center gap-2 text-xs text-text-secondary">
+            <input
+              type="checkbox"
+              checked={top5Enabled}
+              disabled={!canEdit}
+              onChange={(e) => setTop5Enabled(e.target.checked)}
+            />
+            Usar estes valores fixos
+          </label>
+        </div>
+        <p className="mb-3 text-xs text-text-muted">
+          Preenche o <code className="rounded bg-card-hover px-1">{"${top5_bloco}"}</code> em qualquer mensagem
+          que tenha essa variável no template — atualize aqui uma vez e todas as dinâmicas puxam o valor
+          automaticamente. Enquanto a caixa acima estiver <strong>desmarcada</strong>, as mensagens mostram um
+          número fictício pré-estipulado que cresce sozinho a cada mensagem do dia (pra nunca aparecer vazio).
+          Marque e preencha os valores abaixo quando tiver o TOP 5 real do fim de semana — a partir daí eles
+          passam a valer fixos em todas as mensagens, no lugar do cálculo fictício.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="space-y-1">
+              <label className="text-xs text-text-muted">{i + 1}º lugar ($)</label>
+              <Input
+                type="number"
+                disabled={!canEdit || !top5Enabled}
+                value={top5Values[i] ?? 0}
+                onChange={(e) => {
+                  const next = [...top5Values];
+                  next[i] = Number(e.target.value) || 0;
+                  setTop5Values(next);
+                }}
+                className="h-8 text-xs"
+              />
+            </div>
+          ))}
         </div>
       </Card>
 

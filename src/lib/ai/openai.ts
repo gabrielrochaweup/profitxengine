@@ -27,6 +27,12 @@ function resolveOpenAiQuality(model: string, quality?: ImageQuality): string {
   return quality ?? "medium";
 }
 
+// input_fidelity só existe no gpt-image-1 (e variantes 1.x) — o gpt-image-2
+// rejeita o parâmetro ("does not support the 'input_fidelity' parameter").
+function supportsInputFidelity(model: string): boolean {
+  return model.startsWith("gpt-image-1");
+}
+
 // Modelos "reasoning" (o1/o3/o4 e a família gpt-5) rejeitam o parâmetro
 // legado max_tokens ("Unsupported parameter") e exigem max_completion_tokens
 // no lugar — a SDK não faz essa troca sozinha, então detectamos pelo prefixo
@@ -91,7 +97,7 @@ export async function generateImage(
         ),
         size,
         quality,
-        input_fidelity: "high",
+        ...(supportsInputFidelity(params.model) ? { input_fidelity: "high" as const } : {}),
         n: 1,
       } as OpenAI.Images.ImageEditParamsNonStreaming)
     : await client.images.generate({
