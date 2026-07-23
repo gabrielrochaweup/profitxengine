@@ -11,6 +11,7 @@ import {
   UsersRound,
   Mail,
   Library,
+  Images,
   BarChart3,
   Settings,
   SlidersHorizontal,
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/calendario", label: "Calendário", icon: CalendarDays },
   { href: "/prompts", label: "Biblioteca de Prompts", icon: Library },
+  { href: "/biblioteca-imagens", label: "Biblioteca de Imagens", icon: Images },
 ];
 
 // Menu inferior mobile (estilo Instagram): só os 4 destinos mais usados —

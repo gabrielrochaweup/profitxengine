@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { PromptPicker } from "@/components/prompt-picker";
 import { GeneratedImagesGallery } from "@/components/generated-images-gallery";
 import { ImagePreviewModal } from "@/components/image-preview-modal";
+import { downloadImageUrl } from "@/lib/download-file";
 import type { Database, ImageAspectRatio, ImageContextType, ImageQuality } from "@/lib/supabase/types";
 
 type GeneratedImage = Database["public"]["Tables"]["generated_images"]["Row"];
@@ -58,7 +59,7 @@ export function ImageGenerationPanel({
 }: ImageGenerationPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [promptId, setPromptId] = useState<string | null>(null);
-  const [aspectRatio, setAspectRatio] = useState<ImageAspectRatio>("1:1");
+  const [aspectRatio, setAspectRatio] = useState<ImageAspectRatio>("3:2");
   const [quality, setQuality] = useState<ImageQuality>("medium");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -335,16 +336,14 @@ export function ImageGenerationPanel({
             />
           </button>
           <div className="flex flex-1 flex-wrap gap-1.5">
-            <a
-              href={value}
-              download
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => downloadImageUrl(value, `imagem_${Date.now()}.png`)}
               className="flex items-center gap-1.5 rounded-button border border-border-strong px-2 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
             >
               <Download size={11} />
               Baixar
-            </a>
+            </button>
             <button
               type="button"
               onClick={() => onChange(null)}

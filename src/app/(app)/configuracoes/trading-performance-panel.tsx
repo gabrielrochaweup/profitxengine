@@ -17,19 +17,30 @@ const PRODUCTS: { key: TradingProduct; label: string; icon: string }[] = [
   { key: "live", label: "Live", icon: "📺" },
   { key: "copy", label: "Copy Trader", icon: "💰" },
 ];
-const WINDOWS: { key: TradingWindow; label: string }[] = [
+// "Total" não é editável: é calculado automaticamente a partir de
+// Dia+Semana+Mês assim que essas três janelas são preenchidas.
+const EDITABLE_WINDOWS: { key: Exclude<TradingWindow, "total">; label: string }[] = [
   { key: "dia", label: "Dia" },
   { key: "semana", label: "Semana" },
   { key: "mes", label: "Mês" },
-  { key: "total", label: "Total" },
 ];
+const WINDOWS: { key: TradingWindow; label: string }[] = [...EDITABLE_WINDOWS, { key: "total", label: "Total" }];
 
-type StatsState = Record<TradingProduct, Record<TradingWindow, { acertoPct: number; rendimentoPct: number }>>;
+type WindowStats = { acertoPct: number; wins: number; losses: number; rendimentoPct: number };
+type StatsState = Record<TradingProduct, Record<TradingWindow, WindowStats>>;
 
 function emptyStats(): StatsState {
-  const empty = { acertoPct: 0, rendimentoPct: 0 };
+  const empty = { acertoPct: 0, wins: 0, losses: 0, rendimentoPct: 0 };
   const perWindow = () => ({ dia: { ...empty }, semana: { ...empty }, mes: { ...empty }, total: { ...empty } });
   return { pepe: perWindow(), live: perWindow(), copy: perWindow() };
+}
+
+function computeTotal(stats: StatsState[TradingProduct]): WindowStats {
+  const wins = stats.dia.wins + stats.semana.wins + stats.mes.wins;
+  const losses = stats.dia.losses + stats.semana.losses + stats.mes.losses;
+  const acertoPct = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+  const rendimentoPct = stats.dia.rendimentoPct + stats.semana.rendimentoPct + stats.mes.rendimentoPct;
+  return { wins, losses, acertoPct, rendimentoPct };
 }
 
 export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
@@ -54,6 +65,8 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
           (statsRows as StatsRow[]).forEach((row) => {
             next[row.product][row.time_window] = {
               acertoPct: row.acerto_pct,
+              wins: row.wins ?? 0,
+              losses: row.losses ?? 0,
               rendimentoPct: row.rendimento_pct ?? 0,
             };
           });
@@ -66,7 +79,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
     load();
   }, []);
 
-  function updateStat(product: TradingProduct, window: TradingWindow, patch: Partial<{ acertoPct: number; rendimentoPct: number }>) {
+  function updateStat(product: TradingProduct, window: TradingWindow, patch: Partial<WindowStats>) {
     setStats((prev) => ({
       ...prev,
       [product]: { ...prev[product], [window]: { ...prev[product][window], ...patch } },
@@ -81,13 +94,18 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
     } = await supabase.auth.getUser();
 
     const statsPayload = PRODUCTS.flatMap(({ key: product }) =>
-      WINDOWS.map(({ key: window }) => ({
-        product,
-        time_window: window,
-        acerto_pct: stats[product][window].acertoPct,
-        rendimento_pct: product === "copy" ? stats[product][window].rendimentoPct : null,
-        updated_by: user?.id ?? null,
-      }))
+      WINDOWS.map(({ key: window }) => {
+        const s = window === "total" ? computeTotal(stats[product]) : stats[product][window];
+        return {
+          product,
+          time_window: window,
+          acerto_pct: s.acertoPct,
+          wins: s.wins,
+          losses: s.losses,
+          rendimento_pct: product === "copy" ? s.rendimentoPct : null,
+          updated_by: user?.id ?? null,
+        };
+      })
     );
 
     const { error: statsError } = await supabase
@@ -168,16 +186,45 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
           </h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {WINDOWS.map(({ key: window, label: windowLabel }) => {
-              const s = stats[product][window];
+              const isTotal = window === "total";
+              const s = isTotal ? computeTotal(stats[product]) : stats[product][window];
+              const fieldsDisabled = !canEdit || isTotal;
               return (
                 <div key={window} className="rounded-xl border border-border p-3">
-                  <p className="mb-2 text-xs font-medium text-text-secondary">{windowLabel}</p>
-                  <div className="space-y-1">
+                  <p className="mb-2 text-xs font-medium text-text-secondary">
+                    {windowLabel}
+                    {isTotal && <span className="ml-1 font-normal text-text-muted">(automático)</span>}
+                  </p>
+                  <div className="flex gap-2">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[11px] text-text-muted">Placar (V)</label>
+                      <Input
+                        type="number"
+                        step="1"
+                        disabled={fieldsDisabled}
+                        value={s.wins}
+                        onChange={(e) => updateStat(product, window, { wins: Number(e.target.value) || 0 })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[11px] text-text-muted">Placar (D)</label>
+                      <Input
+                        type="number"
+                        step="1"
+                        disabled={fieldsDisabled}
+                        value={s.losses}
+                        onChange={(e) => updateStat(product, window, { losses: Number(e.target.value) || 0 })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2 space-y-1">
                     <label className="text-[11px] text-text-muted">% de acerto</label>
                     <Input
                       type="number"
                       step="1"
-                      disabled={!canEdit}
+                      disabled={fieldsDisabled}
                       value={s.acertoPct}
                       onChange={(e) => updateStat(product, window, { acertoPct: Number(e.target.value) || 0 })}
                       className="h-8 text-xs"
@@ -189,7 +236,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
                       <Input
                         type="number"
                         step="0.1"
-                        disabled={!canEdit}
+                        disabled={fieldsDisabled}
                         value={s.rendimentoPct}
                         onChange={(e) => updateStat(product, window, { rendimentoPct: Number(e.target.value) || 0 })}
                         className="h-8 text-xs"

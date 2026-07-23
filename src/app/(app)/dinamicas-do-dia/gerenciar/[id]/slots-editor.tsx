@@ -209,7 +209,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
                       </label>
                       {slot.has_fonte_selector && (
                         <Select
-                          value={slot.fonte_default ?? "semana"}
+                          value={slot.fonte_default ?? "dia"}
                           disabled={!canEdit}
                           onChange={(e) => updateSlot(slot.id, { fonte_default: e.target.value as TradingWindow })}
                           className="h-8 w-32 text-xs"

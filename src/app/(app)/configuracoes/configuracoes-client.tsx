@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/ui/loading-state";
+import { useToast } from "@/components/ui/toast";
 
 type Provider = "openai" | "anthropic" | "google";
 type ImageProvider = "openai" | "google";
@@ -93,16 +94,35 @@ const DEFAULT_IMAGE_MODEL: Record<ImageProvider, string> = {
   google: IMAGE_MODELS.google[1].id,
 };
 
+type WebhookKey = "top5";
+
+interface WebhookStatus {
+  key: WebhookKey;
+  updated_at: string;
+}
+
+const WEBHOOKS: { key: WebhookKey; label: string; description: string; endpoint: string }[] = [
+  {
+    key: "top5",
+    label: "TOP 5 acumulado",
+    description:
+      "Permite a uma automação externa (ex: a corretora) atualizar o ranking TOP 5 de uma dinâmica em tempo real.",
+    endpoint: "/api/webhooks/top5",
+  },
+];
+
 export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
   const [credentials, setCredentials] = useState<CredentialStatus[] | null>(null);
   const [settings, setSettings] = useState<ProviderSetting[]>([]);
+  const [webhooks, setWebhooks] = useState<WebhookStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const [settingsRes, credRes] = await Promise.all([
+      const [settingsRes, credRes, webhookRes] = await Promise.all([
         fetch("/api/ai/provider-settings"),
         isAdmin ? fetch("/api/ai/credentials") : Promise.resolve(null),
+        isAdmin ? fetch("/api/admin/webhook-secrets") : Promise.resolve(null),
       ]);
 
       if (settingsRes.ok) {
@@ -114,6 +134,11 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
         const body = await credRes.json();
         setCredentials(body.credentials ?? []);
       }
+
+      if (webhookRes?.ok) {
+        const body = await webhookRes.json();
+        setWebhooks(body.secrets ?? []);
+      }
       setLoading(false);
     }
     load();
@@ -121,6 +146,10 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
 
   function statusFor(provider: Provider): CredentialStatus | undefined {
     return credentials?.find((c) => c.provider === provider);
+  }
+
+  function webhookStatusFor(key: WebhookKey): WebhookStatus | undefined {
+    return webhooks.find((w) => w.key === key);
   }
 
   function settingFor(module: Module): ProviderSetting {
@@ -183,6 +212,29 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
           ))}
         </div>
       </section>
+
+      {isAdmin && (
+        <section>
+          <h2 className="text-base font-medium text-text-primary">Webhooks</h2>
+          <p className="mt-1 text-sm text-text-muted">
+            Segredos usados por automações externas pra chamar a API do sistema. Cifrados no banco — só
+            aparecem em texto puro uma vez, no momento em que você gera/rotaciona.
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {WEBHOOKS.map((webhook) => (
+              <WebhookSecretCard
+                key={webhook.key}
+                webhook={webhook}
+                status={webhookStatusFor(webhook.key)}
+                onGenerated={(status) =>
+                  setWebhooks((prev) => [...prev.filter((w) => w.key !== webhook.key), status])
+                }
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="text-base font-medium text-text-primary">Provedor por tipo de tarefa</h2>
@@ -328,6 +380,92 @@ function CredentialCard({
               </div>
             </>
           )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function WebhookSecretCard({
+  webhook,
+  status,
+  onGenerated,
+}: {
+  webhook: { key: WebhookKey; label: string; description: string; endpoint: string };
+  status?: WebhookStatus;
+  onGenerated: (status: WebhookStatus) => void;
+}) {
+  const toast = useToast();
+  const [generating, setGenerating] = useState(false);
+  const [newSecret, setNewSecret] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function handleGenerate() {
+    setGenerating(true);
+    setCopied(false);
+    const res = await fetch("/api/admin/webhook-secrets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: webhook.key }),
+    });
+    const body = await res.json();
+    setGenerating(false);
+    if (res.ok) {
+      setNewSecret(body.secret);
+      onGenerated({ key: webhook.key, updated_at: new Date().toISOString() });
+    } else {
+      toast.error(body.error || "Erro ao gerar o segredo.");
+    }
+  }
+
+  async function handleCopy() {
+    if (!newSecret) return;
+    await navigator.clipboard.writeText(newSecret);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const badge = status
+    ? { tone: "success" as const, label: "Configurado" }
+    : { tone: "neutral" as const, label: "Não configurado" };
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-text-primary">{webhook.label}</span>
+        <Badge tone={badge.tone}>{badge.label}</Badge>
+      </div>
+      <p className="mt-2 text-xs text-text-muted">{webhook.description}</p>
+      <p className="mt-2 text-xs text-text-secondary">
+        <code className="rounded bg-card-hover px-1 py-0.5">POST {webhook.endpoint}</code>
+        <br />
+        Header <code className="rounded bg-card-hover px-1 py-0.5">x-webhook-secret</code>
+      </p>
+
+      {newSecret ? (
+        <div className="mt-4 space-y-2">
+          <p className="text-xs text-danger">
+            Copie agora — este valor não será mostrado de novo depois que você sair desta tela.
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 truncate rounded-input border border-border bg-input px-2 py-1.5 text-xs text-text-primary">
+              {newSecret}
+            </code>
+            <Button type="button" size="sm" variant="secondary" onClick={handleCopy}>
+              {copied ? "Copiado!" : "Copiar"}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {status && (
+            <p className="text-xs text-text-muted">
+              Atualizado em {new Date(status.updated_at).toLocaleString("pt-BR")}
+            </p>
+          )}
+          <Button type="button" size="sm" disabled={generating} onClick={handleGenerate}>
+            {generating ? "Gerando..." : status ? "Rotacionar segredo" : "Gerar segredo"}
+          </Button>
         </div>
       )}
     </Card>

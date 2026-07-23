@@ -67,6 +67,12 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
     live: emptyStatsByWindow(),
     copy: emptyStatsByWindow(),
     copyRendimento: { dia: 0, semana: 0, mes: 0, total: 0 },
+    pepeWins: emptyStatsByWindow(),
+    pepeLosses: emptyStatsByWindow(),
+    liveWins: emptyStatsByWindow(),
+    liveLosses: emptyStatsByWindow(),
+    copyWins: emptyStatsByWindow(),
+    copyLosses: emptyStatsByWindow(),
   });
   const [config, setConfig] = useState({
     cotacao: 5.5,
@@ -102,10 +108,18 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
           live: emptyStatsByWindow(),
           copy: emptyStatsByWindow(),
           copyRendimento: { dia: 0, semana: 0, mes: 0, total: 0 },
+          pepeWins: emptyStatsByWindow(),
+          pepeLosses: emptyStatsByWindow(),
+          liveWins: emptyStatsByWindow(),
+          liveLosses: emptyStatsByWindow(),
+          copyWins: emptyStatsByWindow(),
+          copyLosses: emptyStatsByWindow(),
         };
         statsRows.forEach((row) => {
           next[row.product][row.time_window] = row.acerto_pct;
           if (row.product === "copy") next.copyRendimento[row.time_window] = row.rendimento_pct ?? 0;
+          next[`${row.product}Wins`][row.time_window] = row.wins ?? 0;
+          next[`${row.product}Losses`][row.time_window] = row.losses ?? 0;
         });
         setStats(next);
       }
@@ -273,7 +287,7 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
                         fonteOverrides[slot.msg_key] ??
                         (slot.fonte_default as TradingWindow) ??
                         melhorPepe?.fonte ??
-                        "semana";
+                        "dia";
                       const { text, computedValues } = renderSlot({
                         template: slot.template,
                         position: slot.position,
@@ -285,6 +299,7 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
                         stats,
                         config,
                         depoimento,
+                        top5Config: selectedDynamic.top5_config,
                       });
                       const override = textOverrides[slot.msg_key];
                       const blocked = !override && isResultBlocked(text, computedValues);

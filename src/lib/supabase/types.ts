@@ -78,6 +78,19 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["ai_credentials"]["Insert"]>;
         Relationships: [];
       };
+      webhook_secrets: {
+        Row: {
+          key: string;
+          encrypted_secret: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["webhook_secrets"]["Row"], "updated_at"> & {
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["webhook_secrets"]["Insert"]>;
+        Relationships: [];
+      };
       prompts: {
         Row: {
           id: string;
@@ -221,6 +234,8 @@ export interface Database {
           product: TradingProduct;
           time_window: TradingWindow;
           acerto_pct: number;
+          wins: number;
+          losses: number;
           rendimento_pct: number | null;
           updated_by: string | null;
           updated_at: string;

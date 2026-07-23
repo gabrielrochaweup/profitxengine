@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import type { Database, VagasConfig } from "@/lib/supabase/types";
+import type { Database, Top5Config, VagasConfig } from "@/lib/supabase/types";
 import { SlotsEditor } from "./slots-editor";
 
 type MessageDynamic = Database["public"]["Tables"]["message_dynamics"]["Row"];
@@ -42,9 +42,14 @@ export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: D
   const [savedAt, setSavedAt] = useState(false);
 
   const vagas: VagasConfig = dynamic.vagas_config ?? { mode: "none" };
+  const top5: Top5Config = dynamic.top5_config ?? { enabled: false, values: [0, 0, 0, 0, 0] };
 
   function updateVagas(patch: Partial<VagasConfig>) {
     setDynamic((d) => ({ ...d, vagas_config: { ...vagas, ...patch } }));
+  }
+
+  function updateTop5(patch: Partial<Top5Config>) {
+    setDynamic((d) => ({ ...d, top5_config: { ...top5, ...patch } }));
   }
 
   async function handleSave() {
@@ -69,6 +74,7 @@ export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: D
         subtitle: dynamic.subtitle,
         active: dynamic.active,
         vagas_config: dynamic.vagas_config,
+        top5_config: dynamic.top5_config,
         rotating_banks,
         extra_vars,
         rules,
@@ -202,6 +208,44 @@ export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: D
               </div>
             </div>
           )}
+        </Card>
+
+        <Card className="p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-text-primary">TOP 5 acumulado</h3>
+            <label className="flex items-center gap-2 text-xs text-text-secondary">
+              <input
+                type="checkbox"
+                checked={top5.enabled}
+                disabled={!canEdit}
+                onChange={(e) => updateTop5({ enabled: e.target.checked })}
+              />
+              Habilitado
+            </label>
+          </div>
+          <p className="mb-3 text-xs text-text-muted">
+            Preenche o <code className="rounded bg-card-hover px-1">{"${top5_bloco}"}</code> nos templates com o
+            ranking dos 5 maiores resultados acumulados (em dólar). Deixe desabilitado pra remover o bloco da
+            mensagem sem precisar editar o template.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="space-y-1">
+                <label className="text-xs text-text-muted">{i + 1}º lugar ($)</label>
+                <Input
+                  type="number"
+                  disabled={!canEdit || !top5.enabled}
+                  value={top5.values[i] ?? 0}
+                  onChange={(e) => {
+                    const values = [...top5.values];
+                    values[i] = Number(e.target.value) || 0;
+                    updateTop5({ values });
+                  }}
+                  className="h-8 text-xs"
+                />
+              </div>
+            ))}
+          </div>
         </Card>
 
         <Card className="p-5">

@@ -1,4 +1,4 @@
-import type { RotatingBanks, TradingWindow, VagasConfig } from "@/lib/supabase/types";
+import type { RotatingBanks, TradingWindow, Top5Config, VagasConfig } from "@/lib/supabase/types";
 import {
   calcRendimentoCopy,
   calcResultadoMaratona,
@@ -20,6 +20,14 @@ export interface ProductStatsByWindow {
   live: Record<TradingWindow, number>;
   copy: Record<TradingWindow, number>;
   copyRendimento: Record<TradingWindow, number>;
+  // Placar bruto (vitórias/derrotas) por produto e janela — junto com o %
+  // de acerto, não em vez dele.
+  pepeWins: Record<TradingWindow, number>;
+  pepeLosses: Record<TradingWindow, number>;
+  liveWins: Record<TradingWindow, number>;
+  liveLosses: Record<TradingWindow, number>;
+  copyWins: Record<TradingWindow, number>;
+  copyLosses: Record<TradingWindow, number>;
 }
 
 export interface RenderSlotInput {
@@ -33,6 +41,20 @@ export interface RenderSlotInput {
   stats: ProductStatsByWindow;
   config: TradingConfigValues;
   depoimento?: Depoimento | null;
+  top5Config?: Top5Config | null;
+}
+
+const TOP5_MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
+
+// Monta o bloco "TOP 5 ACUMULADO" a partir dos valores configurados na
+// dinâmica. Sem config habilitada (ou sem valores), some por completo — o
+// ${top5_bloco} deixado no template não fica órfão nem aparece literal.
+function buildTop5Bloco(config: Top5Config | null | undefined): string {
+  if (!config?.enabled || config.values.length === 0) return "";
+  const linhas = config.values
+    .slice(0, 5)
+    .map((valor, i) => `${TOP5_MEDALS[i] ?? `${i + 1}º`} ${i + 1}º → *$${Math.round(valor).toLocaleString("en-US")}*`);
+  return ["🏆 *TOP 5 ACUMULADO DO FDS:*", ...linhas].join("\n");
 }
 
 export interface RenderSlotOutput {
@@ -47,8 +69,19 @@ function bankValue(banks: RotatingBanks, name: string, position: number): string
 }
 
 export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
-  const { template, position, totalSlots, fonte, rotatingBanks, extraVars, vagasConfig, stats, config, depoimento } =
-    input;
+  const {
+    template,
+    position,
+    totalSlots,
+    fonte,
+    rotatingBanks,
+    extraVars,
+    vagasConfig,
+    stats,
+    config,
+    depoimento,
+    top5Config,
+  } = input;
 
   const pepe = getResult(stats.pepe[fonte], fonte);
   const live = getResult(stats.live[fonte], fonte);
@@ -114,14 +147,20 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     vagasTotais,
     // Pepe
     acertoP: pepe.acerto,
+    winsP: stats.pepeWins[fonte] ?? 0,
+    lossP: stats.pepeLosses[fonte] ?? 0,
     fontePepe: fonte,
     entradaP: config.entradaPepe,
     // Live
     acertoL: live.acerto,
+    winsL: stats.liveWins[fonte] ?? 0,
+    lossL: stats.liveLosses[fonte] ?? 0,
     fonteLive: fonte,
     entradaL: config.entradaLive,
     // Copy
     acertoC: copy.acerto,
+    winsC: stats.copyWins[fonte] ?? 0,
+    lossC: stats.copyLosses[fonte] ?? 0,
     fonteCopy: fonte,
     rendimentoCopyR: fmtBR(rendimentoCopy),
     bancaCopy: fmtBR(config.bancaCopy),
@@ -141,6 +180,8 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     depNome: depoimento?.nome ?? "",
     depValor: (depoimento?.valor ?? "").replace("R$ ", ""),
     depSituacao: depoimento?.situacao ?? "",
+    // TOP 5 acumulado (configurado por dinâmica em top5_config)
+    top5_bloco: buildTop5Bloco(top5Config),
   };
 
   let text = template;

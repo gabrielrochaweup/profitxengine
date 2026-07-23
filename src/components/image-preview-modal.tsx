@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, Check, X } from "lucide-react";
+import { downloadImageUrl } from "@/lib/download-file";
 import type { Database } from "@/lib/supabase/types";
 
 type GeneratedImage = Database["public"]["Tables"]["generated_images"]["Row"];
@@ -49,16 +50,14 @@ export function ImagePreviewModal({ image, onClose, onSelect }: ImagePreviewModa
           </p>
 
           <div className="mt-3 flex gap-2">
-            <a
-              href={image.image_url}
-              download
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => downloadImageUrl(image.image_url, `imagem_${image.id}.png`)}
               className="flex items-center gap-1.5 rounded-button border border-border-strong px-3 py-1.5 text-xs text-text-secondary hover:bg-card-hover"
             >
               <Download size={12} />
               Baixar
-            </a>
+            </button>
             {onSelect && (
               <button
                 type="button"

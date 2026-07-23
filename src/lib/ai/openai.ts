@@ -27,16 +27,27 @@ function resolveOpenAiQuality(model: string, quality?: ImageQuality): string {
   return quality ?? "medium";
 }
 
+// Modelos "reasoning" (o1/o3/o4 e a família gpt-5) rejeitam o parâmetro
+// legado max_tokens ("Unsupported parameter") e exigem max_completion_tokens
+// no lugar — a SDK não faz essa troca sozinha, então detectamos pelo prefixo
+// do nome do modelo.
+function isReasoningModel(model: string): boolean {
+  return /^(o1|o3|o4|gpt-5)/.test(model);
+}
+
 export async function generateText(
   params: GenerateTextParams,
   apiKey: string
 ): Promise<GenerateTextResult> {
   const client = new OpenAI({ apiKey });
   const system = combineSystem(params);
+  const maxTokens = params.maxTokens ?? 2048;
 
   const completion = await client.chat.completions.create({
     model: params.model,
-    max_tokens: params.maxTokens ?? 2048,
+    ...(isReasoningModel(params.model)
+      ? { max_completion_tokens: maxTokens }
+      : { max_tokens: maxTokens }),
     messages: [
       ...(system ? [{ role: "system" as const, content: system }] : []),
       { role: "user" as const, content: params.prompt },
