@@ -53,17 +53,17 @@ const TOP5_PLACEHOLDER = "${top5_bloco}";
 
 // Enquanto ninguém preenche o TOP 5 real em Performance de Trading, o bloco
 // não pode ficar vazio — usa um fictício que cresce a cada OCORRÊNCIA do
-// bloco (não a cada posição de slot), pra simular resultado se acumulando
-// ao longo do fim de semana. Os 4 lugares abaixo do 1º ficam a uma
-// distância FIXA dele (não crescem cada um no seu próprio ritmo) — e o
-// incremento por ocorrência (STEP) é sempre maior que o maior desses gaps.
-// Isso garante que o 5º lugar de QUALQUER mensagem seja sempre maior que o
-// 1º lugar de QUALQUER mensagem anterior — a sequência nunca "anda pra
-// trás" pra quem lê as mensagens em ordem, mesmo comparando lugares
-// diferentes em mensagens diferentes.
-const TOP5_FICTICIO_BASE = 3000;
-const TOP5_FICTICIO_STEP = 1500;
-const TOP5_FICTICIO_GAPS = [0, 300, 600, 900, 1200];
+// bloco (não a cada posição de slot), simulando depósitos se acumulando ao
+// longo do fim de semana. O formato imita uma disputa real: o 1º lugar fica
+// isolado na frente, o 2º fica no meio-termo, e o 3º/4º/5º ficam quase
+// empatados brigando pela última vaga — por isso os outros 4 lugares são
+// FRAÇÕES do 1º (não uma distância fixa em dólar), senão a proporção fica
+// estranha conforme os valores crescem. Com o 1º lugar indo de ~$1.000 na
+// primeira ocorrência até ~$10.000 na última (13 ocorrências na Maratona),
+// o 5º lugar acompanha de ~$200 a ~$2.000.
+const TOP5_FICTICIO_BASE = 1000;
+const TOP5_FICTICIO_STEP = 750;
+const TOP5_FICTICIO_RATIOS = [1, 0.6, 0.3, 0.25, 0.2];
 
 // Usado pra sinalizar na lista de mensagens (Dinâmicas do Dia) quais slots
 // dependem do TOP 5 global — essas não podem ser agendadas antes de alguém
@@ -81,7 +81,7 @@ function buildTop5Bloco(config: Top5Config | null | undefined, top5Occurrence: n
     ? config.values.slice(0, 5)
     : (() => {
         const primeiro = TOP5_FICTICIO_BASE + TOP5_FICTICIO_STEP * top5Occurrence;
-        return TOP5_FICTICIO_GAPS.map((gap) => primeiro - gap);
+        return TOP5_FICTICIO_RATIOS.map((ratio) => primeiro * ratio);
       })();
   const linhas = values.map(
     (valor, i) => `${TOP5_MEDALS[i] ?? `${i + 1}º`} ${i + 1}º → *$${Math.round(valor).toLocaleString("en-US")}*`
