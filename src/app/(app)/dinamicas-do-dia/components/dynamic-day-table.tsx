@@ -1,53 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Select } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 import {
   calcularMelhorCenario,
   calcularMelhorCenarioCopy,
-  charCountLevel,
-  isResultBlocked,
   sortearDepoimento,
   type Depoimento,
   type MelhorCenario,
 } from "@/lib/dynamics/calc-engine";
-import { hasTop5Placeholder, renderSlot, type ProductStatsByWindow } from "@/lib/dynamics/render-message";
-import { MessageRow } from "./message-row";
+import { type ProductStatsByWindow } from "@/lib/dynamics/render-message";
+import { DynamicMessagesBoard } from "./dynamic-messages-board";
 import type { Database, Top5Config, TradingWindow } from "@/lib/supabase/types";
 
 type MessageDynamic = Database["public"]["Tables"]["message_dynamics"]["Row"];
 type MessageDynamicSlot = Database["public"]["Tables"]["message_dynamic_slots"]["Row"];
-
-const PERIODS: { key: string; label: string }[] = [
-  { key: "manha", label: "Manhã" },
-  { key: "tarde", label: "Tarde" },
-  { key: "noite", label: "Noite" },
-];
-
-function periodForTimeLabel(timeLabel: string | null): string {
-  const hour = parseInt(timeLabel ?? "", 10);
-  if (Number.isNaN(hour)) return "manha";
-  if (hour < 12) return "manha";
-  if (hour < 18) return "tarde";
-  return "noite";
-}
-
-// A Maratona roda em 2 dias (sáb+dom) — cada slot já tem o dia no próprio
-// time_label ("sáb 08h", "dom 08h"), então agrupamos por dia em vez de
-// período pra não misturar sábado e domingo na mesma coluna.
-const DAY_GROUPS: { key: string; label: string }[] = [
-  { key: "sabado", label: "Sábado" },
-  { key: "domingo", label: "Domingo" },
-];
-
-function dayGroupForTimeLabel(timeLabel: string | null): string {
-  return timeLabel?.toLowerCase().startsWith("dom") ? "domingo" : "sabado";
-}
 
 interface DynamicDayTableProps {
   dateKey: string;
@@ -61,6 +32,8 @@ function emptyStatsByWindow(): Record<TradingWindow, number> {
 export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps) {
   const [dynamics, setDynamics] = useState<MessageDynamic[]>([]);
   const [selectedDynamicId, setSelectedDynamicId] = useState<string>("");
+  const [changingDynamic, setChangingDynamic] = useState(false);
+  const [pendingDynamicId, setPendingDynamicId] = useState<string>("");
   const [slots, setSlots] = useState<MessageDynamicSlot[]>([]);
   const [stats, setStats] = useState<ProductStatsByWindow>({
     pepe: emptyStatsByWindow(),
@@ -142,7 +115,10 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
         });
       }
 
-      setSelectedDynamicId(selection?.dynamic_id ?? "");
+      const dynamicId = selection?.dynamic_id ?? "";
+      setSelectedDynamicId(dynamicId);
+      setPendingDynamicId(dynamicId);
+      setChangingDynamic(false);
       setFonteOverrides((selection?.fonte_overrides as Record<string, TradingWindow>) ?? {});
       setTextOverrides((selection?.text_overrides as Record<string, string>) ?? {});
       setLoading(false);
@@ -174,9 +150,6 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
   }, [selectedDynamicId]);
 
   const selectedDynamic = dynamics.find((d) => d.id === selectedDynamicId) ?? null;
-  const isMaratona = selectedDynamic?.slug === "maratona";
-  const groups = isMaratona ? DAY_GROUPS : PERIODS;
-  const groupForSlot = isMaratona ? dayGroupForTimeLabel : periodForTimeLabel;
 
   const melhorPepe: MelhorCenario | null = useMemo(() => calcularMelhorCenario(stats.pepe), [stats.pepe]);
   const melhorLive: MelhorCenario | null = useMemo(() => calcularMelhorCenario(stats.live), [stats.live]);
@@ -206,11 +179,23 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
     setSaving(false);
   }
 
-  function handleSelectDynamic(id: string) {
-    setSelectedDynamicId(id);
+  function handleConfirmDynamic() {
+    if (!pendingDynamicId) return;
+    setSelectedDynamicId(pendingDynamicId);
     setFonteOverrides({});
     setTextOverrides({});
-    if (id) persistSelection({ dynamicId: id, fonteOverrides: {}, textOverrides: {} });
+    setChangingDynamic(false);
+    persistSelection({ dynamicId: pendingDynamicId, fonteOverrides: {}, textOverrides: {} });
+  }
+
+  function handleStartChange() {
+    setPendingDynamicId(selectedDynamicId);
+    setChangingDynamic(true);
+  }
+
+  function handleCancelChange() {
+    setPendingDynamicId(selectedDynamicId);
+    setChangingDynamic(false);
   }
 
   function handleFonteChange(msgKey: string, fonte: TradingWindow) {
@@ -236,115 +221,64 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
     return <LoadingState />;
   }
 
+  const isLocked = !!selectedDynamicId && !changingDynamic;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Select value={selectedDynamicId} onChange={(e) => handleSelectDynamic(e.target.value)} className="flex-1 max-w-sm">
-          <option value="">Selecione a dinâmica do dia...</option>
-          {dynamics.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.icon} {d.name}
-            </option>
-          ))}
-        </Select>
-        {saving && <span className="text-xs text-text-muted">salvando...</span>}
-      </div>
+      {isLocked && selectedDynamic ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-input border border-success/40 bg-success/10 px-3 py-2">
+          <Check size={16} className="shrink-0 text-success" />
+          <span className="text-sm text-text-secondary">
+            Dinâmica de hoje: <strong className="text-text-primary">{selectedDynamic.icon} {selectedDynamic.name}</strong>
+          </span>
+          <Button type="button" variant="secondary" size="sm" className="ml-auto" onClick={handleStartChange}>
+            <Pencil size={13} />
+            Alterar dinâmica
+          </Button>
+          {saving && <span className="text-xs text-text-muted">salvando...</span>}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Select value={pendingDynamicId} onChange={(e) => setPendingDynamicId(e.target.value)} className="flex-1 max-w-sm">
+            <option value="">Selecione a dinâmica do dia...</option>
+            {dynamics.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.icon} {d.name}
+              </option>
+            ))}
+          </Select>
+          <Button type="button" size="sm" disabled={!pendingDynamicId} onClick={handleConfirmDynamic}>
+            <Check size={14} />
+            Usar esta dinâmica
+          </Button>
+          {selectedDynamicId && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleCancelChange}>
+              Cancelar
+            </Button>
+          )}
+        </div>
+      )}
 
       {selectedDynamic && (
-        <>
-          <div className="flex flex-wrap items-center gap-2">
-            {melhorPepe && <MelhorBadge label="Pepe" cenario={melhorPepe} />}
-            {melhorLive && <MelhorBadge label="Live" cenario={melhorLive} />}
-            {melhorCopy && <MelhorBadge label="Copy" cenario={melhorCopy} />}
-            {selectedDynamic.rules.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setRulesOpen((v) => !v)}
-                className="ml-auto flex items-center gap-1 rounded-button border border-border-strong px-2.5 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
-              >
-                Regras universais
-                {rulesOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              </button>
-            )}
-          </div>
-
-          {rulesOpen && (
-            <Card className="border-l-4 border-accent p-3">
-              <ul className="space-y-0.5">
-                {selectedDynamic.rules.map((rule, i) => (
-                  <li key={i} className="text-xs text-text-secondary">
-                    ✓ {rule}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-
-          <div className={`grid gap-4 ${isMaratona ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
-            {groups.map((group) => {
-              const periodSlots = slots.filter((slot) => groupForSlot(slot.time_label) === group.key);
-              if (periodSlots.length === 0) return null;
-
-              return (
-                <div key={group.key} className="space-y-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{group.label}</h3>
-                  <div className="space-y-2">
-                    {periodSlots.map((slot) => {
-                      const fonte =
-                        fonteOverrides[slot.msg_key] ??
-                        (slot.fonte_default as TradingWindow) ??
-                        melhorPepe?.fonte ??
-                        "dia";
-                      const { text, computedValues } = renderSlot({
-                        template: slot.template,
-                        position: slot.position,
-                        totalSlots: slots.length,
-                        fonte,
-                        rotatingBanks: selectedDynamic.rotating_banks,
-                        extraVars: selectedDynamic.extra_vars,
-                        vagasConfig: selectedDynamic.vagas_config,
-                        stats,
-                        config,
-                        depoimento,
-                        top5,
-                      });
-                      const override = textOverrides[slot.msg_key];
-                      const blocked = !override && isResultBlocked(text, computedValues);
-                      const { chars, level } = charCountLevel(override ?? text);
-
-                      return (
-                        <MessageRow
-                          key={slot.id}
-                          slot={slot}
-                          computedText={text}
-                          overrideText={override}
-                          blocked={blocked}
-                          hasTop5={hasTop5Placeholder(slot.template)}
-                          chars={chars}
-                          charLevel={level}
-                          fonte={fonte}
-                          onFonteChange={(f) => handleFonteChange(slot.msg_key, f)}
-                          onUseVariant={(variantText) => handleUseVariant(slot.msg_key, variantText)}
-                          onRestoreOriginal={() => handleRestoreOriginal(slot.msg_key)}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
+        <DynamicMessagesBoard
+          selectedDynamic={selectedDynamic}
+          slots={slots}
+          stats={stats}
+          config={config}
+          top5={top5}
+          depoimento={depoimento}
+          fonteOverrides={fonteOverrides}
+          textOverrides={textOverrides}
+          onFonteChange={handleFonteChange}
+          onUseVariant={handleUseVariant}
+          onRestoreOriginal={handleRestoreOriginal}
+          melhorPepe={melhorPepe}
+          melhorLive={melhorLive}
+          melhorCopy={melhorCopy}
+          rulesOpen={rulesOpen}
+          onToggleRules={() => setRulesOpen((v) => !v)}
+        />
       )}
     </div>
-  );
-}
-
-function MelhorBadge({ label, cenario }: { label: string; cenario: MelhorCenario }) {
-  return (
-    <Badge tone="success" className="flex items-center gap-1">
-      <Trophy size={11} />
-      {label}: {cenario.fonte} ({cenario.acerto}%)
-    </Badge>
   );
 }

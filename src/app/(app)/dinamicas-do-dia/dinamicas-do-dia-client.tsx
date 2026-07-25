@@ -7,6 +7,7 @@ import { Settings2 } from "lucide-react";
 import { DateNav } from "../calendario/components/date-nav";
 import { AnalyticsPanel } from "./components/analytics-panel";
 import { DynamicDayTable } from "./components/dynamic-day-table";
+import { DynamicConsultaPanel } from "./components/dynamic-consulta-panel";
 import { LivreGenerator } from "./components/livre-generator";
 import { DayResultForm } from "./components/day-result-form";
 import { toDateKey } from "../calendario/lib/date-utils";
@@ -21,7 +22,7 @@ interface DinamicasDoDiaClientProps {
 }
 
 type Mode = "dinamica" | "livre";
-type InnerTab = "hoje" | "analytics";
+type InnerTab = "hoje" | "consultar" | "analytics";
 
 export function DinamicasDoDiaClient({ initialMessages, currentUserId, canEditResult }: DinamicasDoDiaClientProps) {
   const router = useRouter();
@@ -71,6 +72,9 @@ export function DinamicasDoDiaClient({ initialMessages, currentUserId, canEditRe
         <InnerTabButton active={innerTab === "hoje"} onClick={() => setInnerTab("hoje")}>
           Hoje
         </InnerTabButton>
+        <InnerTabButton active={innerTab === "consultar"} onClick={() => setInnerTab("consultar")}>
+          Consultar dinâmicas
+        </InnerTabButton>
         <InnerTabButton active={innerTab === "analytics"} onClick={() => setInnerTab("analytics")}>
           Analytics
         </InnerTabButton>
@@ -79,6 +83,8 @@ export function DinamicasDoDiaClient({ initialMessages, currentUserId, canEditRe
       <div className="mt-4">
         {innerTab === "analytics" ? (
           <AnalyticsPanel messages={messages} />
+        ) : innerTab === "consultar" ? (
+          <DynamicConsultaPanel />
         ) : (
           <>
             <div className="mb-4 flex gap-1.5">

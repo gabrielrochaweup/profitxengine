@@ -304,11 +304,13 @@ export interface Database {
           expert_hint: string | null;
           has_fonte_selector: boolean;
           fonte_default: string | null;
+          needs_realtime_update: boolean;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["message_dynamic_slots"]["Row"], "id" | "created_at"> & {
+        Insert: Omit<Database["public"]["Tables"]["message_dynamic_slots"]["Row"], "id" | "created_at" | "needs_realtime_update"> & {
           id?: string;
           created_at?: string;
+          needs_realtime_update?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["message_dynamic_slots"]["Insert"]>;
         Relationships: [];

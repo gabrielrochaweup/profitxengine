@@ -35,12 +35,18 @@ function emptyStats(): StatsState {
   return { pepe: perWindow(), live: perWindow(), copy: perWindow() };
 }
 
+// Com placar preenchido (V+D > 0), o % de acerto é sempre derivado dele —
+// não precisa mais digitar embaixo. Sem placar (0x0), cai de volta pro
+// valor manual antigo, pra não travar quem ainda não usa placar nessa janela.
+function computeAcerto(wins: number, losses: number, manualFallback: number): number {
+  return wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : manualFallback;
+}
+
 function computeTotal(stats: StatsState[TradingProduct]): WindowStats {
   const wins = stats.dia.wins + stats.semana.wins + stats.mes.wins;
   const losses = stats.dia.losses + stats.semana.losses + stats.mes.losses;
-  const acertoPct = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
   const rendimentoPct = stats.dia.rendimentoPct + stats.semana.rendimentoPct + stats.mes.rendimentoPct;
-  return { wins, losses, acertoPct, rendimentoPct };
+  return { wins, losses, acertoPct: computeAcerto(wins, losses, 0), rendimentoPct };
 }
 
 export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
@@ -103,10 +109,11 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
     const statsPayload = PRODUCTS.flatMap(({ key: product }) =>
       WINDOWS.map(({ key: window }) => {
         const s = window === "total" ? computeTotal(stats[product]) : stats[product][window];
+        const acertoPct = window === "total" ? s.acertoPct : computeAcerto(s.wins, s.losses, s.acertoPct);
         return {
           product,
           time_window: window,
-          acerto_pct: s.acertoPct,
+          acerto_pct: acertoPct,
           wins: s.wins,
           losses: s.losses,
           rendimento_pct: product === "copy" ? s.rendimentoPct : null,
@@ -242,6 +249,8 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
               const isTotal = window === "total";
               const s = isTotal ? computeTotal(stats[product]) : stats[product][window];
               const fieldsDisabled = !canEdit || isTotal;
+              const acertoFromPlacar = !isTotal && s.wins + s.losses > 0;
+              const acertoDisplay = isTotal ? s.acertoPct : computeAcerto(s.wins, s.losses, s.acertoPct);
               return (
                 <div key={window} className="rounded-xl border border-border p-3">
                   <p className="mb-2 text-xs font-medium text-text-secondary">
@@ -273,12 +282,15 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
                     </div>
                   </div>
                   <div className="mt-2 space-y-1">
-                    <label className="text-[11px] text-text-muted">% de acerto</label>
+                    <label className="text-[11px] text-text-muted">
+                      % de acerto
+                      {acertoFromPlacar && <span className="ml-1 font-normal text-text-muted">(do placar)</span>}
+                    </label>
                     <Input
                       type="number"
                       step="1"
-                      disabled={fieldsDisabled}
-                      value={s.acertoPct}
+                      disabled={fieldsDisabled || acertoFromPlacar}
+                      value={acertoDisplay}
                       onChange={(e) => updateStat(product, window, { acertoPct: Number(e.target.value) || 0 })}
                       className="h-8 text-xs"
                     />

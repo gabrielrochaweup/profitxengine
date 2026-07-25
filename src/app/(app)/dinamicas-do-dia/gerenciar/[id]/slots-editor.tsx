@@ -58,6 +58,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
         expert_hint: null,
         has_fonte_selector: false,
         fonte_default: null,
+        needs_realtime_update: false,
       })
       .select()
       .single();
@@ -101,6 +102,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
         expert_hint: slot.expert_hint,
         has_fonte_selector: slot.has_fonte_selector,
         fonte_default: slot.fonte_default,
+        needs_realtime_update: slot.needs_realtime_update,
       })
       .eq("id", slot.id);
     if (error) toast.error("Erro ao salvar a mensagem. Tente novamente.");
@@ -148,6 +150,11 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
                 </span>
                 <span className="text-xs font-medium text-text-primary">{slot.time_label || "—"}</span>
                 <span className="flex-1 truncate text-xs text-text-secondary">{slot.role_label}</span>
+                {slot.needs_realtime_update && (
+                  <span className="shrink-0 rounded-button bg-warning/20 px-1.5 py-0.5 text-[10px] font-medium text-warning">
+                    ⏱️ Tempo real
+                  </span>
+                )}
                 {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
 
@@ -209,7 +216,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
                       </label>
                       {slot.has_fonte_selector && (
                         <Select
-                          value={slot.fonte_default ?? "dia"}
+                          value={slot.fonte_default ?? "semana"}
                           disabled={!canEdit}
                           onChange={(e) => updateSlot(slot.id, { fonte_default: e.target.value as TradingWindow })}
                           className="h-8 w-32 text-xs"
@@ -222,6 +229,17 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
                       )}
                     </div>
                   </div>
+
+                  <label className="flex items-center gap-1.5 text-xs text-text-secondary">
+                    <input
+                      type="checkbox"
+                      checked={slot.needs_realtime_update}
+                      disabled={!canEdit}
+                      onChange={(e) => updateSlot(slot.id, { needs_realtime_update: e.target.checked })}
+                    />
+                    ⏱️ Precisa ser atualizada em tempo real antes de agendar (ex: TOP 5, placar do dia — ganha
+                    uma tarja de aviso em Dinâmicas do Dia)
+                  </label>
 
                   <div className="space-y-1">
                     <label className="text-[11px] text-text-muted">Template da mensagem</label>

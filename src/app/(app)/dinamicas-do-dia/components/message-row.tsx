@@ -19,7 +19,7 @@ interface MessageRowProps {
   computedText: string;
   overrideText?: string;
   blocked: boolean;
-  hasTop5: boolean;
+  needsRealtimeUpdate: boolean;
   chars: number;
   charLevel: "normal" | "high" | "veryhigh";
   fonte: TradingWindow;
@@ -35,7 +35,7 @@ export function MessageRow({
   computedText,
   overrideText,
   blocked,
-  hasTop5,
+  needsRealtimeUpdate,
   chars,
   charLevel,
   fonte,
@@ -97,18 +97,18 @@ export function MessageRow({
         className={`w-full rounded-xl border p-3 text-left transition-colors hover:border-accent ${
           blocked
             ? "border-danger bg-danger/10"
-            : hasTop5
+            : needsRealtimeUpdate
               ? "border-warning bg-warning/10"
               : "border-border"
         }`}
       >
-        {hasTop5 && (
+        {needsRealtimeUpdate && (
           <p className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold text-warning">
-            🏆 TOP 5 — não agendar antes de atualizar em Performance de Trading
+            ⏱️ TEMPO REAL — confira/atualize o conteúdo antes de agendar
           </p>
         )}
         <div className="flex items-center justify-between gap-2">
-          <span className={`text-xs font-medium ${hasTop5 ? "text-warning" : "text-text-primary"}`}>
+          <span className={`text-xs font-medium ${needsRealtimeUpdate ? "text-warning" : "text-text-primary"}`}>
             {slot.time_label}
           </span>
           <span

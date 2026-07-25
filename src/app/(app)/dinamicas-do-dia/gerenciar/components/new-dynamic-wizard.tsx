@@ -185,6 +185,7 @@ export function NewDynamicWizard({ open, onClose, dynamics, onCreated }: NewDyna
         expert_hint: s.expert_hint,
         has_fonte_selector: s.has_fonte_selector,
         fonte_default: s.fonte_default,
+        needs_realtime_update: s.needs_realtime_update,
       }));
       const { error: slotsError } = await supabase.from("message_dynamic_slots").insert(rows);
       if (slotsError) toast.error("Dinâmica duplicada, mas houve erro ao copiar as mensagens.");
