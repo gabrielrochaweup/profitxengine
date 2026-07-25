@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -96,6 +97,23 @@ export function DynamicMessagesBoard({
   const groups = isMaratona ? DAY_GROUPS : PERIODS;
   const groupForSlot = isMaratona ? dayGroupForTimeLabel : periodForTimeLabel;
 
+  // O crescimento fictício do TOP 5 é por OCORRÊNCIA do bloco na dinâmica
+  // (em ordem de posição), não pela posição bruta do slot — senão o
+  // intervalo entre duas mensagens com TOP5 varia dependendo de quantas
+  // mensagens sem TOP5 existem entre elas, e a sequência perde a garantia
+  // de que todo bloco novo supera qualquer bloco anterior.
+  const top5OccurrenceByMsgKey = useMemo(() => {
+    const map: Record<string, number> = {};
+    let occurrence = 0;
+    for (const slot of slots) {
+      if (hasTop5Placeholder(slot.template)) {
+        map[slot.msg_key] = occurrence;
+        occurrence++;
+      }
+    }
+    return map;
+  }, [slots]);
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
@@ -153,6 +171,7 @@ export function DynamicMessagesBoard({
                     config,
                     depoimento,
                     top5,
+                    top5Occurrence: top5OccurrenceByMsgKey[slot.msg_key],
                   });
                   const override = textOverrides[slot.msg_key];
                   const blocked = !override && isResultBlocked(text, computedValues);
