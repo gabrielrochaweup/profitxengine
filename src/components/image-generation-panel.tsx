@@ -327,7 +327,7 @@ export function ImageGenerationPanel({
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] text-text-muted">Energia / tom</label>
+                  <label className="text-[10px] text-text-muted">Cor predominante</label>
                   <Select value={toneId} onChange={(e) => setToneId(e.target.value)} className="h-8 text-[11px]">
                     {tones.map((t) => (
                       <option key={t.id} value={t.id}>

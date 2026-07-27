@@ -51,9 +51,9 @@ export function ModelosPromptClient({
       />
       <PromptPartSection
         table="image_prompt_tones"
-        title="Energia / Tom"
-        description="Texto que substitui [TOM] no template — a descrição de iluminação, fundo e clima da imagem."
-        newLabel="Novo tom"
+        title="Cor Predominante"
+        description="Texto que substitui [TOM] no template — a descrição de iluminação e fundo na cor escolhida, pra diferenciar visualmente as imagens."
+        newLabel="Nova cor"
         initialItems={initialTones}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
