@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Settings2 } from "lucide-react";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { BibliotecaImagensClient } from "./biblioteca-imagens-client";
 
@@ -17,11 +19,22 @@ export default async function BibliotecaImagensPage() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold text-text-primary">Biblioteca de Imagens</h1>
-      <p className="mt-1 text-sm text-text-secondary">
-        Todas as imagens geradas por qualquer pessoa da equipe, em qualquer dispositivo — arraste pra dentro
-        das pastas pra organizar do seu jeito.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-[28px] font-semibold text-text-primary">Biblioteca de Imagens</h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            Todas as imagens geradas por qualquer pessoa da equipe, em qualquer dispositivo — arraste pra
+            dentro das pastas pra organizar do seu jeito.
+          </p>
+        </div>
+        <Link
+          href="/biblioteca-imagens/modelos-de-prompt"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-button border border-border-strong px-3 py-1.5 text-xs text-text-secondary hover:bg-card-hover"
+        >
+          <Settings2 size={13} />
+          Modelos de prompt
+        </Link>
+      </div>
 
       <BibliotecaImagensClient
         initialImages={images ?? []}

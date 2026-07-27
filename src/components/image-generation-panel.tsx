@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Image as ImageIcon, Download, X, Paperclip } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Image as ImageIcon, Download, X, Paperclip, Copy, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { PromptPicker } from "@/components/prompt-picker";
 import { GeneratedImagesGallery } from "@/components/generated-images-gallery";
 import { ImagePreviewModal } from "@/components/image-preview-modal";
@@ -13,6 +14,20 @@ import { downloadImageUrl } from "@/lib/download-file";
 import type { Database, ImageAspectRatio, ImageContextType, ImageQuality } from "@/lib/supabase/types";
 
 type GeneratedImage = Database["public"]["Tables"]["generated_images"]["Row"];
+type PromptTemplate = Database["public"]["Tables"]["image_prompt_templates"]["Row"];
+type PromptCharacter = Database["public"]["Tables"]["image_prompt_characters"]["Row"];
+type PromptTone = Database["public"]["Tables"]["image_prompt_tones"]["Row"];
+
+const ITEM_LABELS = ["Texto principal", "Subtítulo / horário", "Mensagem secundária", "CTA"];
+
+function assemblePrompt(template: string, items: string[], character: string, tone: string): string {
+  let text = template.split("[PERSONAGEM]").join(character);
+  text = text.split("[TOM]").join(tone);
+  items.forEach((item, i) => {
+    text = text.split(`[ITEM ${i + 1}]`).join(item || `[ITEM ${i + 1}]`);
+  });
+  return text;
+}
 
 interface ImageGenerationPanelProps {
   contextType: ImageContextType;
@@ -57,6 +72,7 @@ export function ImageGenerationPanel({
   placeholder = "Descreva a imagem que você quer gerar...",
   rows = 3,
 }: ImageGenerationPanelProps) {
+  const [promptMode, setPromptMode] = useState<"livre" | "predefinido">("livre");
   const [prompt, setPrompt] = useState("");
   const [promptId, setPromptId] = useState<string | null>(null);
   const [aspectRatio, setAspectRatio] = useState<ImageAspectRatio>("3:2");
@@ -70,6 +86,49 @@ export function ImageGenerationPanel({
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [uploadingReference, setUploadingReference] = useState(false);
   const referenceInputRef = useRef<HTMLInputElement>(null);
+
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [characters, setCharacters] = useState<PromptCharacter[]>([]);
+  const [tones, setTones] = useState<PromptTone[]>([]);
+  const [templateId, setTemplateId] = useState<string>("");
+  const [characterId, setCharacterId] = useState<string>("");
+  const [toneId, setToneId] = useState<string>("");
+  const [items, setItems] = useState<string[]>(["", "", "", ""]);
+  const [copiedPredefinido, setCopiedPredefinido] = useState(false);
+
+  useEffect(() => {
+    async function loadPromptParts() {
+      const supabase = createClient();
+      const [{ data: t }, { data: c }, { data: to }] = await Promise.all([
+        supabase.from("image_prompt_templates").select("*").order("position"),
+        supabase.from("image_prompt_characters").select("*").order("position"),
+        supabase.from("image_prompt_tones").select("*").order("position"),
+      ]);
+      setTemplates(t ?? []);
+      setCharacters(c ?? []);
+      setTones(to ?? []);
+      if (t && t.length > 0) setTemplateId(t[0].id);
+      if (c && c.length > 0) setCharacterId(c[0].id);
+      if (to && to.length > 0) setToneId(to[0].id);
+    }
+    loadPromptParts();
+  }, []);
+
+  const selectedTemplate = templates.find((t) => t.id === templateId) ?? null;
+  const selectedCharacter = characters.find((c) => c.id === characterId) ?? null;
+  const selectedTone = tones.find((t) => t.id === toneId) ?? null;
+
+  const assembledPrompt = useMemo(() => {
+    if (!selectedTemplate) return "";
+    return assemblePrompt(selectedTemplate.body, items, selectedCharacter?.body ?? "", selectedTone?.body ?? "");
+  }, [selectedTemplate, selectedCharacter, selectedTone, items]);
+
+  async function handleCopyPredefinido() {
+    if (!assembledPrompt) return;
+    await navigator.clipboard.writeText(assembledPrompt);
+    setCopiedPredefinido(true);
+    setTimeout(() => setCopiedPredefinido(false), 1500);
+  }
 
   useEffect(() => {
     if (!contextId) {
@@ -108,7 +167,8 @@ export function ImageGenerationPanel({
   }
 
   async function handleGenerate() {
-    if (!prompt.trim()) return;
+    const effectivePrompt = promptMode === "predefinido" ? assembledPrompt : prompt;
+    if (!effectivePrompt.trim()) return;
     setGenerating(true);
     setError(null);
     try {
@@ -117,8 +177,8 @@ export function ImageGenerationPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           module: "imagem",
-          prompt,
-          promptId: promptId ?? undefined,
+          prompt: effectivePrompt,
+          promptId: promptMode === "predefinido" ? undefined : promptId ?? undefined,
           aspectRatio,
           quality,
           contextType,
@@ -135,8 +195,8 @@ export function ImageGenerationPanel({
             id: body.id,
             context_type: contextType,
             context_id: contextId,
-            prompt,
-            prompt_id: promptId,
+            prompt: effectivePrompt,
+            prompt_id: promptMode === "predefinido" ? null : promptId,
             image_url: body.url,
             provider: "",
             model: "",
@@ -188,25 +248,114 @@ export function ImageGenerationPanel({
           <ImageIcon size={12} />
           {label}
         </p>
-        <PromptPicker
-          preferredSlug="imagem"
-          onSelect={(p) => {
-            setPrompt(p.content);
-            setPromptId(p.id);
-          }}
-        />
+        {promptMode === "livre" && (
+          <PromptPicker
+            preferredSlug="imagem"
+            onSelect={(p) => {
+              setPrompt(p.content);
+              setPromptId(p.id);
+            }}
+          />
+        )}
       </div>
 
-      <Textarea
-        value={prompt}
-        onChange={(e) => {
-          setPrompt(e.target.value);
-          setPromptId(null);
-        }}
-        rows={rows}
-        placeholder={placeholder}
-        className="w-full text-xs"
-      />
+      <div className="mb-2 flex gap-1.5">
+        <PromptModeTab active={promptMode === "predefinido"} onClick={() => setPromptMode("predefinido")}>
+          Prompt pré-definido
+        </PromptModeTab>
+        <PromptModeTab active={promptMode === "livre"} onClick={() => setPromptMode("livre")}>
+          Prompt livre
+        </PromptModeTab>
+      </div>
+
+      {promptMode === "livre" ? (
+        <Textarea
+          value={prompt}
+          onChange={(e) => {
+            setPrompt(e.target.value);
+            setPromptId(null);
+          }}
+          rows={rows}
+          placeholder={placeholder}
+          className="w-full text-xs"
+        />
+      ) : (
+        <div className="space-y-2 rounded-lg border border-border bg-card-hover/50 p-2.5">
+          {templates.length === 0 ? (
+            <p className="text-[11px] text-text-muted">
+              Nenhum template cadastrado ainda — cadastre em Biblioteca de Imagens → Modelos de prompt.
+            </p>
+          ) : (
+            <>
+              <Select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="h-8 w-full text-[11px]">
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </Select>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {ITEM_LABELS.map((itemLabel, i) => (
+                  <div key={i} className="space-y-1">
+                    <label className="text-[10px] text-text-muted">
+                      Item {i + 1} — {itemLabel}
+                    </label>
+                    <Input
+                      value={items[i]}
+                      onChange={(e) => {
+                        const next = [...items];
+                        next[i] = e.target.value;
+                        setItems(next);
+                      }}
+                      placeholder={`ex: ${itemLabel.toUpperCase()}`}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-text-muted">Personagem</label>
+                  <Select value={characterId} onChange={(e) => setCharacterId(e.target.value)} className="h-8 text-[11px]">
+                    {characters.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-text-muted">Energia / tom</label>
+                  <Select value={toneId} onChange={(e) => setToneId(e.target.value)} className="h-8 text-[11px]">
+                    {tones.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] text-text-muted">Prompt montado</label>
+                  <button
+                    type="button"
+                    onClick={handleCopyPredefinido}
+                    className="flex items-center gap-1 text-[10px] text-accent hover:underline"
+                  >
+                    {copiedPredefinido ? <Check size={10} /> : <Copy size={10} />}
+                    {copiedPredefinido ? "Copiado!" : "Copiar prompt"}
+                  </button>
+                </div>
+                <Textarea value={assembledPrompt} readOnly rows={4} className="w-full font-mono text-[10px]" />
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <input
         ref={referenceInputRef}
@@ -318,7 +467,7 @@ export function ImageGenerationPanel({
         type="button"
         size="sm"
         className="mt-2 w-full"
-        disabled={!prompt.trim() || generating}
+        disabled={!(promptMode === "predefinido" ? assembledPrompt : prompt).trim() || generating}
         onClick={handleGenerate}
       >
         {generating ? "Gerando..." : value ? "Gerar nova" : "Gerar"}
@@ -372,5 +521,27 @@ export function ImageGenerationPanel({
         onSelect={handleSelectFromLibrary}
       />
     </div>
+  );
+}
+
+function PromptModeTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-button px-2.5 py-1 text-[11px] font-medium transition-colors ${
+        active ? "bg-accent text-white" : "border border-border-strong text-text-secondary hover:bg-card-hover"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

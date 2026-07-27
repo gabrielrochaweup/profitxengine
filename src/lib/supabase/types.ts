@@ -449,6 +449,54 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["image_folders"]["Insert"]>;
         Relationships: [];
       };
+      image_prompt_templates: {
+        Row: {
+          id: string;
+          name: string;
+          body: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["image_prompt_templates"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["image_prompt_templates"]["Insert"]>;
+        Relationships: [];
+      };
+      image_prompt_characters: {
+        Row: {
+          id: string;
+          name: string;
+          body: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["image_prompt_characters"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["image_prompt_characters"]["Insert"]>;
+        Relationships: [];
+      };
+      image_prompt_tones: {
+        Row: {
+          id: string;
+          name: string;
+          body: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["image_prompt_tones"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["image_prompt_tones"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
