@@ -322,6 +322,8 @@ export function MessageRow({
             <ImageGenerationPanel
               contextType="dinamica_slot"
               contextId={slot.dynamic_id}
+              dynamicId={slot.dynamic_id}
+              msgKey={slot.msg_key}
               value={generatedImageUrl}
               onChange={setGeneratedImageUrl}
               label="Gerar imagem para essa mensagem"

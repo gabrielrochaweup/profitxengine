@@ -41,6 +41,12 @@ interface ImageGenerationPanelProps {
   label?: string;
   placeholder?: string;
   rows?: number;
+  /** Dinâmica + msg_key da mensagem sendo editada — quando presentes,
+   * filtram o dropdown de "prompt pré-definido" pra mostrar só o template
+   * genérico + o feito especificamente pra essa mensagem, em vez da lista
+   * inteira de templates de todas as dinâmicas. */
+  dynamicId?: string;
+  msgKey?: string;
 }
 
 const ASPECT_RATIO_OPTIONS: { value: ImageAspectRatio; label: string }[] = [
@@ -71,6 +77,8 @@ export function ImageGenerationPanel({
   label = "Gerar imagem",
   placeholder = "Descreva a imagem que você quer gerar...",
   rows = 3,
+  dynamicId,
+  msgKey,
 }: ImageGenerationPanelProps) {
   const [promptMode, setPromptMode] = useState<"livre" | "predefinido">("livre");
   const [prompt, setPrompt] = useState("");
@@ -107,12 +115,24 @@ export function ImageGenerationPanel({
       setTemplates(t ?? []);
       setCharacters(c ?? []);
       setTones(to ?? []);
-      if (t && t.length > 0) setTemplateId(t[0].id);
+      const specific = t?.find((tpl) => tpl.dynamic_id === dynamicId && tpl.msg_key === msgKey);
+      const fallback = t?.find((tpl) => !tpl.dynamic_id) ?? t?.[0];
+      const initial = specific ?? fallback;
+      if (initial) setTemplateId(initial.id);
       if (c && c.length > 0) setCharacterId(c[0].id);
       if (to && to.length > 0) setToneId(to[0].id);
     }
     loadPromptParts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Só o template genérico (sem dinâmica associada) + o feito
+  // especificamente pra essa mensagem — evita listar as 180 opções de
+  // todas as dinâmicas de uma vez.
+  const visibleTemplates = useMemo(
+    () => templates.filter((t) => !t.dynamic_id || (t.dynamic_id === dynamicId && t.msg_key === msgKey)),
+    [templates, dynamicId, msgKey]
+  );
 
   const selectedTemplate = templates.find((t) => t.id === templateId) ?? null;
   const selectedCharacter = characters.find((c) => c.id === characterId) ?? null;
@@ -281,14 +301,14 @@ export function ImageGenerationPanel({
         />
       ) : (
         <div className="space-y-2 rounded-lg border border-border bg-card-hover/50 p-2.5">
-          {templates.length === 0 ? (
+          {visibleTemplates.length === 0 ? (
             <p className="text-[11px] text-text-muted">
               Nenhum template cadastrado ainda — cadastre em Biblioteca de Imagens → Modelos de prompt.
             </p>
           ) : (
             <>
               <Select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="h-8 w-full text-[11px]">
-                {templates.map((t) => (
+                {visibleTemplates.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
                   </option>
