@@ -4,12 +4,7 @@ import { useMemo } from "react";
 import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import {
-  charCountLevel,
-  isResultBlocked,
-  type Depoimento,
-  type MelhorCenario,
-} from "@/lib/dynamics/calc-engine";
+import { isResultBlocked, type Depoimento, type MelhorCenario } from "@/lib/dynamics/calc-engine";
 import { hasTop5Placeholder, renderSlot, type ProductStatsByWindow } from "@/lib/dynamics/render-message";
 import { MessageRow } from "./message-row";
 import type { Database, Top5Config, TradingWindow } from "@/lib/supabase/types";
@@ -175,7 +170,6 @@ export function DynamicMessagesBoard({
                   });
                   const override = textOverrides[slot.msg_key];
                   const blocked = !override && isResultBlocked(text, computedValues);
-                  const { chars, level } = charCountLevel(override ?? text);
 
                   return (
                     <MessageRow
@@ -185,8 +179,6 @@ export function DynamicMessagesBoard({
                       overrideText={override}
                       blocked={blocked}
                       needsRealtimeUpdate={slot.needs_realtime_update || hasTop5Placeholder(slot.template)}
-                      chars={chars}
-                      charLevel={level}
                       fonte={fonte}
                       onFonteChange={(f) => onFonteChange(slot.msg_key, f)}
                       onUseVariant={(variantText) => onUseVariant(slot.msg_key, variantText)}

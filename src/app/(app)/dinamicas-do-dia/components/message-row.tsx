@@ -20,8 +20,6 @@ interface MessageRowProps {
   overrideText?: string;
   blocked: boolean;
   needsRealtimeUpdate: boolean;
-  chars: number;
-  charLevel: "normal" | "high" | "veryhigh";
   fonte: TradingWindow;
   onFonteChange: (fonte: TradingWindow) => void;
   onUseVariant: (text: string) => void;
@@ -30,14 +28,25 @@ interface MessageRowProps {
 
 const WINDOWS: TradingWindow[] = ["dia", "semana", "mes", "total"];
 
+// Horários "cheios" do dia (sem minutos) considerados os momentos-chave que
+// merecem imagem — os demais (lembretes de 5/10/30min, transições etc.)
+// ficam marcados como "Sem imagem". Vale pra qualquer dinâmica, mesmo as
+// que rodam sáb/dom (o prefixo do dia é ignorado na comparação).
+const IMAGE_RECOMMENDED_HOURS = new Set(["8h30", "10h", "12h", "15h", "17h", "18h", "19h", "20h", "21h", "22h"]);
+
+function isImageRecommendedTime(timeLabel: string | null): boolean {
+  if (!timeLabel) return false;
+  const withoutDay = timeLabel.replace(/^(sáb|dom)\s+/i, "").trim();
+  const normalized = withoutDay.replace(/^0/, "");
+  return IMAGE_RECOMMENDED_HOURS.has(normalized);
+}
+
 export function MessageRow({
   slot,
   computedText,
   overrideText,
   blocked,
   needsRealtimeUpdate,
-  chars,
-  charLevel,
   fonte,
   onFonteChange,
   onUseVariant,
@@ -112,15 +121,13 @@ export function MessageRow({
             {slot.time_label}
           </span>
           <span
-            className={`shrink-0 rounded-button px-2 py-0.5 text-[10px] ${
-              charLevel === "veryhigh"
-                ? "bg-danger/20 text-danger"
-                : charLevel === "high"
-                  ? "bg-warning/20 text-warning"
-                  : "bg-card-hover text-text-muted"
+            className={`shrink-0 rounded-button px-2 py-0.5 text-[10px] font-medium ${
+              isImageRecommendedTime(slot.time_label)
+                ? "bg-accent/15 text-accent"
+                : "bg-card-hover text-text-muted"
             }`}
           >
-            {chars}
+            {isImageRecommendedTime(slot.time_label) ? "Com imagem" : "Sem imagem"}
           </span>
         </div>
         <p className="mt-1 truncate text-xs text-text-secondary">{slot.role_label}</p>
