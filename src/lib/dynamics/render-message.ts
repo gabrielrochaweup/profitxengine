@@ -46,6 +46,10 @@ export interface RenderSlotInput {
   // mensagem é dentro da dinâmica — não a posição bruta do slot. Ver
   // TOP5_FICTICIO_STEP abaixo pra entender por que isso importa.
   top5Occurrence?: number;
+  // Só a Maratona roda o fim de semana inteiro (sáb+dom) — o texto do
+  // bloco precisa dizer "DO FDS" só nela; as demais dinâmicas com TOP5
+  // (ex: Premium) rodam só um dia, então é "DO DIA".
+  top5PeriodLabel?: "FDS" | "DIA";
 }
 
 const TOP5_MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
@@ -76,7 +80,11 @@ export function hasTop5Placeholder(template: string): boolean {
 // de Trading → TOP 5, igual ao placar/% de acerto), usa eles fixos. Sem
 // preenchimento, usa o fictício crescente acima com base em qual ocorrência
 // do bloco esta mensagem representa.
-function buildTop5Bloco(config: Top5Config | null | undefined, top5Occurrence: number): string {
+function buildTop5Bloco(
+  config: Top5Config | null | undefined,
+  top5Occurrence: number,
+  periodLabel: "FDS" | "DIA"
+): string {
   const values = config?.enabled
     ? config.values.slice(0, 5)
     : (() => {
@@ -86,7 +94,7 @@ function buildTop5Bloco(config: Top5Config | null | undefined, top5Occurrence: n
   const linhas = values.map(
     (valor, i) => `${TOP5_MEDALS[i] ?? `${i + 1}º`} ${i + 1}º → *$${Math.round(valor).toLocaleString("en-US")}*`
   );
-  return ["🏆 *TOP 5 ACUMULADO DO FDS:*", ...linhas].join("\n");
+  return [`🏆 *TOP 5 ACUMULADO DO ${periodLabel}:*`, ...linhas].join("\n");
 }
 
 export interface RenderSlotOutput {
@@ -114,6 +122,7 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     depoimento,
     top5,
     top5Occurrence,
+    top5PeriodLabel,
   } = input;
 
   const pepe = getResult(stats.pepe[fonte], fonte);
@@ -214,7 +223,7 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     depValor: (depoimento?.valor ?? "").replace("R$ ", ""),
     depSituacao: depoimento?.situacao ?? "",
     // TOP 5 acumulado (global, Performance de Trading)
-    top5_bloco: buildTop5Bloco(top5, top5Occurrence ?? 0),
+    top5_bloco: buildTop5Bloco(top5, top5Occurrence ?? 0, top5PeriodLabel ?? "DIA"),
   };
 
   let text = template;

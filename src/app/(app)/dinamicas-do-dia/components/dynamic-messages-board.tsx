@@ -167,6 +167,7 @@ export function DynamicMessagesBoard({
                     depoimento,
                     top5,
                     top5Occurrence: top5OccurrenceByMsgKey[slot.msg_key],
+                    top5PeriodLabel: isMaratona ? "FDS" : "DIA",
                   });
                   const override = textOverrides[slot.msg_key];
                   const blocked = !override && isResultBlocked(text, computedValues);
