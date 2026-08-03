@@ -331,30 +331,28 @@ export function ImageGenerationPanel({
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {ITEM_LABELS.map((itemLabel, i) => (
                   <div key={i} className="space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <label className="text-[10px] text-text-muted">
-                        Item {i + 1} — {itemLabel}
-                      </label>
-                      {i === 3 && ctas.length > 0 && (
-                        <select
-                          value=""
-                          onChange={(e) => {
-                            if (!e.target.value) return;
-                            const next = [...items];
-                            next[3] = e.target.value;
-                            setItems(next);
-                          }}
-                          className="h-5 rounded border border-border-strong bg-transparent text-[9px] text-accent"
-                        >
-                          <option value="">CTA rápido...</option>
-                          {ctas.map((c) => (
-                            <option key={c.id} value={c.body}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
+                    <label className="text-[10px] text-text-muted">
+                      Item {i + 1} — {itemLabel}
+                    </label>
+                    {i === 3 && ctas.length > 0 && (
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          const next = [...items];
+                          next[3] = e.target.value;
+                          setItems(next);
+                        }}
+                        className="h-6 w-full rounded border border-border-strong bg-transparent px-1.5 text-[10px] text-accent"
+                      >
+                        <option value="">CTA rápido...</option>
+                        {ctas.map((c) => (
+                          <option key={c.id} value={c.body}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <Input
                       value={items[i]}
                       onChange={(e) => {
