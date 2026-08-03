@@ -335,7 +335,7 @@ export function ImageGenerationPanel({
                       Item {i + 1} — {itemLabel}
                     </label>
                     {i === 3 && ctas.length > 0 && (
-                      <select
+                      <Select
                         value=""
                         onChange={(e) => {
                           if (!e.target.value) return;
@@ -343,7 +343,7 @@ export function ImageGenerationPanel({
                           next[3] = e.target.value;
                           setItems(next);
                         }}
-                        className="h-6 w-full rounded border border-border-strong bg-transparent px-1.5 text-[10px] text-accent"
+                        className="h-7 text-[11px]"
                       >
                         <option value="">CTA rápido...</option>
                         {ctas.map((c) => (
@@ -351,7 +351,7 @@ export function ImageGenerationPanel({
                             {c.name}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     )}
                     <Input
                       value={items[i]}
