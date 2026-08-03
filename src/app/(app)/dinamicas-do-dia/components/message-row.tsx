@@ -32,7 +32,19 @@ const WINDOWS: TradingWindow[] = ["dia", "semana", "mes", "total"];
 // merecem imagem — os demais (lembretes de 5/10/30min, transições etc.)
 // ficam marcados como "Sem imagem". Vale pra qualquer dinâmica, mesmo as
 // que rodam sáb/dom (o prefixo do dia é ignorado na comparação).
-const IMAGE_RECOMMENDED_HOURS = new Set(["8h30", "10h", "12h", "15h", "17h", "18h", "19h", "20h", "21h", "22h"]);
+const IMAGE_RECOMMENDED_HOURS = new Set([
+  "8h30",
+  "10h",
+  "12h",
+  "14h",
+  "15h",
+  "17h",
+  "18h",
+  "19h",
+  "20h",
+  "21h",
+  "22h",
+]);
 
 function isImageRecommendedTime(timeLabel: string | null): boolean {
   if (!timeLabel) return false;

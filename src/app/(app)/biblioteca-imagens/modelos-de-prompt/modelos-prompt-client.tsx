@@ -11,13 +11,18 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import type { Database } from "@/lib/supabase/types";
 
-type PromptPartTable = "image_prompt_templates" | "image_prompt_characters" | "image_prompt_tones";
+type PromptPartTable =
+  | "image_prompt_templates"
+  | "image_prompt_characters"
+  | "image_prompt_tones"
+  | "image_prompt_ctas";
 type PromptPartRow = { id: string; name: string; body: string; position: number };
 
 interface ModelosPromptClientProps {
   initialTemplates: Database["public"]["Tables"]["image_prompt_templates"]["Row"][];
   initialCharacters: Database["public"]["Tables"]["image_prompt_characters"]["Row"][];
   initialTones: Database["public"]["Tables"]["image_prompt_tones"]["Row"][];
+  initialCtas: Database["public"]["Tables"]["image_prompt_ctas"]["Row"][];
   currentUserId: string;
   isAdmin: boolean;
 }
@@ -26,6 +31,7 @@ export function ModelosPromptClient({
   initialTemplates,
   initialCharacters,
   initialTones,
+  initialCtas,
   currentUserId,
   isAdmin,
 }: ModelosPromptClientProps) {
@@ -52,9 +58,18 @@ export function ModelosPromptClient({
       <PromptPartSection
         table="image_prompt_tones"
         title="Cor Predominante"
-        description="Texto que substitui [TOM] no template — a descrição de iluminação e fundo na cor escolhida, pra diferenciar visualmente as imagens."
+        description="Texto que substitui [TOM] no template — a descrição de iluminação e fundo na cor escolhida, pra diferenciar visualmente as imagens. Nos templates por mensagem (sem [TOM]), a cor entra como instrução de override no fim do prompt."
         newLabel="Nova cor"
         initialItems={initialTones}
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+      />
+      <PromptPartSection
+        table="image_prompt_ctas"
+        title="CTAs"
+        description="Texto pronto pro Item 4 (CTA) — aparece como atalho rápido ao lado do campo, sem precisar reescrever toda vez."
+        newLabel="Novo CTA"
+        initialItems={initialCtas}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
       />

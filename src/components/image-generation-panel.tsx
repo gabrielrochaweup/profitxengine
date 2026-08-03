@@ -17,12 +17,22 @@ type GeneratedImage = Database["public"]["Tables"]["generated_images"]["Row"];
 type PromptTemplate = Database["public"]["Tables"]["image_prompt_templates"]["Row"];
 type PromptCharacter = Database["public"]["Tables"]["image_prompt_characters"]["Row"];
 type PromptTone = Database["public"]["Tables"]["image_prompt_tones"]["Row"];
+type PromptCta = Database["public"]["Tables"]["image_prompt_ctas"]["Row"];
 
 const ITEM_LABELS = ["Texto principal", "Subtítulo / horário", "Mensagem secundária", "CTA"];
 
 function assemblePrompt(template: string, items: string[], character: string, tone: string): string {
   let text = template.split("[PERSONAGEM]").join(character);
+  // Templates genéricos (com o marcador [TOM]) recebem a cor no lugar exato
+  // do bloco de "Art direction". Templates feitos por mensagem (os 180 com
+  // a cena já embutida) não têm esse marcador — pra cor predominante ainda
+  // valer 100% neles, força uma instrução de override no fim do prompt em
+  // vez de simplesmente não ter efeito nenhum.
+  const hasToneToken = text.includes("[TOM]");
   text = text.split("[TOM]").join(tone);
+  if (!hasToneToken && tone) {
+    text += `\n\nDOMINANT COLOR OVERRIDE — this color scheme takes priority over any other color mentioned above for lighting, background gradient and rim light throughout the entire image:\n${tone}`;
+  }
   items.forEach((item, i) => {
     text = text.split(`[ITEM ${i + 1}]`).join(item || `[ITEM ${i + 1}]`);
   });
@@ -98,6 +108,7 @@ export function ImageGenerationPanel({
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [characters, setCharacters] = useState<PromptCharacter[]>([]);
   const [tones, setTones] = useState<PromptTone[]>([]);
+  const [ctas, setCtas] = useState<PromptCta[]>([]);
   const [templateId, setTemplateId] = useState<string>("");
   const [characterId, setCharacterId] = useState<string>("");
   const [toneId, setToneId] = useState<string>("");
@@ -107,14 +118,16 @@ export function ImageGenerationPanel({
   useEffect(() => {
     async function loadPromptParts() {
       const supabase = createClient();
-      const [{ data: t }, { data: c }, { data: to }] = await Promise.all([
+      const [{ data: t }, { data: c }, { data: to }, { data: ct }] = await Promise.all([
         supabase.from("image_prompt_templates").select("*").order("position"),
         supabase.from("image_prompt_characters").select("*").order("position"),
         supabase.from("image_prompt_tones").select("*").order("position"),
+        supabase.from("image_prompt_ctas").select("*").order("position"),
       ]);
       setTemplates(t ?? []);
       setCharacters(c ?? []);
       setTones(to ?? []);
+      setCtas(ct ?? []);
       const specific = t?.find((tpl) => tpl.dynamic_id === dynamicId && tpl.msg_key === msgKey);
       const fallback = t?.find((tpl) => !tpl.dynamic_id) ?? t?.[0];
       const initial = specific ?? fallback;
@@ -318,9 +331,30 @@ export function ImageGenerationPanel({
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {ITEM_LABELS.map((itemLabel, i) => (
                   <div key={i} className="space-y-1">
-                    <label className="text-[10px] text-text-muted">
-                      Item {i + 1} — {itemLabel}
-                    </label>
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-[10px] text-text-muted">
+                        Item {i + 1} — {itemLabel}
+                      </label>
+                      {i === 3 && ctas.length > 0 && (
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            if (!e.target.value) return;
+                            const next = [...items];
+                            next[3] = e.target.value;
+                            setItems(next);
+                          }}
+                          className="h-5 rounded border border-border-strong bg-transparent text-[9px] text-accent"
+                        >
+                          <option value="">CTA rápido...</option>
+                          {ctas.map((c) => (
+                            <option key={c.id} value={c.body}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                     <Input
                       value={items[i]}
                       onChange={(e) => {

@@ -501,6 +501,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["image_prompt_tones"]["Insert"]>;
         Relationships: [];
       };
+      image_prompt_ctas: {
+        Row: {
+          id: string;
+          name: string;
+          body: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["image_prompt_ctas"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["image_prompt_ctas"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

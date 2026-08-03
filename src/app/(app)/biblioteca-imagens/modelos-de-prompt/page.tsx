@@ -9,12 +9,14 @@ export default async function ModelosDePromptPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const [{ data: templates }, { data: characters }, { data: tones }, { data: profile }] = await Promise.all([
-    supabase.from("image_prompt_templates").select("*").order("position"),
-    supabase.from("image_prompt_characters").select("*").order("position"),
-    supabase.from("image_prompt_tones").select("*").order("position"),
-    getProfile(user.id),
-  ]);
+  const [{ data: templates }, { data: characters }, { data: tones }, { data: ctas }, { data: profile }] =
+    await Promise.all([
+      supabase.from("image_prompt_templates").select("*").order("position"),
+      supabase.from("image_prompt_characters").select("*").order("position"),
+      supabase.from("image_prompt_tones").select("*").order("position"),
+      supabase.from("image_prompt_ctas").select("*").order("position"),
+      getProfile(user.id),
+    ]);
 
   return (
     <div>
@@ -28,6 +30,7 @@ export default async function ModelosDePromptPage() {
         initialTemplates={templates ?? []}
         initialCharacters={characters ?? []}
         initialTones={tones ?? []}
+        initialCtas={ctas ?? []}
         currentUserId={user.id}
         isAdmin={profile?.role === "admin"}
       />
