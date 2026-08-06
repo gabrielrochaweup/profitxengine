@@ -517,6 +517,73 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["image_prompt_ctas"]["Insert"]>;
         Relationships: [];
       };
+      testimonial_prompt_templates: {
+        Row: {
+          id: string;
+          name: string;
+          body: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["testimonial_prompt_templates"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["testimonial_prompt_templates"]["Insert"]>;
+        Relationships: [];
+      };
+      testimonial_prompt_styles: {
+        Row: {
+          id: string;
+          name: string;
+          body: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["testimonial_prompt_styles"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["testimonial_prompt_styles"]["Insert"]>;
+        Relationships: [];
+      };
+      testimonial_prompt_variations: {
+        Row: {
+          id: string;
+          name: string;
+          body: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["testimonial_prompt_variations"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["testimonial_prompt_variations"]["Insert"]>;
+        Relationships: [];
+      };
+      testimonial_prompt_image_variants: {
+        Row: {
+          id: string;
+          name: string;
+          body: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["testimonial_prompt_image_variants"]["Row"],
+          "id" | "created_at"
+        > & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["testimonial_prompt_image_variants"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
