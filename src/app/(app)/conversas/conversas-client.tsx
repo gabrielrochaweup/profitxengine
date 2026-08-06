@@ -221,7 +221,6 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <Card className="h-fit p-4">
-              <h3 className="mb-3 text-sm font-medium text-text-primary">Gerar com IA</h3>
               <AiGeneratePanel
                 platform={platform}
                 hasExistingMessages={messages.length > 0}

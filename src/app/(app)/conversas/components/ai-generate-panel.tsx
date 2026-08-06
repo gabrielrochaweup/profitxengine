@@ -171,14 +171,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex gap-1.5">
-          <PromptModeTab active={promptMode === "predefinido"} onClick={() => setPromptMode("predefinido")}>
-            Prompt pré-definido
-          </PromptModeTab>
-          <PromptModeTab active={promptMode === "livre"} onClick={() => setPromptMode("livre")}>
-            Prompt livre
-          </PromptModeTab>
-        </div>
+        <h3 className="text-sm font-medium text-text-primary">Gerar com IA</h3>
         {promptMode === "livre" && (
           <PromptPicker
             preferredSlug="conversa"
@@ -188,6 +181,15 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
             }}
           />
         )}
+      </div>
+
+      <div className="flex gap-1.5">
+        <PromptModeTab active={promptMode === "predefinido"} onClick={() => setPromptMode("predefinido")}>
+          Prompt pré-definido
+        </PromptModeTab>
+        <PromptModeTab active={promptMode === "livre"} onClick={() => setPromptMode("livre")}>
+          Prompt livre
+        </PromptModeTab>
       </div>
 
       {promptMode === "livre" ? (
