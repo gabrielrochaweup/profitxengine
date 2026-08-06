@@ -95,14 +95,14 @@ export function InstagramChat({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/instagram-icons/camera.svg" alt="" className="h-8 w-8 shrink-0" />
           <span className="flex-1 truncate text-[14px] text-white/50">Mensagem...</span>
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-[15px]">
             <Mic size={19} className="shrink-0 text-white" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/instagram-icons/fotos.svg" alt="" className="h-[19px] w-[19px] shrink-0" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/instagram-icons/figurinha.svg" alt="" className="h-[19px] w-[19px] shrink-0" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/instagram-icons/add-2.svg" alt="" className="h-6 w-6 shrink-0" />
+            <img src="/instagram-icons/add-2.svg" alt="" className="h-[19px] w-[19px] shrink-0" />
           </div>
         </div>
       </div>
