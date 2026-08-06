@@ -1,4 +1,4 @@
-import { ChevronLeft, Phone as PhoneIcon, Video, SmilePlus, Camera, Mic, Image as ImageIcon, Smile, Plus } from "lucide-react";
+import { ChevronLeft, Phone as PhoneIcon, Video, SmilePlus, Camera, Mic, Image as ImageIcon, Sticker, Plus } from "lucide-react";
 import { StatusBar } from "./status-bar";
 import type { ConversationMessage } from "@/lib/supabase/types";
 
@@ -92,13 +92,13 @@ export function InstagramChat({
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3797f0]">
           <Camera size={16} className="text-white" />
         </div>
-        <div className="flex flex-1 items-center rounded-full border border-white/30 px-3.5 py-2">
-          <span className="text-[14px] text-white/50">Mensagem...</span>
+        <div className="flex flex-1 items-center gap-2.5 rounded-full border border-white/30 px-3.5 py-2">
+          <span className="flex-1 truncate text-[14px] text-white/50">Mensagem...</span>
+          <Mic size={19} className="shrink-0 text-white" />
+          <ImageIcon size={19} className="shrink-0 text-white" />
+          <Sticker size={19} className="shrink-0 text-white" />
         </div>
-        <Mic size={22} className="text-white" />
-        <ImageIcon size={22} className="text-white" />
-        <Smile size={22} className="text-white" />
-        <Plus size={22} className="text-white" />
+        <Plus size={24} className="shrink-0 text-white" />
       </div>
     </div>
   );
