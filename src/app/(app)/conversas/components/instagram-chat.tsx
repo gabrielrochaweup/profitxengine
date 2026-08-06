@@ -1,4 +1,4 @@
-import { ChevronLeft, SmilePlus, Mic, Sticker } from "lucide-react";
+import { ChevronLeft, SmilePlus, Mic } from "lucide-react";
 import { StatusBar } from "./status-bar";
 import type { ConversationMessage } from "@/lib/supabase/types";
 
@@ -98,7 +98,8 @@ export function InstagramChat({
           <Mic size={19} className="shrink-0 text-white" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/instagram-icons/fotos.svg" alt="" className="h-[19px] w-[19px] shrink-0" />
-          <Sticker size={19} className="shrink-0 text-white" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/instagram-icons/figurinha.svg" alt="" className="h-[19px] w-[19px] shrink-0" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/instagram-icons/add.svg" alt="" className="h-6 w-6 shrink-0" />
         </div>
