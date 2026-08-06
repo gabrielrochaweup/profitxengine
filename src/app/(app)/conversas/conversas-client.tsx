@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Save } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { pickAvatar } from "@/lib/avatar-library";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,7 +79,18 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
     setCrmAssigneeName(DEFAULT_STATE.crmAssigneeName);
     setCrmAssigneeAvatarUrl(DEFAULT_STATE.crmAssigneeAvatarUrl);
     setCrmStatus(DEFAULT_STATE.crmStatus);
+    pickAvatar().then((url) => {
+      if (url) setContactAvatarUrl(url);
+    });
   }
+
+  // Já chega com um avatar sorteado do banco de fotos, sem precisar clicar em "Nova conversa" primeiro.
+  useEffect(() => {
+    pickAvatar().then((url) => {
+      if (url) setContactAvatarUrl(url);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function loadConversation(conversation: FakeConversation) {
     setCurrentId(conversation.id);

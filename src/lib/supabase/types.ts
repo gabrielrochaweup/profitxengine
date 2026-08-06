@@ -584,6 +584,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["testimonial_prompt_image_variants"]["Insert"]>;
         Relationships: [];
       };
+      avatar_library: {
+        Row: {
+          id: string;
+          url: string;
+          storage_path: string;
+          last_used_at: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["avatar_library"]["Row"], "id" | "created_at" | "last_used_at"> & {
+          id?: string;
+          created_at?: string;
+          last_used_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["avatar_library"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

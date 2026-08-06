@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Upload } from "lucide-react";
+import { Upload, Dices } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { pickAvatar } from "@/lib/avatar-library";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import type { Platform } from "@/lib/supabase/types";
@@ -48,7 +49,19 @@ export function HeaderEditor({
   const assigneeFileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingAssignee, setUploadingAssignee] = useState(false);
+  const [drawing, setDrawing] = useState(false);
   const isCrm = platform === "crm";
+
+  async function handleDrawAvatar() {
+    setDrawing(true);
+    const url = await pickAvatar();
+    if (url) {
+      onChange({ contactAvatarUrl: url });
+    } else {
+      toast.error("Nenhuma foto cadastrada no banco de avatares ainda.");
+    }
+    setDrawing(false);
+  }
 
   async function uploadAvatar(file: File, onDone: (url: string) => void, setBusy: (v: boolean) => void) {
     setBusy(true);
@@ -115,8 +128,18 @@ export function HeaderEditor({
           >
             <Upload size={16} />
           </button>
+          <button
+            type="button"
+            onClick={handleDrawAvatar}
+            disabled={drawing}
+            title="Sortear avatar do banco de fotos"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input border border-border-strong text-text-secondary hover:bg-card-hover disabled:opacity-50"
+          >
+            <Dices size={16} />
+          </button>
         </div>
         {uploading && <p className="text-xs text-text-muted">Enviando...</p>}
+        {drawing && <p className="text-xs text-text-muted">Sorteando...</p>}
       </div>
 
       {isCrm ? (
