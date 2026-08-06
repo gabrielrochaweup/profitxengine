@@ -1,4 +1,4 @@
-import { ChevronLeft, Phone as PhoneIcon, Video, SmilePlus, Camera, Mic, Image as ImageIcon, Sticker, Plus } from "lucide-react";
+import { ChevronLeft, SmilePlus, Mic, Sticker } from "lucide-react";
 import { StatusBar } from "./status-bar";
 import type { ConversationMessage } from "@/lib/supabase/types";
 
@@ -41,10 +41,12 @@ export function InstagramChat({
           <SmilePlus size={16} />
         </HeaderIconButton>
         <HeaderIconButton>
-          <PhoneIcon size={16} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/instagram-icons/telefone.svg" alt="" className="h-4 w-4" />
         </HeaderIconButton>
         <HeaderIconButton>
-          <Video size={17} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/instagram-icons/video.svg" alt="" className="h-[18px] w-[18px]" />
         </HeaderIconButton>
       </div>
 
@@ -88,17 +90,18 @@ export function InstagramChat({
         })}
       </div>
 
-      <div className="flex items-center gap-2.5 px-3 pb-3 pt-1">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3797f0]">
-          <Camera size={16} className="text-white" />
-        </div>
-        <div className="flex flex-1 items-center gap-2.5 rounded-full border border-white/30 px-3.5 py-2">
+      <div className="px-3 pb-3 pt-1">
+        <div className="flex items-center gap-2.5 rounded-full bg-[#1A1E21] py-1.5 pl-1.5 pr-3.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/instagram-icons/camera.svg" alt="" className="h-8 w-8 shrink-0" />
           <span className="flex-1 truncate text-[14px] text-white/50">Mensagem...</span>
           <Mic size={19} className="shrink-0 text-white" />
-          <ImageIcon size={19} className="shrink-0 text-white" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/instagram-icons/fotos.svg" alt="" className="h-[19px] w-[19px] shrink-0" />
           <Sticker size={19} className="shrink-0 text-white" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/instagram-icons/add.svg" alt="" className="h-6 w-6 shrink-0" />
         </div>
-        <Plus size={24} className="shrink-0 text-white" />
       </div>
     </div>
   );
