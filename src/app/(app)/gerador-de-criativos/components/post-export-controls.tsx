@@ -3,8 +3,13 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PREVIEW_DISPLAY_WIDTH } from "./post-preview";
 
-const EXPORT_PIXEL_RATIO = 3;
+// A largura padrão dos 3 formatos é sempre 1080px — escalando pela razão
+// entre o alvo e o que é exibido na tela, a imagem final sai sempre com
+// 1080px de largura exata (e a altura certa junto, já que o card na tela
+// já está no aspect ratio certo).
+const EXPORT_PIXEL_RATIO = 1080 / PREVIEW_DISPLAY_WIDTH;
 
 function isIOS() {
   if (typeof navigator === "undefined") return false;

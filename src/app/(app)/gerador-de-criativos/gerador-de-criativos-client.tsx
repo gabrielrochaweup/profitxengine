@@ -6,15 +6,16 @@ import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { PostEditor } from "./components/post-editor";
-import { PostPreview } from "./components/post-preview";
+import { PostPreview, POST_FORMAT_DIMENSIONS } from "./components/post-preview";
 import { PostGeneratePanel } from "./components/post-generate-panel";
 import { PostExportControls } from "./components/post-export-controls";
 import { PostHistoryPanel } from "./components/post-history-panel";
 import { CriativosLivre } from "./components/criativos-livre";
-import type { Database, PostDisplayStyle } from "@/lib/supabase/types";
+import type { Database, PostDisplayStyle, PostFormat } from "@/lib/supabase/types";
 
 type FakePost = Database["public"]["Tables"]["fake_posts"]["Row"];
 type PostTemplate = Database["public"]["Tables"]["post_prompt_templates"]["Row"];
@@ -32,6 +33,7 @@ const DEFAULT_STATE = {
   authorAvatarUrl: null as string | null,
   verified: true,
   displayStyle: "paragrafo" as PostDisplayStyle,
+  format: "quadrado" as PostFormat,
   body: "",
   subtitle: "",
   linkCardImageUrl: null as string | null,
@@ -55,6 +57,7 @@ export function GeradorDeCriativosClient({ initialPosts, currentUserId }: Gerado
   const [authorAvatarUrl, setAuthorAvatarUrl] = useState<string | null>(DEFAULT_STATE.authorAvatarUrl);
   const [verified, setVerified] = useState(DEFAULT_STATE.verified);
   const [displayStyle, setDisplayStyle] = useState<PostDisplayStyle>(DEFAULT_STATE.displayStyle);
+  const [format, setFormat] = useState<PostFormat>(DEFAULT_STATE.format);
   const [body, setBody] = useState(DEFAULT_STATE.body);
   const [subtitle, setSubtitle] = useState(DEFAULT_STATE.subtitle);
   const [linkCardImageUrl, setLinkCardImageUrl] = useState<string | null>(DEFAULT_STATE.linkCardImageUrl);
@@ -70,6 +73,7 @@ export function GeradorDeCriativosClient({ initialPosts, currentUserId }: Gerado
     setAuthorAvatarUrl(DEFAULT_STATE.authorAvatarUrl);
     setVerified(DEFAULT_STATE.verified);
     setDisplayStyle(DEFAULT_STATE.displayStyle);
+    setFormat(DEFAULT_STATE.format);
     setBody(DEFAULT_STATE.body);
     setSubtitle(DEFAULT_STATE.subtitle);
     setLinkCardImageUrl(DEFAULT_STATE.linkCardImageUrl);
@@ -86,6 +90,7 @@ export function GeradorDeCriativosClient({ initialPosts, currentUserId }: Gerado
     setAuthorAvatarUrl(post.author_avatar_url);
     setVerified(post.verified);
     setDisplayStyle(post.display_style);
+    setFormat(post.format);
     setBody(post.body ?? "");
     setSubtitle(post.subtitle ?? "");
     setLinkCardImageUrl(post.link_card_image_url);
@@ -103,6 +108,7 @@ export function GeradorDeCriativosClient({ initialPosts, currentUserId }: Gerado
       author_avatar_url: authorAvatarUrl,
       verified,
       display_style: displayStyle,
+      format,
       body: body || null,
       subtitle: subtitle || null,
       link_card_image_url: linkCardImageUrl,
@@ -170,12 +176,25 @@ export function GeradorDeCriativosClient({ initialPosts, currentUserId }: Gerado
       {tab === "posts" ? (
         <div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Título do post (opcional, só pra organizar)"
-              className="max-w-xs"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Título do post (opcional, só pra organizar)"
+                className="max-w-xs"
+              />
+              <Select
+                value={format}
+                onChange={(e) => setFormat(e.target.value as PostFormat)}
+                className="h-10 w-44 text-sm"
+              >
+                {(Object.keys(POST_FORMAT_DIMENSIONS) as PostFormat[]).map((f) => (
+                  <option key={f} value={f}>
+                    {POST_FORMAT_DIMENSIONS[f].label}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <PostHistoryPanel posts={posts} onSelect={loadPost} onDelete={handleDelete} />
               <Button type="button" variant="secondary" size="sm" onClick={resetToNew}>
@@ -238,6 +257,7 @@ export function GeradorDeCriativosClient({ initialPosts, currentUserId }: Gerado
                     authorAvatarUrl={authorAvatarUrl}
                     verified={verified}
                     displayStyle={displayStyle}
+                    format={format}
                     body={body}
                     subtitle={subtitle}
                     linkCardImageUrl={linkCardImageUrl}

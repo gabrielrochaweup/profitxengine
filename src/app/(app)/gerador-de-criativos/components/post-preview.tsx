@@ -1,6 +1,19 @@
 import { BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { PostDisplayStyle } from "@/lib/supabase/types";
+import type { PostDisplayStyle, PostFormat } from "@/lib/supabase/types";
+
+// Tamanhos padrão de post (largura sempre 1080, só a altura muda) — os 3
+// formatos padrão do Instagram. A largura exibida na tela fica fixa em
+// PREVIEW_DISPLAY_WIDTH e só a altura do card varia com o aspect ratio;
+// isso mantém o tamanho de fonte/padding já calibrado válido nos 3 casos.
+// A exportação usa EXPORT_PIXEL_RATIO (post-export-controls.tsx) pra sair
+// exatamente em 1080px de largura.
+export const POST_FORMAT_DIMENSIONS: Record<PostFormat, { width: number; height: number; label: string }> = {
+  quadrado: { width: 1080, height: 1080, label: "1080 x 1080 — quadrado" },
+  feed: { width: 1080, height: 1350, label: "1080 x 1350 — feed" },
+  stories: { width: 1080, height: 1920, label: "1080 x 1920 — stories" },
+};
+export const PREVIEW_DISPLAY_WIDTH = 520;
 
 interface PostPreviewProps {
   authorName: string;
@@ -8,6 +21,7 @@ interface PostPreviewProps {
   authorAvatarUrl: string | null;
   verified: boolean;
   displayStyle: PostDisplayStyle;
+  format: PostFormat;
   body: string;
   subtitle: string;
   linkCardImageUrl: string | null;
@@ -53,6 +67,7 @@ export function PostPreview({
   authorAvatarUrl,
   verified,
   displayStyle,
+  format,
   body,
   subtitle,
   linkCardImageUrl,
@@ -60,9 +75,14 @@ export function PostPreview({
   linkCardDescription,
 }: PostPreviewProps) {
   const hasLinkCard = Boolean(linkCardImageUrl || linkCardTitle || linkCardDescription);
+  const { width, height } = POST_FORMAT_DIMENSIONS[format];
+  const displayHeight = (PREVIEW_DISPLAY_WIDTH * height) / width;
 
   return (
-    <div className="w-[520px] shrink-0 bg-white px-12 py-14 font-sans text-black">
+    <div
+      className="shrink-0 overflow-hidden bg-white px-12 py-14 font-sans text-black"
+      style={{ width: PREVIEW_DISPLAY_WIDTH, height: displayHeight }}
+    >
       <div className="flex items-start gap-4">
         <div className="relative shrink-0">
           <Avatar url={authorAvatarUrl} name={authorName} />

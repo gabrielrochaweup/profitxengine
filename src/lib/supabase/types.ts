@@ -10,6 +10,7 @@ export type ImageContextType = "dinamica_slot" | "livre_engagement" | "x1_messag
 export type ImageAspectRatio = "1:1" | "3:2" | "4:3" | "9:16" | "16:9";
 export type ImageQuality = "low" | "medium" | "high";
 export type PostDisplayStyle = "paragrafo" | "titulo_grande";
+export type PostFormat = "quadrado" | "feed" | "stories";
 
 export interface ConversationMessage {
   sender: "left" | "right";
@@ -612,6 +613,7 @@ export interface Database {
           author_avatar_url: string | null;
           verified: boolean;
           display_style: PostDisplayStyle;
+          format: PostFormat;
           body: string | null;
           subtitle: string | null;
           link_card_image_url: string | null;
@@ -621,11 +623,15 @@ export interface Database {
           created_by: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["fake_posts"]["Row"], "id" | "created_at" | "verified" | "display_style"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["fake_posts"]["Row"],
+          "id" | "created_at" | "verified" | "display_style" | "format"
+        > & {
           id?: string;
           created_at?: string;
           verified?: boolean;
           display_style?: PostDisplayStyle;
+          format?: PostFormat;
         };
         Update: Partial<Database["public"]["Tables"]["fake_posts"]["Insert"]>;
         Relationships: [];
