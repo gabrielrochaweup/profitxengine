@@ -439,12 +439,14 @@ export interface Database {
           id: string;
           name: string;
           position: number;
+          parent_id: string | null;
           created_by: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["image_folders"]["Row"], "id" | "created_at"> & {
+        Insert: Omit<Database["public"]["Tables"]["image_folders"]["Row"], "id" | "created_at" | "parent_id"> & {
           id?: string;
           created_at?: string;
+          parent_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["image_folders"]["Insert"]>;
         Relationships: [];

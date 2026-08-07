@@ -13,9 +13,74 @@ interface GenerateImageBody {
   quality?: ImageQuality;
   contextType?: ImageContextType;
   contextId?: string;
+  /** Dinâmica + slot de origem — usados só pra organizar a imagem sozinha
+   * numa pasta "nome da dinâmica" > "horário do slot" (ver findOrCreateFolder). */
+  dynamicId?: string;
+  msgKey?: string;
   /** URL de uma imagem já enviada pro bucket 'reference-images' — usada
    * como base visual da geração. */
   referenceImageUrl?: string;
+}
+
+async function findOrCreateFolder(
+  admin: ReturnType<typeof createAdminClient>,
+  name: string,
+  parentId: string | null,
+  createdBy: string
+): Promise<string> {
+  const findExisting = () => {
+    let q = admin.from("image_folders").select("id").eq("name", name);
+    q = parentId ? q.eq("parent_id", parentId) : q.is("parent_id", null);
+    return q.maybeSingle();
+  };
+
+  const { data: existing } = await findExisting();
+  if (existing) return existing.id;
+
+  let countQuery = admin.from("image_folders").select("id", { count: "exact", head: true });
+  countQuery = parentId ? countQuery.eq("parent_id", parentId) : countQuery.is("parent_id", null);
+  const { count } = await countQuery;
+
+  const { data: created, error } = await admin
+    .from("image_folders")
+    .insert({ name, parent_id: parentId, position: count ?? 0, created_by: createdBy })
+    .select("id")
+    .single();
+  if (error || !created) {
+    // Corrida entre duas gerações simultâneas criando a mesma pasta — o
+    // índice único barrou o insert, então busca de novo (agora já existe).
+    const { data: retry } = await findExisting();
+    if (retry) return retry.id;
+    throw error ?? new Error("Falha ao criar pasta.");
+  }
+  return created.id;
+}
+
+/**
+ * Acha (ou cria) a pasta "nome da dinâmica" > "horário do slot" e devolve o
+ * id da subpasta — pra imagem gerada de dentro de uma Dinâmica do Dia já
+ * cair organizada sozinha, sem precisar arrastar manualmente depois.
+ */
+async function resolveDynamicFolderId(
+  admin: ReturnType<typeof createAdminClient>,
+  dynamicId: string,
+  msgKey: string,
+  createdBy: string
+): Promise<string | null> {
+  try {
+    const [{ data: dynamic }, { data: slot }] = await Promise.all([
+      admin.from("message_dynamics").select("name").eq("id", dynamicId).single(),
+      admin.from("message_dynamic_slots").select("time_label").eq("dynamic_id", dynamicId).eq("msg_key", msgKey).single(),
+    ]);
+    if (!dynamic?.name) return null;
+
+    const parentId = await findOrCreateFolder(admin, dynamic.name, null, createdBy);
+    const childName = slot?.time_label?.trim() || "Sem horário";
+    return await findOrCreateFolder(admin, childName, parentId, createdBy);
+  } catch (error) {
+    console.error("Erro ao organizar pasta automática da dinâmica:", error);
+    return null;
+  }
 }
 
 export async function POST(request: Request) {
@@ -82,6 +147,11 @@ export async function POST(request: Request) {
 
     let generationId: string | null = null;
     if (body.contextType && body.contextId) {
+      let folderId: string | null = null;
+      if (body.contextType === "dinamica_slot" && body.dynamicId && body.msgKey) {
+        folderId = await resolveDynamicFolderId(admin, body.dynamicId, body.msgKey, profile.userId);
+      }
+
       const { data } = await admin
         .from("generated_images")
         .insert({
@@ -94,6 +164,7 @@ export async function POST(request: Request) {
           model,
           format: aspectRatio,
           quality,
+          folder_id: folderId,
           created_by: profile.userId,
         })
         .select("id")

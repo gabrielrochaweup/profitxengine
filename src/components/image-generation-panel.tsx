@@ -216,6 +216,8 @@ export function ImageGenerationPanel({
           quality,
           contextType,
           contextId: contextId ?? undefined,
+          dynamicId,
+          msgKey,
           referenceImageUrl: referenceImageUrl ?? undefined,
         }),
       });

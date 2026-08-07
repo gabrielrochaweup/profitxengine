@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Trash2, Pencil, Check, X, Plus, ChevronLeft, ChevronRight, FolderOpen } from "lucide-react";
+import { Trash2, Pencil, Check, X, Plus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, FolderOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ImagePreviewModal } from "@/components/image-preview-modal";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,7 @@ export function BibliotecaImagensClient({
   const [addingFolder, setAddingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [mobileFolderId, setMobileFolderId] = useState<string>(UNFILED_ID);
+  const [expandedSubfolders, setExpandedSubfolders] = useState<Record<string, string | null>>({});
   const newFolderInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -72,6 +73,22 @@ export function BibliotecaImagensClient({
     });
     return map;
   }, [images, folders]);
+
+  // Só pastas de topo viram colunas — pastas com dono (parent_id) são
+  // subpastas por horário, criadas automaticamente pela geração de imagem
+  // dentro de uma Dinâmica do Dia (nome da dinâmica > horário do slot).
+  const topFolders = useMemo(
+    () => folders.filter((f) => !f.parent_id).sort((a, b) => a.position - b.position),
+    [folders]
+  );
+  const childrenByParent = useMemo(() => {
+    const map: Record<string, ImageFolder[]> = {};
+    folders.forEach((f) => {
+      if (f.parent_id) (map[f.parent_id] ??= []).push(f);
+    });
+    Object.values(map).forEach((list) => list.sort((a, b) => a.position - b.position));
+    return map;
+  }, [folders]);
 
   async function handleDelete(id: string) {
     setDeletingId(id);
@@ -138,13 +155,15 @@ export function BibliotecaImagensClient({
     }
   }
 
-  async function moveFolder(index: number, direction: -1 | 1) {
+  async function moveFolder(folder: ImageFolder, direction: -1 | 1) {
+    const siblings = folders.filter((f) => f.parent_id === folder.parent_id).sort((a, b) => a.position - b.position);
+    const index = siblings.findIndex((f) => f.id === folder.id);
     const target = index + direction;
-    if (target < 0 || target >= folders.length) return;
-    const next = [...folders];
+    if (target < 0 || target >= siblings.length) return;
+    const next = [...siblings];
     [next[index], next[target]] = [next[target], next[index]];
     const withPositions = next.map((f, i) => ({ ...f, position: i }));
-    setFolders(withPositions);
+    setFolders((prev) => prev.map((f) => withPositions.find((w) => w.id === f.id) ?? f));
     const supabase = createClient();
     const results = await Promise.all(
       withPositions.map((f) => supabase.from("image_folders").update({ position: f.position }).eq("id", f.id))
@@ -155,7 +174,7 @@ export function BibliotecaImagensClient({
   async function handleDeleteFolder(folder: ImageFolder) {
     const ok = await confirm({
       title: "Excluir pasta",
-      description: `Excluir a pasta "${folder.name}"? As imagens dela voltam pra "Sem pasta" — nenhuma imagem é apagada.`,
+      description: `Excluir a pasta "${folder.name}"? Subpastas dentro dela também são excluídas — as imagens (dela e das subpastas) voltam pra "Sem pasta", nenhuma imagem é apagada.`,
       confirmLabel: "Excluir",
       danger: true,
     });
@@ -166,29 +185,105 @@ export function BibliotecaImagensClient({
       toast.error("Erro ao excluir a pasta. Tente novamente.");
       return;
     }
-    setFolders((prev) => prev.filter((f) => f.id !== folder.id));
-    setImages((prev) => prev.map((img) => (img.folder_id === folder.id ? { ...img, folder_id: null } : img)));
-    if (mobileFolderId === folder.id) setMobileFolderId(UNFILED_ID);
+    // O banco já derruba as subpastas em cascata e solta o folder_id das
+    // imagens (on delete cascade / set null) — replica isso no estado local.
+    const removedIds = new Set([folder.id, ...folders.filter((f) => f.parent_id === folder.id).map((f) => f.id)]);
+    setFolders((prev) => prev.filter((f) => !removedIds.has(f.id)));
+    setImages((prev) => prev.map((img) => (img.folder_id && removedIds.has(img.folder_id) ? { ...img, folder_id: null } : img)));
+    if (mobileFolderId && removedIds.has(mobileFolderId)) setMobileFolderId(UNFILED_ID);
   }
 
-  function renderColumn(id: string, name: string, index: number | null, strong?: boolean) {
+  function renderImageGrid(dropId: string, items: GeneratedImage[]) {
+    if (items.length === 0) {
+      return (
+        <p className="rounded-input border border-dashed border-border-strong px-3 py-8 text-center text-[11px] text-text-muted">
+          {dragOverFolderId === dropId ? "Solte aqui" : "Vazia."}
+        </p>
+      );
+    }
+    return (
+      <div className="grid grid-cols-3 gap-1.5">
+        {items.map((img) => {
+          const canDelete = isAdmin || img.created_by === currentUserId;
+          return (
+            <button
+              key={img.id}
+              type="button"
+              draggable={isAdmin}
+              onDragStart={(e) => {
+                setDraggingImageId(img.id);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragEnd={() => {
+                setDraggingImageId(null);
+                setDragOverFolderId(null);
+              }}
+              onClick={() => setPreviewImage(img)}
+              className={cn(
+                "group relative overflow-hidden rounded-lg border border-border text-left transition-opacity",
+                isAdmin ? "cursor-grab active:cursor-grabbing" : "",
+                draggingImageId === img.id ? "opacity-40" : ""
+              )}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img.image_url} alt={img.prompt} className="aspect-square w-full object-cover" />
+              <div className="absolute inset-0 flex flex-col justify-between bg-black/70 p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                <p className="line-clamp-3 text-[9px] text-white/90">{img.prompt}</p>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="truncate rounded-button bg-white/10 px-1 py-0.5 text-[8px] text-white/70">
+                    {ORIGIN_LABEL[img.context_type]} · {QUALITY_LABEL[img.quality] ?? img.quality}
+                  </span>
+                  {canDelete && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(img.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.stopPropagation();
+                          handleDelete(img.id);
+                        }
+                      }}
+                      aria-disabled={deletingId === img.id}
+                      title="Excluir"
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-danger aria-disabled:opacity-50"
+                    >
+                      <Trash2 size={10} />
+                    </span>
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function renderColumn(id: string, name: string, folder: ImageFolder | null, strong?: boolean) {
     const items = byFolder[id] ?? [];
-    const folder = index !== null ? folders[index] : null;
+    const children = childrenByParent[id] ?? [];
+    const hasChildren = children.length > 0;
     return (
       <div
         key={id}
         onDragOver={(e) => {
-          if (!draggingImageId) return;
+          if (hasChildren || !draggingImageId) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
           if (dragOverFolderId !== id) setDragOverFolderId(id);
         }}
         onDragLeave={(e) => {
+          if (hasChildren) return;
           if (e.currentTarget.contains(e.relatedTarget as Node)) return;
           setDragOverFolderId((prev) => (prev === id ? null : prev));
         }}
         onDrop={(e) => {
           e.preventDefault();
+          if (hasChildren) return;
           handleDropOnFolder(id);
         }}
         className={cn(
@@ -225,17 +320,17 @@ export function BibliotecaImagensClient({
               {id === UNFILED_ID && <FolderOpen size={14} className="shrink-0 text-text-muted" />}
               <span className="truncate">{name}</span>
               <span className="shrink-0 rounded-button bg-accent/15 px-1.5 py-0.5 text-[11px] font-medium text-accent">
-                {items.length}
+                {hasChildren ? children.length : items.length}
               </span>
             </h2>
           )}
 
           {renamingId !== id && isAdmin && folder && (
             <div className="flex shrink-0 items-center gap-0.5">
-              <IconButton onClick={() => moveFolder(index as number, -1)} label="Mover pra esquerda">
+              <IconButton onClick={() => moveFolder(folder, -1)} label="Mover pra esquerda">
                 <ChevronLeft size={13} />
               </IconButton>
-              <IconButton onClick={() => moveFolder(index as number, 1)} label="Mover pra direita">
+              <IconButton onClick={() => moveFolder(folder, 1)} label="Mover pra direita">
                 <ChevronRight size={13} />
               </IconButton>
               <IconButton onClick={() => startRename(folder)} label="Renomear pasta">
@@ -248,76 +343,103 @@ export function BibliotecaImagensClient({
           )}
         </div>
 
-        <div className="grid max-h-[calc(100vh-320px)] grid-cols-3 gap-1.5 overflow-y-auto pr-0.5">
-          {items.length === 0 ? (
-            <p className="col-span-3 rounded-input border border-dashed border-border-strong px-3 py-8 text-center text-[11px] text-text-muted">
-              {dragOverFolderId === id ? "Solte aqui" : "Vazia."}
-            </p>
-          ) : (
-            items.map((img) => {
-              const canDelete = isAdmin || img.created_by === currentUserId;
-              return (
-                <button
-                  key={img.id}
-                  type="button"
-                  draggable={isAdmin}
-                  onDragStart={(e) => {
-                    setDraggingImageId(img.id);
-                    e.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragEnd={() => {
-                    setDraggingImageId(null);
-                    setDragOverFolderId(null);
-                  }}
-                  onClick={() => setPreviewImage(img)}
-                  className={cn(
-                    "group relative overflow-hidden rounded-lg border border-border text-left transition-opacity",
-                    isAdmin ? "cursor-grab active:cursor-grabbing" : "",
-                    draggingImageId === img.id ? "opacity-40" : ""
-                  )}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.image_url} alt={img.prompt} className="aspect-square w-full object-cover" />
-                  <div className="absolute inset-0 flex flex-col justify-between bg-black/70 p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                    <p className="line-clamp-3 text-[9px] text-white/90">{img.prompt}</p>
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="truncate rounded-button bg-white/10 px-1 py-0.5 text-[8px] text-white/70">
-                        {ORIGIN_LABEL[img.context_type]} · {QUALITY_LABEL[img.quality] ?? img.quality}
-                      </span>
-                      {canDelete && (
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(img.id);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.stopPropagation();
-                              handleDelete(img.id);
-                            }
-                          }}
-                          aria-disabled={deletingId === img.id}
-                          title="Excluir"
-                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-danger aria-disabled:opacity-50"
+        <div className="max-h-[calc(100vh-320px)] overflow-y-auto pr-0.5">
+          {hasChildren ? (
+            <div className="flex flex-col gap-1.5">
+              {children.map((child) => {
+                const isOpen = expandedSubfolders[id] === child.id;
+                const childItems = byFolder[child.id] ?? [];
+                return (
+                  <div key={child.id} className="rounded-lg border border-border">
+                    <div
+                      onDragOver={(e) => {
+                        if (!draggingImageId) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (dragOverFolderId !== child.id) setDragOverFolderId(child.id);
+                      }}
+                      onDragLeave={(e) => {
+                        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                        setDragOverFolderId((prev) => (prev === child.id ? null : prev));
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleDropOnFolder(child.id);
+                      }}
+                      className={cn(
+                        "flex items-center justify-between gap-1 rounded-lg px-2 py-1.5 transition-colors",
+                        dragOverFolderId === child.id ? "bg-accent/10" : "hover:bg-card-hover"
+                      )}
+                    >
+                      {renamingId === child.id ? (
+                        <div className="flex flex-1 items-center gap-1">
+                          <Input
+                            autoFocus
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") commitRename(child);
+                              if (e.key === "Escape") setRenamingId(null);
+                            }}
+                            className="h-7 text-xs"
+                          />
+                          <IconButton onClick={() => commitRename(child)} label="Confirmar">
+                            <Check size={13} />
+                          </IconButton>
+                          <IconButton onClick={() => setRenamingId(null)} label="Cancelar">
+                            <X size={13} />
+                          </IconButton>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedSubfolders((prev) => ({ ...prev, [id]: isOpen ? null : child.id }))
+                          }
+                          className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-xs font-medium text-text-primary"
                         >
-                          <Trash2 size={10} />
-                        </span>
+                          <ChevronRight
+                            size={13}
+                            className={cn("shrink-0 text-text-muted transition-transform", isOpen && "rotate-90")}
+                          />
+                          <span className="truncate">{child.name}</span>
+                          <span className="shrink-0 rounded-button bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-accent">
+                            {childItems.length}
+                          </span>
+                        </button>
+                      )}
+
+                      {renamingId !== child.id && isAdmin && (
+                        <div className="flex shrink-0 items-center gap-0.5">
+                          <IconButton onClick={() => moveFolder(child, -1)} label="Mover pra cima">
+                            <ChevronUp size={13} />
+                          </IconButton>
+                          <IconButton onClick={() => moveFolder(child, 1)} label="Mover pra baixo">
+                            <ChevronDown size={13} />
+                          </IconButton>
+                          <IconButton onClick={() => startRename(child)} label="Renomear subpasta">
+                            <Pencil size={13} />
+                          </IconButton>
+                          <IconButton onClick={() => handleDeleteFolder(child)} label="Excluir subpasta" danger>
+                            <Trash2 size={13} />
+                          </IconButton>
+                        </div>
                       )}
                     </div>
+                    {isOpen && <div className="border-t border-border p-2">{renderImageGrid(child.id, childItems)}</div>}
                   </div>
-                </button>
-              );
-            })
+                );
+              })}
+            </div>
+          ) : (
+            renderImageGrid(id, items)
           )}
         </div>
       </div>
     );
   }
 
-  const mobileColumns = [{ id: UNFILED_ID, name: "Sem pasta" }, ...folders.map((f) => ({ id: f.id, name: f.name }))];
-  const mobileIndex = folders.findIndex((f) => f.id === mobileFolderId);
+  const mobileColumns = [{ id: UNFILED_ID, name: "Sem pasta" }, ...topFolders.map((f) => ({ id: f.id, name: f.name }))];
   const mobileFolder = mobileColumns.find((c) => c.id === mobileFolderId) ?? mobileColumns[0];
 
   return (
@@ -367,7 +489,7 @@ export function BibliotecaImagensClient({
             {renderColumn(
               mobileFolder.id,
               mobileFolder.name,
-              mobileFolder.id === UNFILED_ID ? null : mobileIndex,
+              mobileFolder.id === UNFILED_ID ? null : (topFolders.find((f) => f.id === mobileFolder.id) ?? null),
               true
             )}
           </div>
@@ -377,7 +499,7 @@ export function BibliotecaImagensClient({
       {/* Desktop/tablet: pastas lado a lado, rolando na horizontal */}
       <div className="hidden gap-4 overflow-x-auto pb-2 sm:flex">
         {renderColumn(UNFILED_ID, "Sem pasta", null)}
-        {folders.map((folder, index) => renderColumn(folder.id, folder.name, index))}
+        {topFolders.map((folder) => renderColumn(folder.id, folder.name, folder))}
       </div>
 
       <ImagePreviewModal image={previewImage} onClose={() => setPreviewImage(null)} />
