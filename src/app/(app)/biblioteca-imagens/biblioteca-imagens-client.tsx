@@ -20,6 +20,7 @@ const ORIGIN_LABEL: Record<ImageContextType, string> = {
   livre_engagement: "Gerador Livre",
   x1_message: "Mensagens X1",
   email: "E-mails",
+  criativo: "Gerador de Criativos",
 };
 
 const QUALITY_LABEL: Record<string, string> = { low: "Baixa", medium: "Média", high: "Alta" };

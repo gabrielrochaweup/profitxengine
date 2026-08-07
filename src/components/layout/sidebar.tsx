@@ -21,6 +21,7 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dinamicas-do-dia", label: "Dinâmicas do Dia", icon: Zap },
   { href: "/conversas", label: "Simulador de Conversas", icon: MessageSquare },
+  { href: "/gerador-de-criativos", label: "Gerador de Criativos", icon: Wand2 },
   { href: "/mensagens-x1", label: "Mensagens X1", icon: UsersRound },
   { href: "/emails", label: "E-mails", icon: Mail },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },

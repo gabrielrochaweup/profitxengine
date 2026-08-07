@@ -6,9 +6,10 @@ export type EngagementStatus = "rascunho" | "aprovada" | "enviada";
 export type EngagementResult = "funcionou" | "nao_funcionou" | null;
 export type EmailStatus = "rascunho" | "pronto" | "enviado";
 export type AiModule = "conversa" | "mensagem" | "imagem" | "email";
-export type ImageContextType = "dinamica_slot" | "livre_engagement" | "x1_message" | "email";
+export type ImageContextType = "dinamica_slot" | "livre_engagement" | "x1_message" | "email" | "criativo";
 export type ImageAspectRatio = "1:1" | "3:2" | "4:3" | "9:16" | "16:9";
 export type ImageQuality = "low" | "medium" | "high";
+export type PostDisplayStyle = "paragrafo" | "titulo_grande";
 
 export interface ConversationMessage {
   sender: "left" | "right";
@@ -600,6 +601,49 @@ export interface Database {
           last_used_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["avatar_library"]["Insert"]>;
+        Relationships: [];
+      };
+      fake_posts: {
+        Row: {
+          id: string;
+          title: string | null;
+          author_name: string | null;
+          author_handle: string | null;
+          author_avatar_url: string | null;
+          verified: boolean;
+          display_style: PostDisplayStyle;
+          body: string | null;
+          subtitle: string | null;
+          link_card_image_url: string | null;
+          link_card_title: string | null;
+          link_card_description: string | null;
+          prompt_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["fake_posts"]["Row"], "id" | "created_at" | "verified" | "display_style"> & {
+          id?: string;
+          created_at?: string;
+          verified?: boolean;
+          display_style?: PostDisplayStyle;
+        };
+        Update: Partial<Database["public"]["Tables"]["fake_posts"]["Insert"]>;
+        Relationships: [];
+      };
+      post_prompt_templates: {
+        Row: {
+          id: string;
+          name: string;
+          body: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["post_prompt_templates"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["post_prompt_templates"]["Insert"]>;
         Relationships: [];
       };
     };
