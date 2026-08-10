@@ -6,11 +6,6 @@ import type { PostAccent, PostDisplayStyle, PostFormat, PostTemplate } from "@/l
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["700"], display: "swap" });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap" });
 
-// Logo oficial da PROFITX, hospedada no CMS do site de lives — reaproveitada
-// direto (mesmo asset), sempre no mesmo tamanho/posição no modelo "profitx".
-const PROFITX_LOGO_URL =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310419663028350273/VGgHhpMmMCjDsydKWSjVxS/LogoProfitxGrande_748f37a4.png";
-
 // Cores extraídas direto do CSS computado de lives.escolaprofitx.com.
 const ACCENT_COLORS: Record<PostAccent, { bright: string; rgb: string }> = {
   dourado: { bright: "#FFB800", rgb: "212, 160, 0" },
@@ -238,12 +233,6 @@ function ProfitxHero({
           {profitxFooterLine2 && <p>{profitxFooterLine2}</p>}
         </div>
       )}
-
-      {/* Logo sempre fixa nesse canto — "local padrão", não editável. */}
-      <div className="absolute bottom-9 left-1/2 -translate-x-1/2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={PROFITX_LOGO_URL} alt="PROFITX" className="h-9 w-9 object-contain opacity-70" />
-      </div>
     </div>
   );
 }

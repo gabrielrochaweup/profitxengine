@@ -175,10 +175,6 @@ export function PostEditor({
             <option value="verde">Verde</option>
           </Select>
         </div>
-
-        <p className="text-[11px] text-text-muted">
-          A logo da PROFITX aparece automaticamente no rodapé — não é editável, fica sempre no mesmo lugar.
-        </p>
       </div>
     );
   }
