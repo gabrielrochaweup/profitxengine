@@ -1,6 +1,22 @@
+import { Space_Grotesk, Inter } from "next/font/google";
 import { BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { PostDisplayStyle, PostFormat } from "@/lib/supabase/types";
+import type { PostAccent, PostDisplayStyle, PostFormat, PostTemplate } from "@/lib/supabase/types";
+
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["700"], display: "swap" });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap" });
+
+// Logo oficial da PROFITX, hospedada no CMS do site de lives — reaproveitada
+// direto (mesmo asset), sempre no mesmo tamanho/posição no modelo "profitx".
+const PROFITX_LOGO_URL =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310419663028350273/VGgHhpMmMCjDsydKWSjVxS/LogoProfitxGrande_748f37a4.png";
+
+// Cores extraídas direto do CSS computado de lives.escolaprofitx.com.
+const ACCENT_COLORS: Record<PostAccent, { bright: string; rgb: string }> = {
+  dourado: { bright: "#FFB800", rgb: "212, 160, 0" },
+  azul: { bright: "#60A5FA", rgb: "59, 130, 246" },
+  verde: { bright: "#4ADE80", rgb: "34, 197, 94" },
+};
 
 // Tamanhos padrão de post (largura sempre 1080, só a altura muda) — os 3
 // formatos padrão do Instagram. A largura exibida na tela fica fixa em
@@ -16,6 +32,8 @@ export const POST_FORMAT_DIMENSIONS: Record<PostFormat, { width: number; height:
 export const PREVIEW_DISPLAY_WIDTH = 520;
 
 interface PostPreviewProps {
+  template: PostTemplate;
+  // Modelo X/Twitter
   authorName: string;
   authorHandle: string;
   authorAvatarUrl: string | null;
@@ -27,6 +45,16 @@ interface PostPreviewProps {
   linkCardImageUrl: string | null;
   linkCardTitle: string;
   linkCardDescription: string;
+  // Modelo PROFITX Lives
+  profitxBadgeText: string;
+  profitxHeadline1: string;
+  profitxHeadline2: string;
+  profitxStatLabel: string;
+  profitxStatValue: string;
+  profitxStatCaption: string;
+  profitxFooterLine1: string;
+  profitxFooterLine2: string;
+  profitxAccent: PostAccent;
 }
 
 // Post gerado inteiramente com texto simples + uma sintaxe leve
@@ -61,13 +89,30 @@ function renderFormattedText(text: string) {
   ));
 }
 
-export function PostPreview({
+export function PostPreview(props: PostPreviewProps) {
+  const { template, format } = props;
+  const { width, height } = POST_FORMAT_DIMENSIONS[format];
+  const displayHeight = (PREVIEW_DISPLAY_WIDTH * height) / width;
+
+  return (
+    <div
+      className={cn(
+        "relative shrink-0 overflow-hidden",
+        template === "profitx" ? "bg-[#08080b]" : "bg-white px-12 py-14 font-sans text-black"
+      )}
+      style={{ width: PREVIEW_DISPLAY_WIDTH, height: displayHeight }}
+    >
+      {template === "profitx" ? <ProfitxHero {...props} /> : <TwitterCard {...props} />}
+    </div>
+  );
+}
+
+function TwitterCard({
   authorName,
   authorHandle,
   authorAvatarUrl,
   verified,
   displayStyle,
-  format,
   body,
   subtitle,
   linkCardImageUrl,
@@ -75,14 +120,9 @@ export function PostPreview({
   linkCardDescription,
 }: PostPreviewProps) {
   const hasLinkCard = Boolean(linkCardImageUrl || linkCardTitle || linkCardDescription);
-  const { width, height } = POST_FORMAT_DIMENSIONS[format];
-  const displayHeight = (PREVIEW_DISPLAY_WIDTH * height) / width;
 
   return (
-    <div
-      className="shrink-0 overflow-hidden bg-white px-12 py-14 font-sans text-black"
-      style={{ width: PREVIEW_DISPLAY_WIDTH, height: displayHeight }}
-    >
+    <>
       <div className="flex items-start gap-4">
         <div className="relative shrink-0">
           <Avatar url={authorAvatarUrl} name={authorName} />
@@ -127,6 +167,83 @@ export function PostPreview({
       )}
 
       {subtitle && <p className="mt-5 text-xl text-[#0f1419]">{subtitle}</p>}
+    </>
+  );
+}
+
+function ProfitxHero({
+  profitxBadgeText,
+  profitxHeadline1,
+  profitxHeadline2,
+  profitxStatLabel,
+  profitxStatValue,
+  profitxStatCaption,
+  profitxFooterLine1,
+  profitxFooterLine2,
+  profitxAccent,
+}: PostPreviewProps) {
+  const accent = ACCENT_COLORS[profitxAccent];
+
+  return (
+    <div
+      className={cn("flex h-full flex-col items-center justify-center px-12 py-16 text-center", inter.className)}
+    >
+      {profitxBadgeText && (
+        <span
+          className="mb-7 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-white"
+          style={{ background: `rgba(${accent.rgb}, 0.08)`, border: `1px solid rgba(${accent.rgb}, 0.2)` }}
+        >
+          <span style={{ color: accent.bright }}>⚡</span>
+          {profitxBadgeText}
+        </span>
+      )}
+
+      {(profitxHeadline1 || profitxHeadline2) && (
+        <h1 className={cn("text-[46px] font-bold leading-[1.1]", spaceGrotesk.className)}>
+          {profitxHeadline1 && <span className="block text-white">{profitxHeadline1}</span>}
+          {profitxHeadline2 && (
+            <span className="block" style={{ color: accent.bright }}>
+              {profitxHeadline2}
+            </span>
+          )}
+        </h1>
+      )}
+
+      {(profitxStatLabel || profitxStatValue || profitxStatCaption) && (
+        <div
+          className="mt-10 w-full max-w-[400px] rounded-2xl px-7 py-8"
+          style={{ background: "rgba(255,255,255,0.02)", border: `1px solid rgba(${accent.rgb}, 0.25)` }}
+        >
+          {profitxStatLabel && (
+            <div className="mb-3 flex items-center justify-center gap-2 text-[12px] font-bold uppercase tracking-wider text-white/70">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#4ADE80]" />
+              {profitxStatLabel}
+            </div>
+          )}
+          {profitxStatValue && (
+            <div
+              className={cn("text-[66px] font-bold leading-none", spaceGrotesk.className)}
+              style={{ color: accent.bright, textShadow: `0 0 44px rgba(${accent.rgb}, 0.55)` }}
+            >
+              {profitxStatValue}
+            </div>
+          )}
+          {profitxStatCaption && <p className="mt-3 text-[13px] text-white/50">{profitxStatCaption}</p>}
+        </div>
+      )}
+
+      {(profitxFooterLine1 || profitxFooterLine2) && (
+        <div className="mt-8 space-y-1 text-[14px] font-semibold" style={{ color: accent.bright }}>
+          {profitxFooterLine1 && <p>{profitxFooterLine1}</p>}
+          {profitxFooterLine2 && <p>{profitxFooterLine2}</p>}
+        </div>
+      )}
+
+      {/* Logo sempre fixa nesse canto — "local padrão", não editável. */}
+      <div className="absolute bottom-9 left-1/2 -translate-x-1/2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={PROFITX_LOGO_URL} alt="PROFITX" className="h-9 w-9 object-contain opacity-70" />
+      </div>
     </div>
   );
 }

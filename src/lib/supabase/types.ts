@@ -11,6 +11,8 @@ export type ImageAspectRatio = "1:1" | "3:2" | "4:3" | "9:16" | "16:9";
 export type ImageQuality = "low" | "medium" | "high";
 export type PostDisplayStyle = "paragrafo" | "titulo_grande";
 export type PostFormat = "quadrado" | "feed" | "stories";
+export type PostTemplate = "twitter" | "profitx";
+export type PostAccent = "dourado" | "azul" | "verde";
 
 export interface ConversationMessage {
   sender: "left" | "right";
@@ -614,24 +616,36 @@ export interface Database {
           verified: boolean;
           display_style: PostDisplayStyle;
           format: PostFormat;
+          template: PostTemplate;
           body: string | null;
           subtitle: string | null;
           link_card_image_url: string | null;
           link_card_title: string | null;
           link_card_description: string | null;
+          profitx_badge_text: string | null;
+          profitx_headline_1: string | null;
+          profitx_headline_2: string | null;
+          profitx_stat_label: string | null;
+          profitx_stat_value: string | null;
+          profitx_stat_caption: string | null;
+          profitx_footer_line1: string | null;
+          profitx_footer_line2: string | null;
+          profitx_accent: PostAccent;
           prompt_id: string | null;
           created_by: string | null;
           created_at: string;
         };
         Insert: Omit<
           Database["public"]["Tables"]["fake_posts"]["Row"],
-          "id" | "created_at" | "verified" | "display_style" | "format"
+          "id" | "created_at" | "verified" | "display_style" | "format" | "template" | "profitx_accent"
         > & {
           id?: string;
           created_at?: string;
           verified?: boolean;
           display_style?: PostDisplayStyle;
           format?: PostFormat;
+          template?: PostTemplate;
+          profitx_accent?: PostAccent;
         };
         Update: Partial<Database["public"]["Tables"]["fake_posts"]["Insert"]>;
         Relationships: [];

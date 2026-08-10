@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
-import type { PostDisplayStyle } from "@/lib/supabase/types";
+import type { PostAccent, PostDisplayStyle, PostTemplate } from "@/lib/supabase/types";
 
-interface PostEditorProps {
+export interface PostEditorPatch {
   authorName: string;
   authorHandle: string;
   authorAvatarUrl: string | null;
@@ -21,23 +21,24 @@ interface PostEditorProps {
   linkCardImageUrl: string | null;
   linkCardTitle: string;
   linkCardDescription: string;
-  onChange: (
-    patch: Partial<{
-      authorName: string;
-      authorHandle: string;
-      authorAvatarUrl: string | null;
-      verified: boolean;
-      displayStyle: PostDisplayStyle;
-      body: string;
-      subtitle: string;
-      linkCardImageUrl: string | null;
-      linkCardTitle: string;
-      linkCardDescription: string;
-    }>
-  ) => void;
+  profitxBadgeText: string;
+  profitxHeadline1: string;
+  profitxHeadline2: string;
+  profitxStatLabel: string;
+  profitxStatValue: string;
+  profitxStatCaption: string;
+  profitxFooterLine1: string;
+  profitxFooterLine2: string;
+  profitxAccent: PostAccent;
+}
+
+interface PostEditorProps extends PostEditorPatch {
+  template: PostTemplate;
+  onChange: (patch: Partial<PostEditorPatch>) => void;
 }
 
 export function PostEditor({
+  template,
   authorName,
   authorHandle,
   authorAvatarUrl,
@@ -48,6 +49,15 @@ export function PostEditor({
   linkCardImageUrl,
   linkCardTitle,
   linkCardDescription,
+  profitxBadgeText,
+  profitxHeadline1,
+  profitxHeadline2,
+  profitxStatLabel,
+  profitxStatValue,
+  profitxStatCaption,
+  profitxFooterLine1,
+  profitxFooterLine2,
+  profitxAccent,
   onChange,
 }: PostEditorProps) {
   const toast = useToast();
@@ -80,6 +90,97 @@ export function PostEditor({
       toast.error("Nenhuma foto cadastrada no banco de avatares ainda.");
     }
     setDrawingAvatar(false);
+  }
+
+  if (template === "profitx") {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-secondary">Badge (topo)</label>
+          <Input
+            value={profitxBadgeText}
+            onChange={(e) => onChange({ profitxBadgeText: e.target.value })}
+            placeholder="Ex: Profissionais lucrando por você no automático"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-text-secondary">Título — linha 1 (branca)</label>
+            <Input
+              value={profitxHeadline1}
+              onChange={(e) => onChange({ profitxHeadline1: e.target.value })}
+              placeholder="Ex: Nós Operamos."
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-text-secondary">Título — linha 2 (cor de destaque)</label>
+            <Input
+              value={profitxHeadline2}
+              onChange={(e) => onChange({ profitxHeadline2: e.target.value })}
+              placeholder="Ex: Você Lucra."
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3 rounded-lg border border-dashed border-border-strong p-3">
+          <p className="text-xs font-medium text-text-secondary">Card de estatística</p>
+          <Input
+            value={profitxStatLabel}
+            onChange={(e) => onChange({ profitxStatLabel: e.target.value })}
+            placeholder="Rótulo — ex: TAXA DE ACERTO GERAL DO MÉTODO"
+            className="text-xs"
+          />
+          <Input
+            value={profitxStatValue}
+            onChange={(e) => onChange({ profitxStatValue: e.target.value })}
+            placeholder="Número grande — ex: 92%"
+            className="text-xs"
+          />
+          <Input
+            value={profitxStatCaption}
+            onChange={(e) => onChange({ profitxStatCaption: e.target.value })}
+            placeholder="Legenda — ex: 2.132 operações verificadas"
+            className="text-xs"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-text-secondary">Rodapé — linha 1</label>
+            <Input
+              value={profitxFooterLine1}
+              onChange={(e) => onChange({ profitxFooterLine1: e.target.value })}
+              placeholder="Ex: Resultado real combinado de Lives + IA + Copy Trader."
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-text-secondary">Rodapé — linha 2</label>
+            <Input
+              value={profitxFooterLine2}
+              onChange={(e) => onChange({ profitxFooterLine2: e.target.value })}
+              placeholder="Ex: Dados auditáveis. Atualizado diariamente."
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-secondary">Cor de destaque</label>
+          <Select
+            value={profitxAccent}
+            onChange={(e) => onChange({ profitxAccent: e.target.value as PostAccent })}
+          >
+            <option value="dourado">Dourado</option>
+            <option value="azul">Azul</option>
+            <option value="verde">Verde</option>
+          </Select>
+        </div>
+
+        <p className="text-[11px] text-text-muted">
+          A logo da PROFITX aparece automaticamente no rodapé — não é editável, fica sempre no mesmo lugar.
+        </p>
+      </div>
+    );
   }
 
   return (
