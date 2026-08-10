@@ -21,6 +21,7 @@ const ORIGIN_LABEL: Record<ImageContextType, string> = {
   x1_message: "Mensagens X1",
   email: "E-mails",
   criativo: "Gerador de Criativos",
+  carrossel: "Carrossel (Gerador de Criativos)",
 };
 
 const QUALITY_LABEL: Record<string, string> = { low: "Baixa", medium: "Média", high: "Alta" };

@@ -6,13 +6,28 @@ export type EngagementStatus = "rascunho" | "aprovada" | "enviada";
 export type EngagementResult = "funcionou" | "nao_funcionou" | null;
 export type EmailStatus = "rascunho" | "pronto" | "enviado";
 export type AiModule = "conversa" | "mensagem" | "imagem" | "email";
-export type ImageContextType = "dinamica_slot" | "livre_engagement" | "x1_message" | "email" | "criativo";
+export type ImageContextType = "dinamica_slot" | "livre_engagement" | "x1_message" | "email" | "criativo" | "carrossel";
 export type ImageAspectRatio = "1:1" | "3:2" | "4:3" | "9:16" | "16:9";
 export type ImageQuality = "low" | "medium" | "high";
 export type PostDisplayStyle = "paragrafo" | "titulo_grande";
 export type PostFormat = "quadrado" | "feed" | "stories";
 export type PostTemplate = "twitter" | "profitx";
 export type PostAccent = "dourado" | "azul" | "verde";
+export type CarouselScrimPosition = "nenhum" | "topo" | "rodape" | "ambos";
+export type CarouselHeadlinePosition = "topo" | "rodape";
+
+export interface CarouselFrame {
+  backgroundImageUrl: string | null;
+  scrimPosition: CarouselScrimPosition;
+  dateText: string;
+  categoryText: string;
+  headline: string;
+  headlinePosition: CarouselHeadlinePosition;
+  subtitle: string;
+  ctaText: string;
+  showLogo: boolean;
+  accent: PostAccent;
+}
 
 export interface ConversationMessage {
   sender: "left" | "right";
@@ -664,6 +679,25 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["post_prompt_templates"]["Insert"]>;
+        Relationships: [];
+      };
+      fake_carousels: {
+        Row: {
+          id: string;
+          title: string | null;
+          format: PostFormat;
+          frames: CarouselFrame[];
+          prompt_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["fake_carousels"]["Row"], "id" | "created_at" | "format" | "frames"> & {
+          id?: string;
+          created_at?: string;
+          format?: PostFormat;
+          frames?: CarouselFrame[];
+        };
+        Update: Partial<Database["public"]["Tables"]["fake_carousels"]["Insert"]>;
         Relationships: [];
       };
     };

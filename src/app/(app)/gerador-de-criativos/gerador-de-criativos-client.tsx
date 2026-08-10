@@ -15,14 +15,17 @@ import { PostGeneratePanel } from "./components/post-generate-panel";
 import { PostExportControls } from "./components/post-export-controls";
 import { PostHistoryPanel } from "./components/post-history-panel";
 import { CriativosLivre } from "./components/criativos-livre";
+import { CarouselPanel } from "./components/carousel-panel";
 import type { Database, PostAccent, PostDisplayStyle, PostFormat, PostTemplate } from "@/lib/supabase/types";
 
 type FakePost = Database["public"]["Tables"]["fake_posts"]["Row"];
 type PostPromptTemplateRow = Database["public"]["Tables"]["post_prompt_templates"]["Row"];
+type FakeCarousel = Database["public"]["Tables"]["fake_carousels"]["Row"];
 
 interface GeradorDeCriativosClientProps {
   initialPosts: FakePost[];
   initialTemplates: PostPromptTemplateRow[];
+  initialCarousels: FakeCarousel[];
   currentUserId: string;
 }
 
@@ -53,10 +56,14 @@ const DEFAULT_STATE = {
   profitxAccent: "dourado" as PostAccent,
 };
 
-export function GeradorDeCriativosClient({ initialPosts, currentUserId }: GeradorDeCriativosClientProps) {
+export function GeradorDeCriativosClient({
+  initialPosts,
+  initialCarousels,
+  currentUserId,
+}: GeradorDeCriativosClientProps) {
   const toast = useToast();
   const confirm = useConfirm();
-  const [tab, setTab] = useState<"posts" | "criativos">("posts");
+  const [tab, setTab] = useState<"posts" | "carrossel" | "criativos">("posts");
 
   const [posts, setPosts] = useState<FakePost[]>(initialPosts);
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -220,6 +227,9 @@ export function GeradorDeCriativosClient({ initialPosts, currentUserId }: Gerado
         <TabButton active={tab === "posts"} onClick={() => setTab("posts")}>
           Gerador de Posts
         </TabButton>
+        <TabButton active={tab === "carrossel"} onClick={() => setTab("carrossel")}>
+          Carrossel
+        </TabButton>
         <TabButton active={tab === "criativos"} onClick={() => setTab("criativos")}>
           Criativos
         </TabButton>
@@ -361,6 +371,8 @@ export function GeradorDeCriativosClient({ initialPosts, currentUserId }: Gerado
             </div>
           </div>
         </div>
+      ) : tab === "carrossel" ? (
+        <CarouselPanel initialCarousels={initialCarousels} currentUserId={currentUserId} />
       ) : (
         <CriativosLivre />
       )}

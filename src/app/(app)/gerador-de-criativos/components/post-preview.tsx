@@ -3,11 +3,11 @@ import { BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PostAccent, PostDisplayStyle, PostFormat, PostTemplate } from "@/lib/supabase/types";
 
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["700"], display: "swap" });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap" });
+export const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["700"], display: "swap" });
+export const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap" });
 
 // Cores extraídas direto do CSS computado de lives.escolaprofitx.com.
-const ACCENT_COLORS: Record<PostAccent, { bright: string; rgb: string }> = {
+export const ACCENT_COLORS: Record<PostAccent, { bright: string; rgb: string }> = {
   dourado: { bright: "#FFB800", rgb: "212, 160, 0" },
   azul: { bright: "#60A5FA", rgb: "59, 130, 246" },
   verde: { bright: "#4ADE80", rgb: "34, 197, 94" },
