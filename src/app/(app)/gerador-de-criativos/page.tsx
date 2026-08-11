@@ -9,11 +9,10 @@ export default async function GeradorDeCriativosPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const [{ data: posts }, { data: templates }, { data: carousels }] = await Promise.all([
-    supabase.from("fake_posts").select("*").order("created_at", { ascending: false }),
-    supabase.from("post_prompt_templates").select("*").order("position"),
-    supabase.from("fake_carousels").select("*").order("created_at", { ascending: false }),
-  ]);
+  const { data: carousels } = await supabase
+    .from("fake_carousels")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   return (
     <div>
@@ -22,12 +21,7 @@ export default async function GeradorDeCriativosPage() {
         Monte posts de rede social prontos pra baixar, ou gere criativos livres só com prompt.
       </p>
 
-      <GeradorDeCriativosClient
-        initialPosts={posts ?? []}
-        initialTemplates={templates ?? []}
-        initialCarousels={carousels ?? []}
-        currentUserId={user.id}
-      />
+      <GeradorDeCriativosClient initialCarousels={carousels ?? []} currentUserId={user.id} />
     </div>
   );
 }

@@ -13,20 +13,10 @@ export type PostDisplayStyle = "paragrafo" | "titulo_grande";
 export type PostFormat = "quadrado" | "feed" | "stories";
 export type PostTemplate = "twitter" | "profitx";
 export type PostAccent = "dourado" | "azul" | "verde";
-export type CarouselScrimPosition = "nenhum" | "topo" | "rodape" | "ambos";
-export type CarouselHeadlinePosition = "topo" | "rodape";
-
 export interface CarouselFrame {
   backgroundImageUrl: string | null;
-  scrimPosition: CarouselScrimPosition;
-  dateText: string;
-  categoryText: string;
   headline: string;
-  headlinePosition: CarouselHeadlinePosition;
   subtitle: string;
-  ctaText: string;
-  showLogo: boolean;
-  accent: PostAccent;
 }
 
 export interface ConversationMessage {
