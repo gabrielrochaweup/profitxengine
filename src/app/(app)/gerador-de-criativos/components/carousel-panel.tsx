@@ -64,6 +64,46 @@ function parseCarouselTexts(raw: string, count: number): { headline: string; sub
   });
 }
 
+interface ParsedSlide {
+  image: string;
+  headline: string;
+  subtitle: string;
+}
+
+function extractSlideField(block: string, labels: string[]): string {
+  for (const label of labels) {
+    const match = block.match(new RegExp(`${label}\\s*:\\s*(.*)`, "i"));
+    if (match) return match[1].trim();
+  }
+  return "";
+}
+
+// Reconhece um prompt colado já dividido por slide, no formato:
+// "SLIDE 1 - CAPA\nImagem: ...\nTítulo: ...\nFrase: ..." — cada slide vira
+// um frame com a SUA própria descrição de imagem (em vez de misturar todas
+// as descrições numa geração só) e usa o título/frase literais, sem a IA
+// reescrever o que o usuário já deixou pronto. Retorna null se não achar
+// nenhum bloco "SLIDE", caindo no fluxo de tema único + IA.
+function parseSlideBlocks(raw: string): ParsedSlide[] | null {
+  const headerRegex = /^\s*slide\s*\d+.*$/gim;
+  const matches = Array.from(raw.matchAll(headerRegex));
+  if (matches.length === 0) return null;
+
+  const blocks: string[] = matches.map((match, i) => {
+    const start = (match.index ?? 0) + match[0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index! : raw.length;
+    return raw.slice(start, end);
+  });
+
+  const slides = blocks.map((block) => ({
+    image: extractSlideField(block, ["imagem"]),
+    headline: extractSlideField(block, ["t[íi]tulo"]),
+    subtitle: extractSlideField(block, ["frase", "texto", "subt[íi]tulo"]),
+  }));
+
+  return slides.some((s) => s.image) ? slides : null;
+}
+
 export function CarouselPanel({ initialCarousels, currentUserId }: CarouselPanelProps) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -107,10 +147,44 @@ export function CarouselPanel({ initialCarousels, currentUserId }: CarouselPanel
     setFrames((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
   }
 
+  function generateImageForFrame(imagePrompt: string, index: number) {
+    return fetch("/api/ai/generate-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        module: "imagem",
+        prompt: imagePrompt + IMAGE_NO_TEXT_INSTRUCTION,
+        aspectRatio: FORMAT_ASPECT_RATIO[format],
+        quality: "medium",
+        contextType: "carrossel",
+        contextId: currentId ? `${currentId}-frame-${index}` : `carrossel-rascunho-frame-${index}`,
+      }),
+    }).then((r) => r.json());
+  }
+
   async function handleGenerate() {
     if (!prompt.trim() || frameCount < 1) return;
     setGenerating(true);
     try {
+      const slides = parseSlideBlocks(prompt);
+
+      if (slides) {
+        // Formato "SLIDE N / Imagem: / Título: / Frase:" — cada slide já
+        // traz sua própria imagem e texto prontos, nenhuma chamada de
+        // texto é necessária.
+        const imageBodies = await Promise.all(
+          slides.map((slide, i) => generateImageForFrame(slide.image || prompt, i))
+        );
+        const built: CarouselFrame[] = imageBodies.map((img, i) => {
+          if (img.error) throw new Error(img.error);
+          return { backgroundImageUrl: img.url as string, headline: slides[i].headline, subtitle: slides[i].subtitle };
+        });
+        setFrames(built);
+        setFrameCount(slides.length);
+        setExportIndex(0);
+        return;
+      }
+
       const textPromise = fetch("/api/ai/generate-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,20 +195,7 @@ export function CarouselPanel({ initialCarousels, currentUserId }: CarouselPanel
         }),
       }).then((r) => r.json());
 
-      const imagePromises = Array.from({ length: frameCount }, (_, i) =>
-        fetch("/api/ai/generate-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            module: "imagem",
-            prompt: prompt + IMAGE_NO_TEXT_INSTRUCTION,
-            aspectRatio: FORMAT_ASPECT_RATIO[format],
-            quality: "medium",
-            contextType: "carrossel",
-            contextId: currentId ? `${currentId}-frame-${i}` : `carrossel-rascunho-frame-${i}`,
-          }),
-        }).then((r) => r.json())
-      );
+      const imagePromises = Array.from({ length: frameCount }, (_, i) => generateImageForFrame(prompt, i));
 
       const [textBody, ...imageBodies] = await Promise.all([textPromise, ...imagePromises]);
       if (textBody.error) throw new Error(textBody.error);
@@ -259,6 +320,11 @@ export function CarouselPanel({ initialCarousels, currentUserId }: CarouselPanel
           rows={4}
           placeholder="Cole o prompt com o tema do post/carrossel — a IA gera o fundo e o texto de cada frame automaticamente."
         />
+        <p className="text-[11px] text-text-muted">
+          Dica: pra controlar a imagem e o texto de cada frame, cole um bloco por slide no formato{" "}
+          <code>SLIDE 1 / Imagem: ... / Título: ... / Frase: ...</code> (uma linha por campo) — cada slide vira um
+          frame com a imagem e o texto exatos que você escreveu, sem a IA reescrever.
+        </p>
         <Button type="button" onClick={handleGenerate} disabled={generating || !prompt.trim()} className="w-full">
           <Sparkles size={16} />
           {generating ? "Gerando..." : "Gerar"}
