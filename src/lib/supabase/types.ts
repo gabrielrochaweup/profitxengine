@@ -15,8 +15,6 @@ export type PostTemplate = "twitter" | "profitx";
 export type PostAccent = "dourado" | "azul" | "verde";
 export interface CarouselFrame {
   backgroundImageUrl: string | null;
-  headline: string;
-  subtitle: string;
 }
 
 export interface ConversationMessage {
