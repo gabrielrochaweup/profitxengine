@@ -19,6 +19,11 @@ export default async function DinamicasPage() {
     slotCounts[s.dynamic_id] = (slotCounts[s.dynamic_id] ?? 0) + 1;
   });
 
+  const { data: snapshots } = await supabase
+    .from("dynamic_snapshots")
+    .select("*")
+    .order("created_at", { ascending: false });
+
   return (
     <div>
       <h1 className="text-[28px] font-semibold text-text-primary">Dinâmicas de Grupo</h1>
@@ -30,6 +35,7 @@ export default async function DinamicasPage() {
       <DinamicasClient
         initialDynamics={dynamics ?? []}
         slotCounts={slotCounts}
+        initialSnapshots={snapshots ?? []}
         canEdit={hasRole(profile.role, "admin")}
       />
     </div>

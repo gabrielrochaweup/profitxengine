@@ -17,6 +17,13 @@ export interface CarouselFrame {
   backgroundImageUrl: string | null;
 }
 
+export interface DynamicSnapshotSlot {
+  msgKey: string;
+  timeLabel: string | null;
+  template: string;
+  position: number;
+}
+
 export interface ConversationMessage {
   sender: "left" | "right";
   text: string;
@@ -686,6 +693,27 @@ export interface Database {
           frames?: CarouselFrame[];
         };
         Update: Partial<Database["public"]["Tables"]["fake_carousels"]["Insert"]>;
+        Relationships: [];
+      };
+      dynamic_snapshots: {
+        Row: {
+          id: string;
+          label: string;
+          dynamic_slug: string;
+          dynamic_name: string;
+          dynamic_icon: string | null;
+          rules: string[];
+          rotating_banks: RotatingBanks;
+          extra_vars: ExtraVars;
+          slots: DynamicSnapshotSlot[];
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["dynamic_snapshots"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["dynamic_snapshots"]["Insert"]>;
         Relationships: [];
       };
     };
