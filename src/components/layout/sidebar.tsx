@@ -6,13 +6,9 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   MessageSquare,
-  CalendarDays,
   Zap,
   UsersRound,
-  Mail,
   Library,
-  Images,
-  BarChart3,
   Settings,
   SlidersHorizontal,
   ShieldCheck,
@@ -21,27 +17,16 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
-  Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
-
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dinamicas-do-dia", label: "Dinâmicas do Dia", icon: Zap },
-  { href: "/conversas", label: "Simulador de Conversas", icon: MessageSquare },
-  { href: "/gerador-de-criativos", label: "Gerador de Criativos", icon: Wand2 },
-  { href: "/mensagens-x1", label: "Mensagens X1", icon: UsersRound },
-  { href: "/emails", label: "E-mails", icon: Mail },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/calendario", label: "Calendário", icon: CalendarDays },
-  { href: "/prompts", label: "Biblioteca de Prompts", icon: Library },
-  { href: "/biblioteca-imagens", label: "Biblioteca de Imagens", icon: Images },
-];
+import { useActiveProduct } from "./active-product-context";
+import { PRODUCT_NAV_ITEMS } from "@/lib/products";
 
 // Menu inferior mobile (estilo Instagram): só os 4 destinos mais usados —
 // o resto (Calendário, E-mails, Perfil, Configurações, Admin) mora no drawer,
-// aberto pelo primeiro ícone ("Dashboard").
+// aberto pelo primeiro ícone ("Dashboard"). Fica fixo no produto PROFITX por
+// enquanto — a barra de produtos ainda não tem versão mobile.
 const MOBILE_TAB_ITEMS = [
   { href: "/conversas", label: "Simulador", icon: MessageSquare },
   { href: "/dinamicas-do-dia", label: "Dinâmicas", icon: Zap },
@@ -63,6 +48,8 @@ interface SidebarProps {
 
 export function Sidebar({ fullName, email, role }: SidebarProps) {
   const pathname = usePathname();
+  const { activeProduct } = useActiveProduct();
+  const navItems = PRODUCT_NAV_ITEMS[activeProduct] ?? [];
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
@@ -146,7 +133,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
             </div>
 
             <nav className="mt-2 flex flex-1 flex-col gap-1 overflow-y-auto">
-              {NAV_ITEMS.map((item) => {
+              {navItems.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;
                 return (
@@ -224,7 +211,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
         </div>
 
         <nav className={cn("mt-3 flex flex-1 flex-col gap-1 overflow-hidden", collapsed ? "items-center" : "items-stretch")}>
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (

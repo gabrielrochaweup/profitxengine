@@ -716,6 +716,39 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["dynamic_snapshots"]["Insert"]>;
         Relationships: [];
       };
+      products: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          icon: string | null;
+          position: number;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["products"]["Row"], "id" | "created_at" | "position" | "active"> & {
+          id?: string;
+          created_at?: string;
+          position?: number;
+          active?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
+        Relationships: [];
+      };
+      product_access: {
+        Row: {
+          product_id: string;
+          user_id: string;
+          granted_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["product_access"]["Row"], "created_at"> & {
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_access"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

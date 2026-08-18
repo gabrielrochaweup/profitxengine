@@ -4,6 +4,7 @@ import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { UsersManager } from "./components/users-manager";
 import { UsageLogPanel } from "./components/usage-log-panel";
+import { ProductManager } from "./components/product-manager";
 
 export default async function AdminPage() {
   const supabase = createClient();
@@ -21,9 +22,11 @@ export default async function AdminPage() {
     redirect("/dashboard");
   }
 
-  const [{ data: users }, { data: usageLog }] = await Promise.all([
+  const [{ data: users }, { data: usageLog }, { data: products }, { data: productAccess }] = await Promise.all([
     supabase.rpc("admin_list_users"),
     supabase.from("ai_usage_log").select("*").order("created_at", { ascending: false }).limit(50),
+    supabase.from("products").select("*").order("position"),
+    supabase.from("product_access").select("*"),
   ]);
 
   const creatorIds = Array.from(
@@ -46,6 +49,15 @@ export default async function AdminPage() {
 
       <Card className="mt-6 p-5">
         <UsersManager initialUsers={users ?? []} currentUserId={user.id} />
+      </Card>
+
+      <Card className="mt-6 p-5">
+        <ProductManager
+          initialProducts={products ?? []}
+          initialAccess={productAccess ?? []}
+          users={users ?? []}
+          currentUserId={user.id}
+        />
       </Card>
 
       <Card className="mt-6 p-5">
