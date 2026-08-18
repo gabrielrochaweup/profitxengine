@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { fromDateKey, toDateKey } from "../calendario/lib/date-utils";
+import { SimpleBarChart, PIE_PALETTE } from "./components/charts";
 import type { Database } from "@/lib/supabase/types";
 
 type MetricField = Database["public"]["Tables"]["product_metric_fields"]["Row"];
@@ -217,6 +218,17 @@ export function ProductMetricsClient({
     });
   }, [fields, filteredEntryDates, entriesByDate]);
 
+  const chartSeriesByField = useMemo(() => {
+    const sortedDates = [...filteredEntryDates].sort((a, b) => (a < b ? -1 : 1));
+    return fields.map((f) => ({
+      field: f,
+      data: sortedDates.map((date) => ({
+        label: date.slice(5).split("-").reverse().join("/"),
+        value: entriesByDate[date]?.[f.id] ?? 0,
+      })),
+    }));
+  }, [fields, filteredEntryDates, entriesByDate]);
+
   if (!productId) {
     return <p className="mt-4 text-sm text-text-muted">Nenhum produto ativo.</p>;
   }
@@ -389,6 +401,20 @@ export function ProductMetricsClient({
                 <p className="text-[11px] text-text-muted">{field.label}</p>
                 <p className="mt-1 text-sm font-semibold text-text-primary">{fmtValue(total, field.unit)}</p>
               </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {chartSeriesByField.map(({ field, data }, i) => (
+              <Card key={field.id} className="p-5">
+                <h3 className="mb-3 text-sm font-medium text-text-primary">{field.label} por dia</h3>
+                <SimpleBarChart
+                  data={data}
+                  valueLabel={field.label}
+                  isCurrency={field.unit === "moeda"}
+                  color={PIE_PALETTE[i % PIE_PALETTE.length]}
+                />
+              </Card>
             ))}
           </div>
 
