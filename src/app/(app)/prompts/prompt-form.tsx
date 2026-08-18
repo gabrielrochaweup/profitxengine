@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { useActiveProduct } from "@/components/layout/active-product-context";
 import type { Database } from "@/lib/supabase/types";
 
 type Prompt = Database["public"]["Tables"]["prompts"]["Row"];
@@ -31,6 +32,7 @@ export function PromptForm({
   onClose,
   onSaved,
 }: PromptFormProps) {
+  const { activeProductId } = useActiveProduct();
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [content, setContent] = useState("");
@@ -75,9 +77,21 @@ export function PromptForm({
       }
       onSaved(data, false);
     } else {
+      if (!activeProductId) {
+        setSaving(false);
+        setError("Nenhum produto ativo.");
+        return;
+      }
       const { data, error: insertError } = await supabase
         .from("prompts")
-        .insert({ title, category_id: categoryId, content, tags: parsedTags, created_by: currentUserId })
+        .insert({
+          product_id: activeProductId,
+          title,
+          category_id: categoryId,
+          content,
+          tags: parsedTags,
+          created_by: currentUserId,
+        })
         .select()
         .single();
 

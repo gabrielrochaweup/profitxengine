@@ -95,6 +95,7 @@ export interface Database {
       prompts: {
         Row: {
           id: string;
+          product_id: string;
           title: string;
           category_id: string;
           content: string;
@@ -114,6 +115,7 @@ export interface Database {
       prompt_categories: {
         Row: {
           id: string;
+          product_id: string;
           slug: string | null;
           name: string;
           position: number;
@@ -427,6 +429,7 @@ export interface Database {
       generated_images: {
         Row: {
           id: string;
+          product_id: string;
           context_type: ImageContextType;
           context_id: string;
           prompt: string;
@@ -451,6 +454,7 @@ export interface Database {
       image_folders: {
         Row: {
           id: string;
+          product_id: string;
           name: string;
           position: number;
           parent_id: string | null;
@@ -468,6 +472,7 @@ export interface Database {
       image_prompt_templates: {
         Row: {
           id: string;
+          product_id: string;
           name: string;
           body: string;
           position: number;
@@ -488,6 +493,7 @@ export interface Database {
       image_prompt_characters: {
         Row: {
           id: string;
+          product_id: string;
           name: string;
           body: string;
           position: number;
@@ -504,6 +510,7 @@ export interface Database {
       image_prompt_tones: {
         Row: {
           id: string;
+          product_id: string;
           name: string;
           body: string;
           position: number;
@@ -520,6 +527,7 @@ export interface Database {
       image_prompt_ctas: {
         Row: {
           id: string;
+          product_id: string;
           name: string;
           body: string;
           position: number;
@@ -722,16 +730,21 @@ export interface Database {
           slug: string;
           name: string;
           icon: string | null;
+          niche: string | null;
           position: number;
           active: boolean;
           created_by: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["products"]["Row"], "id" | "created_at" | "position" | "active"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["products"]["Row"],
+          "id" | "created_at" | "position" | "active" | "niche"
+        > & {
           id?: string;
           created_at?: string;
           position?: number;
           active?: boolean;
+          niche?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
         Relationships: [];

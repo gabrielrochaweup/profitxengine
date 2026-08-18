@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useActiveProduct } from "@/components/layout/active-product-context";
 import { cn } from "@/lib/utils";
 import type { Database, ImageContextType } from "@/lib/supabase/types";
 
@@ -46,6 +47,7 @@ export function BibliotecaImagensClient({
 }: BibliotecaImagensClientProps) {
   const toast = useToast();
   const confirm = useConfirm();
+  const { activeProductId } = useActiveProduct();
   const [images, setImages] = useState(initialImages);
   const [folders, setFolders] = useState(initialFolders);
   const [previewImage, setPreviewImage] = useState<GeneratedImage | null>(null);
@@ -123,11 +125,11 @@ export function BibliotecaImagensClient({
 
   async function handleAddFolder() {
     const name = newFolderName.trim();
-    if (!name) return;
+    if (!name || !activeProductId) return;
     const supabase = createClient();
     const { data, error } = await supabase
       .from("image_folders")
-      .insert({ name, position: folders.length, created_by: currentUserId })
+      .insert({ product_id: activeProductId, name, position: folders.length, created_by: currentUserId })
       .select()
       .single();
     if (error || !data) {

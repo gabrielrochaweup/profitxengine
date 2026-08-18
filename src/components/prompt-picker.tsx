@@ -5,6 +5,7 @@ import { Library, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { useActiveProduct } from "@/components/layout/active-product-context";
 import type { Database } from "@/lib/supabase/types";
 
 type Prompt = Database["public"]["Tables"]["prompts"]["Row"];
@@ -27,6 +28,7 @@ interface PromptPickerProps {
  * de redigitar.
  */
 export function PromptPicker({ preferredSlug, onSelect, trigger }: PromptPickerProps) {
+  const { activeProductId } = useActiveProduct();
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<PromptCategoryRow[] | null>(null);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
@@ -42,6 +44,7 @@ export function PromptPicker({ preferredSlug, onSelect, trigger }: PromptPickerP
       .from("prompts")
       .select("*")
       .eq("category_id", categoryId)
+      .eq("product_id", activeProductId ?? "")
       .order("usage_count", { ascending: false });
     setPromptsByCategory((prev) => ({ ...prev, [categoryId]: data ?? [] }));
     setLoading(false);
@@ -52,7 +55,11 @@ export function PromptPicker({ preferredSlug, onSelect, trigger }: PromptPickerP
     let cats = categories;
     if (!cats) {
       const supabase = createClient();
-      const { data } = await supabase.from("prompt_categories").select("*").order("position");
+      const { data } = await supabase
+        .from("prompt_categories")
+        .select("*")
+        .eq("product_id", activeProductId ?? "")
+        .order("position");
       cats = data ?? [];
       setCategories(cats);
     }

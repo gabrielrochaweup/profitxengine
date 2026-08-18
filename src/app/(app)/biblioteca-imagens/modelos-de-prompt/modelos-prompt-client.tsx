@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useActiveProduct } from "@/components/layout/active-product-context";
 import type { Database } from "@/lib/supabase/types";
 
 type PromptPartTable =
@@ -35,6 +36,7 @@ export function ModelosPromptClient({
   currentUserId,
   isAdmin,
 }: ModelosPromptClientProps) {
+  const { activeProductId } = useActiveProduct();
   return (
     <div className="mt-6 space-y-8">
       <PromptPartSection
@@ -44,6 +46,7 @@ export function ModelosPromptClient({
         newLabel="Novo template"
         initialItems={initialTemplates}
         currentUserId={currentUserId}
+        productId={activeProductId}
         isAdmin={isAdmin}
       />
       <PromptPartSection
@@ -53,6 +56,7 @@ export function ModelosPromptClient({
         newLabel="Novo personagem"
         initialItems={initialCharacters}
         currentUserId={currentUserId}
+        productId={activeProductId}
         isAdmin={isAdmin}
       />
       <PromptPartSection
@@ -62,6 +66,7 @@ export function ModelosPromptClient({
         newLabel="Nova cor"
         initialItems={initialTones}
         currentUserId={currentUserId}
+        productId={activeProductId}
         isAdmin={isAdmin}
       />
       <PromptPartSection
@@ -71,6 +76,7 @@ export function ModelosPromptClient({
         newLabel="Novo CTA"
         initialItems={initialCtas}
         currentUserId={currentUserId}
+        productId={activeProductId}
         isAdmin={isAdmin}
       />
     </div>
@@ -84,6 +90,7 @@ function PromptPartSection({
   newLabel,
   initialItems,
   currentUserId,
+  productId,
   isAdmin,
 }: {
   table: PromptPartTable;
@@ -92,6 +99,7 @@ function PromptPartSection({
   newLabel: string;
   initialItems: PromptPartRow[];
   currentUserId: string;
+  productId: string | null;
   isAdmin: boolean;
 }) {
   const toast = useToast();
@@ -109,10 +117,11 @@ function PromptPartSection({
   }
 
   async function handleAdd() {
+    if (!productId) return;
     const supabase = createClient();
     const { data, error } = await supabase
       .from(table)
-      .insert({ name: "Novo item", body: "", position: items.length, created_by: currentUserId })
+      .insert({ product_id: productId, name: "Novo item", body: "", position: items.length, created_by: currentUserId })
       .select()
       .single();
     if (error || !data) {

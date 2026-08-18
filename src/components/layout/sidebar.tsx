@@ -21,7 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 import { useActiveProduct } from "./active-product-context";
-import { PRODUCT_NAV_ITEMS } from "@/lib/products";
+import { getNavItems } from "@/lib/products";
 
 // Menu inferior mobile (estilo Instagram): só os 4 destinos mais usados —
 // o resto (Calendário, E-mails, Perfil, Configurações, Admin) mora no drawer,
@@ -49,7 +49,7 @@ interface SidebarProps {
 export function Sidebar({ fullName, email, role }: SidebarProps) {
   const pathname = usePathname();
   const { activeProduct } = useActiveProduct();
-  const navItems = PRODUCT_NAV_ITEMS[activeProduct] ?? [];
+  const navItems = getNavItems(activeProduct);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(true);

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { getActiveProduct } from "@/lib/products-server";
 import { PromptsClient } from "./prompts-client";
 
 export default async function PromptsPage() {
@@ -9,10 +10,20 @@ export default async function PromptsPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const [{ data: prompts }, { data: categories }, { data: profile }] = await Promise.all([
-    supabase.from("prompts").select("*").order("created_at", { ascending: false }),
-    supabase.from("prompt_categories").select("*").order("position"),
-    getProfile(user.id),
+  const { data: profile } = await getProfile(user.id);
+  const activeProduct = await getActiveProduct(user.id, profile?.role === "admin");
+
+  const [{ data: prompts }, { data: categories }] = await Promise.all([
+    activeProduct
+      ? supabase
+          .from("prompts")
+          .select("*")
+          .eq("product_id", activeProduct.id)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    activeProduct
+      ? supabase.from("prompt_categories").select("*").eq("product_id", activeProduct.id).order("position")
+      : Promise.resolve({ data: [] }),
   ]);
 
   return (

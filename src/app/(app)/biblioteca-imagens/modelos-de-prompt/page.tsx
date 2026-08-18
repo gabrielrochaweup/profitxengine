@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { getActiveProduct } from "@/lib/products-server";
 import { ModelosPromptClient } from "./modelos-prompt-client";
 
 export default async function ModelosDePromptPage() {
@@ -9,14 +10,24 @@ export default async function ModelosDePromptPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const [{ data: templates }, { data: characters }, { data: tones }, { data: ctas }, { data: profile }] =
-    await Promise.all([
-      supabase.from("image_prompt_templates").select("*").order("position"),
-      supabase.from("image_prompt_characters").select("*").order("position"),
-      supabase.from("image_prompt_tones").select("*").order("position"),
-      supabase.from("image_prompt_ctas").select("*").order("position"),
-      getProfile(user.id),
-    ]);
+  const { data: profile } = await getProfile(user.id);
+  const activeProduct = await getActiveProduct(user.id, profile?.role === "admin");
+
+  const emptyResult = Promise.resolve({ data: [] });
+  const [{ data: templates }, { data: characters }, { data: tones }, { data: ctas }] = await Promise.all([
+    activeProduct
+      ? supabase.from("image_prompt_templates").select("*").eq("product_id", activeProduct.id).order("position")
+      : emptyResult,
+    activeProduct
+      ? supabase.from("image_prompt_characters").select("*").eq("product_id", activeProduct.id).order("position")
+      : emptyResult,
+    activeProduct
+      ? supabase.from("image_prompt_tones").select("*").eq("product_id", activeProduct.id).order("position")
+      : emptyResult,
+    activeProduct
+      ? supabase.from("image_prompt_ctas").select("*").eq("product_id", activeProduct.id).order("position")
+      : emptyResult,
+  ]);
 
   return (
     <div>

@@ -11,6 +11,7 @@ import { PromptPicker } from "@/components/prompt-picker";
 import { GeneratedImagesGallery } from "@/components/generated-images-gallery";
 import { ImagePreviewModal } from "@/components/image-preview-modal";
 import { downloadImageUrl } from "@/lib/download-file";
+import { useActiveProduct } from "@/components/layout/active-product-context";
 import type { Database, ImageAspectRatio, ImageContextType, ImageQuality } from "@/lib/supabase/types";
 
 type GeneratedImage = Database["public"]["Tables"]["generated_images"]["Row"];
@@ -90,6 +91,7 @@ export function ImageGenerationPanel({
   dynamicId,
   msgKey,
 }: ImageGenerationPanelProps) {
+  const { activeProductId } = useActiveProduct();
   const [promptMode, setPromptMode] = useState<"livre" | "predefinido">("livre");
   const [prompt, setPrompt] = useState("");
   const [promptId, setPromptId] = useState<string | null>(null);
@@ -116,13 +118,14 @@ export function ImageGenerationPanel({
   const [copiedPredefinido, setCopiedPredefinido] = useState(false);
 
   useEffect(() => {
+    if (!activeProductId) return;
     async function loadPromptParts() {
       const supabase = createClient();
       const [{ data: t }, { data: c }, { data: to }, { data: ct }] = await Promise.all([
-        supabase.from("image_prompt_templates").select("*").order("position"),
-        supabase.from("image_prompt_characters").select("*").order("position"),
-        supabase.from("image_prompt_tones").select("*").order("position"),
-        supabase.from("image_prompt_ctas").select("*").order("position"),
+        supabase.from("image_prompt_templates").select("*").eq("product_id", activeProductId as string).order("position"),
+        supabase.from("image_prompt_characters").select("*").eq("product_id", activeProductId as string).order("position"),
+        supabase.from("image_prompt_tones").select("*").eq("product_id", activeProductId as string).order("position"),
+        supabase.from("image_prompt_ctas").select("*").eq("product_id", activeProductId as string).order("position"),
       ]);
       setTemplates(t ?? []);
       setCharacters(c ?? []);
@@ -137,7 +140,7 @@ export function ImageGenerationPanel({
     }
     loadPromptParts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeProductId]);
 
   // Só o template genérico (sem dinâmica associada) + o feito
   // especificamente pra essa mensagem — evita listar as 180 opções de
@@ -164,7 +167,7 @@ export function ImageGenerationPanel({
   }
 
   useEffect(() => {
-    if (!contextId) {
+    if (!contextId || !activeProductId) {
       setLibraryImages([]);
       return;
     }
@@ -176,6 +179,7 @@ export function ImageGenerationPanel({
         .select("*")
         .eq("context_type", contextType)
         .eq("context_id", contextId as string)
+        .eq("product_id", activeProductId as string)
         .order("created_at", { ascending: false });
       if (!cancelled) setLibraryImages(data ?? []);
     }
@@ -183,7 +187,7 @@ export function ImageGenerationPanel({
     return () => {
       cancelled = true;
     };
-  }, [contextType, contextId]);
+  }, [contextType, contextId, activeProductId]);
 
   async function handleReferenceFileSelected(file: File) {
     setUploadingReference(true);
@@ -224,10 +228,11 @@ export function ImageGenerationPanel({
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Erro ao gerar imagem.");
       onChange(body.url);
-      if (contextId && body.id) {
+      if (contextId && body.id && activeProductId) {
         setLibraryImages((prev) => [
           {
             id: body.id,
+            product_id: activeProductId,
             context_type: contextType,
             context_id: contextId,
             prompt: effectivePrompt,

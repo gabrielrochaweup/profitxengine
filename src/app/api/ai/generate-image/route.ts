@@ -3,6 +3,7 @@ import { getSessionProfile, hasRole } from "@/lib/auth";
 import { getDecryptedKey, getProviderSettings, incrementPromptUsage } from "@/lib/ai/credentials";
 import { generateImage, DEFAULT_MODELS } from "@/lib/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getActiveProduct } from "@/lib/products-server";
 import type { AiModule, ImageAspectRatio, ImageContextType, ImageQuality } from "@/lib/supabase/types";
 
 interface GenerateImageBody {
@@ -24,12 +25,13 @@ interface GenerateImageBody {
 
 async function findOrCreateFolder(
   admin: ReturnType<typeof createAdminClient>,
+  productId: string,
   name: string,
   parentId: string | null,
   createdBy: string
 ): Promise<string> {
   const findExisting = () => {
-    let q = admin.from("image_folders").select("id").eq("name", name);
+    let q = admin.from("image_folders").select("id").eq("product_id", productId).eq("name", name);
     q = parentId ? q.eq("parent_id", parentId) : q.is("parent_id", null);
     return q.maybeSingle();
   };
@@ -37,13 +39,13 @@ async function findOrCreateFolder(
   const { data: existing } = await findExisting();
   if (existing) return existing.id;
 
-  let countQuery = admin.from("image_folders").select("id", { count: "exact", head: true });
+  let countQuery = admin.from("image_folders").select("id", { count: "exact", head: true }).eq("product_id", productId);
   countQuery = parentId ? countQuery.eq("parent_id", parentId) : countQuery.is("parent_id", null);
   const { count } = await countQuery;
 
   const { data: created, error } = await admin
     .from("image_folders")
-    .insert({ name, parent_id: parentId, position: count ?? 0, created_by: createdBy })
+    .insert({ product_id: productId, name, parent_id: parentId, position: count ?? 0, created_by: createdBy })
     .select("id")
     .single();
   if (error || !created) {
@@ -63,6 +65,7 @@ async function findOrCreateFolder(
  */
 async function resolveDynamicFolderId(
   admin: ReturnType<typeof createAdminClient>,
+  productId: string,
   dynamicId: string,
   msgKey: string,
   createdBy: string
@@ -74,9 +77,9 @@ async function resolveDynamicFolderId(
     ]);
     if (!dynamic?.name) return null;
 
-    const parentId = await findOrCreateFolder(admin, dynamic.name, null, createdBy);
+    const parentId = await findOrCreateFolder(admin, productId, dynamic.name, null, createdBy);
     const childName = slot?.time_label?.trim() || "Sem horário";
-    return await findOrCreateFolder(admin, childName, parentId, createdBy);
+    return await findOrCreateFolder(admin, productId, childName, parentId, createdBy);
   } catch (error) {
     console.error("Erro ao organizar pasta automática da dinâmica:", error);
     return null;
@@ -92,6 +95,11 @@ export async function POST(request: Request) {
   const body = (await request.json()) as GenerateImageBody;
   if (!body.module || !body.prompt) {
     return NextResponse.json({ error: "module e prompt são obrigatórios." }, { status: 400 });
+  }
+
+  const activeProduct = await getActiveProduct(profile.userId, profile.role === "admin");
+  if (!activeProduct) {
+    return NextResponse.json({ error: "Nenhum produto ativo." }, { status: 422 });
   }
 
   const settings = await getProviderSettings(body.module);
@@ -149,12 +157,13 @@ export async function POST(request: Request) {
     if (body.contextType && body.contextId) {
       let folderId: string | null = null;
       if (body.contextType === "dinamica_slot" && body.dynamicId && body.msgKey) {
-        folderId = await resolveDynamicFolderId(admin, body.dynamicId, body.msgKey, profile.userId);
+        folderId = await resolveDynamicFolderId(admin, activeProduct.id, body.dynamicId, body.msgKey, profile.userId);
       }
 
       const { data } = await admin
         .from("generated_images")
         .insert({
+          product_id: activeProduct.id,
           context_type: body.contextType,
           context_id: body.contextId,
           prompt: body.prompt,

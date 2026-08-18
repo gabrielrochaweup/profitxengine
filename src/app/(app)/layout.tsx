@@ -38,7 +38,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     DEFAULT_PRODUCT_SLUG;
 
   return (
-    <ActiveProductProvider initialProduct={activeProduct}>
+    <ActiveProductProvider
+      initialProduct={activeProduct}
+      products={products.map((p) => ({ id: p.id, slug: p.slug }))}
+    >
       <div className="flex h-dvh flex-col bg-app md:gap-3 md:p-3">
         {products.length > 0 && (
           <div className="hidden shrink-0 md:block">

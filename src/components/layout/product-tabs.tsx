@@ -5,10 +5,12 @@ import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { useActiveProduct } from "./active-product-context";
+import { NICHE_OPTIONS } from "@/lib/products";
 import type { Database } from "@/lib/supabase/types";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
@@ -90,6 +92,7 @@ export function CreateProductModal({
   const toast = useToast();
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("✨");
+  const [niche, setNiche] = useState<string>(NICHE_OPTIONS[0].value);
   const [saving, setSaving] = useState(false);
 
   async function handleCreate() {
@@ -101,13 +104,20 @@ export function CreateProductModal({
     } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from("products")
-      .insert({ slug: slugify(name), name: name.trim(), icon: icon.trim() || null, created_by: user?.id ?? null })
+      .insert({
+        slug: slugify(name),
+        name: name.trim(),
+        icon: icon.trim() || null,
+        niche,
+        created_by: user?.id ?? null,
+      })
       .select()
       .single();
     if (!error && data) {
       onCreated(data);
       setName("");
       setIcon("✨");
+      setNiche(NICHE_OPTIONS[0].value);
       onClose();
     } else {
       toast.error("Erro ao criar o produto. Tente novamente.");
@@ -127,6 +137,17 @@ export function CreateProductModal({
             <label className="text-xs font-medium text-text-secondary">Ícone</label>
             <Input value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="✨" className="text-center" />
           </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-secondary">Nicho</label>
+          <Select value={niche} onChange={(e) => setNiche(e.target.value)}>
+            {NICHE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+          <p className="text-[11px] text-text-muted">Define de onde vêm as notícias mostradas no Calendário.</p>
         </div>
         <Button type="button" onClick={handleCreate} disabled={saving || !name.trim()} className="w-full">
           {saving ? "Criando..." : "Criar produto"}

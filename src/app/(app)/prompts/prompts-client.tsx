@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useActiveProduct } from "@/components/layout/active-product-context";
 import type { Database } from "@/lib/supabase/types";
 import { PromptForm } from "./prompt-form";
 
@@ -26,6 +27,7 @@ interface PromptsClientProps {
 export function PromptsClient({ initialPrompts, initialCategories, currentUserId, isAdmin }: PromptsClientProps) {
   const toast = useToast();
   const confirm = useConfirm();
+  const { activeProductId } = useActiveProduct();
   const [prompts, setPrompts] = useState<Prompt[]>(initialPrompts);
   const [categories, setCategories] = useState<PromptCategoryRow[]>(initialCategories);
   const [search, setSearch] = useState("");
@@ -95,10 +97,12 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
   }
 
   async function handleDuplicate(prompt: Prompt) {
+    if (!activeProductId) return;
     const supabase = createClient();
     const { data, error } = await supabase
       .from("prompts")
       .insert({
+        product_id: activeProductId,
         title: `${prompt.title} (cópia)`,
         category_id: prompt.category_id,
         content: prompt.content,
@@ -143,11 +147,11 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
 
   async function handleAddColumn() {
     const name = newColumnName.trim();
-    if (!name) return;
+    if (!name || !activeProductId) return;
     const supabase = createClient();
     const { data, error } = await supabase
       .from("prompt_categories")
-      .insert({ name, position: categories.length, created_by: currentUserId })
+      .insert({ product_id: activeProductId, name, position: categories.length, created_by: currentUserId })
       .select()
       .single();
     if (error || !data) {

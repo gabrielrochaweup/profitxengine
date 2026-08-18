@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Settings2 } from "lucide-react";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { getActiveProduct } from "@/lib/products-server";
 import { BibliotecaImagensClient } from "./biblioteca-imagens-client";
 
 export default async function BibliotecaImagensPage() {
@@ -11,10 +12,21 @@ export default async function BibliotecaImagensPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const [{ data: images }, { data: folders }, { data: profile }] = await Promise.all([
-    supabase.from("generated_images").select("*").order("created_at", { ascending: false }).limit(1000),
-    supabase.from("image_folders").select("*").order("position"),
-    getProfile(user.id),
+  const { data: profile } = await getProfile(user.id);
+  const activeProduct = await getActiveProduct(user.id, profile?.role === "admin");
+
+  const [{ data: images }, { data: folders }] = await Promise.all([
+    activeProduct
+      ? supabase
+          .from("generated_images")
+          .select("*")
+          .eq("product_id", activeProduct.id)
+          .order("created_at", { ascending: false })
+          .limit(1000)
+      : Promise.resolve({ data: [] }),
+    activeProduct
+      ? supabase.from("image_folders").select("*").eq("product_id", activeProduct.id).order("position")
+      : Promise.resolve({ data: [] }),
   ]);
 
   return (

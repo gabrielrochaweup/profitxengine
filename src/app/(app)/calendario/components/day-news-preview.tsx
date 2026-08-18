@@ -29,18 +29,20 @@ interface DayNewsPreviewProps {
 export function DayNewsPreview({ dateKey }: DayNewsPreviewProps) {
   const [items, setItems] = useState<NewsItem[] | null>(null);
   const [trending, setTrending] = useState<TrendingCoin[] | null>(null);
+  const [label, setLabel] = useState<string>("");
   const isTodayOrFuture = dateKey >= toDateKey(new Date());
 
   useEffect(() => {
     let cancelled = false;
     setItems(null);
     setTrending(null);
-    fetch(`/api/news/crypto?before=${dateKey}`)
+    fetch(`/api/news?before=${dateKey}`)
       .then((res) => res.json())
       .then((body) => {
         if (cancelled) return;
         setItems(body.items ?? []);
         setTrending(body.trending ?? []);
+        setLabel(body.label ?? "");
       });
     return () => {
       cancelled = true;
@@ -49,7 +51,7 @@ export function DayNewsPreview({ dateKey }: DayNewsPreviewProps) {
 
   return (
     <div className="space-y-3">
-      {isTodayOrFuture && (
+      {isTodayOrFuture && trending !== null && trending.length > 0 && (
         <div>
           <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-text-secondary">
             <TrendingUp size={13} />
@@ -97,7 +99,7 @@ export function DayNewsPreview({ dateKey }: DayNewsPreviewProps) {
       <div>
         <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-text-secondary">
           <Newspaper size={13} />
-          Notícias cripto até esse dia
+          Notícias{label ? ` — ${label}` : ""} até esse dia
         </p>
         {!items ? (
           <LoadingState size="sm" />

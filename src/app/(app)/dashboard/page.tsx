@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
-import { getCryptoNews } from "@/lib/news/crypto-feeds";
+import { getNicheNews } from "@/lib/news/niche-feeds";
+import { getActiveProduct } from "@/lib/products-server";
 
 const SHORTCUTS = [
   { href: "/conversas", label: "Simulador de Conversas", icon: MessageSquare },
@@ -43,17 +44,20 @@ async function getData() {
     data: { user },
   } = await getUser();
 
-  const [profileRes, prompts, news] = await Promise.all([
+  const [profileRes, prompts] = await Promise.all([
     user ? getProfile(user.id) : Promise.resolve({ data: null }),
     supabase.from("prompts").select("id", { count: "exact", head: true }),
-    getCryptoNews().catch(() => []),
   ]);
+
+  const activeProduct = user ? await getActiveProduct(user.id, profileRes.data?.role === "admin") : null;
+  const { items: news, label } = await getNicheNews(activeProduct?.niche).catch(() => ({ items: [], label: "" }));
 
   return {
     fullName: profileRes.data?.full_name ?? null,
     email: user?.email ?? null,
     schemaReady: !prompts.error,
     topNews: news[0] ?? null,
+    newsLabel: label,
   };
 }
 
@@ -73,7 +77,8 @@ export default async function DashboardPage() {
         >
           <Newspaper size={14} className="shrink-0 text-accent" />
           <span className="truncate">
-            <span className="font-medium text-text-primary">Hoje no cripto:</span> {data.topNews.title}
+            <span className="font-medium text-text-primary">Hoje em {data.newsLabel || "notícias"}:</span>{" "}
+            {data.topNews.title}
           </span>
           <span className="ml-auto shrink-0 text-text-muted">{data.topNews.source}</span>
         </a>
