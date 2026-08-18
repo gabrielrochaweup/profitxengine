@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
-import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { getUser, getProfile } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ProductTabs } from "@/components/layout/product-tabs";
 import { ActiveProductProvider } from "@/components/layout/active-product-context";
-import { DEFAULT_PRODUCT_SLUG, getProductSlugForPath } from "@/lib/products";
-import type { Database } from "@/lib/supabase/types";
-
-type Product = Database["public"]["Tables"]["products"]["Row"];
+import { DEFAULT_PRODUCT_SLUG, isPathAccessible } from "@/lib/products";
+import { getAccessibleProducts } from "@/lib/products-server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const {
@@ -25,29 +23,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const isAdminUser = profile?.role === "admin";
-  const supabase = createClient();
-
-  let products: Product[] = [];
-  if (isAdminUser) {
-    const { data } = await supabase.from("products").select("*").eq("active", true).order("position");
-    products = data ?? [];
-  } else {
-    const { data: access } = await supabase.from("product_access").select("product_id").eq("user_id", user.id);
-    const productIds = (access ?? []).map((a) => a.product_id);
-    if (productIds.length > 0) {
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .eq("active", true)
-        .in("id", productIds)
-        .order("position");
-      products = data ?? [];
-    }
-  }
+  const products = await getAccessibleProducts(user.id, isAdminUser);
 
   const pathname = headers().get("x-pathname") ?? "";
-  const ownerProduct = getProductSlugForPath(pathname);
-  if (ownerProduct && !isAdminUser && !products.some((p) => p.slug === ownerProduct)) {
+  if (!isAdminUser && !isPathAccessible(pathname, products.map((p) => p.slug))) {
     redirect("/sem-acesso");
   }
 

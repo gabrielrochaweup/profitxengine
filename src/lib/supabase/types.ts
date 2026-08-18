@@ -749,6 +749,68 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["product_access"]["Insert"]>;
         Relationships: [];
       };
+      task_columns: {
+        Row: {
+          id: string;
+          product_id: string;
+          name: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["task_columns"]["Row"], "id" | "created_at" | "position"> & {
+          id?: string;
+          created_at?: string;
+          position?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["task_columns"]["Insert"]>;
+        Relationships: [];
+      };
+      tasks: {
+        Row: {
+          id: string;
+          product_id: string;
+          column_id: string;
+          title: string;
+          description: string | null;
+          position: number;
+          completed: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["tasks"]["Row"],
+          "id" | "created_at" | "updated_at" | "position" | "completed" | "description"
+        > & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          position?: number;
+          completed?: boolean;
+          description?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["tasks"]["Insert"]>;
+        Relationships: [];
+      };
+      task_attachments: {
+        Row: {
+          id: string;
+          task_id: string;
+          product_id: string;
+          file_url: string;
+          file_name: string;
+          file_type: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["task_attachments"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["task_attachments"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
