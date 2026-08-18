@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { getActiveProduct } from "@/lib/products-server";
+import { productOwnsExclusiveRoute } from "@/lib/products";
 import { CalendarioHubClient } from "./calendario-hub-client";
 
 export default async function CalendarioPage() {
@@ -9,12 +11,19 @@ export default async function CalendarioPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
+  const { data: profile } = await getProfile(user.id);
+  const activeProduct = await getActiveProduct(user.id, profile?.role === "admin");
+  const hasDinamicas = !!activeProduct && productOwnsExclusiveRoute(activeProduct.slug, "/dinamicas-do-dia");
+  const emptyResult = Promise.resolve({ data: [] });
+
   const [{ data: messages }, { data: directMessages }, { data: dynamicSelections }, { data: dynamics }] =
     await Promise.all([
       supabase.from("engagement_messages").select("*").order("scheduled_date", { ascending: false }),
       supabase.from("direct_messages").select("*").order("scheduled_date", { ascending: false }),
-      supabase.from("daily_dynamic_selection").select("scheduled_date, dynamic_id, concluded"),
-      supabase.from("message_dynamics").select("id, name, icon"),
+      hasDinamicas
+        ? supabase.from("daily_dynamic_selection").select("scheduled_date, dynamic_id, concluded")
+        : emptyResult,
+      hasDinamicas ? supabase.from("message_dynamics").select("id, name, icon") : emptyResult,
     ]);
 
   return (
@@ -30,6 +39,7 @@ export default async function CalendarioPage() {
         initialDirectMessages={directMessages ?? []}
         initialDynamicSelections={dynamicSelections ?? []}
         dynamics={dynamics ?? []}
+        showDynamicsLegend={hasDinamicas}
       />
     </div>
   );

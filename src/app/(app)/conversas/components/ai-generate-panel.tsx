@@ -16,59 +16,104 @@ type TestimonialStyle = Database["public"]["Tables"]["testimonial_prompt_styles"
 type TestimonialVariation = Database["public"]["Tables"]["testimonial_prompt_variations"]["Row"];
 type TestimonialImageVariant = Database["public"]["Tables"]["testimonial_prompt_image_variants"]["Row"];
 
+type ClientLocale = "br" | "us";
+
 // Instrução fixa sobre o atendente — não vem de dropdown porque o pedido foi
-// explícito: ele sempre atende do mesmo jeito, uma mensagem só, bom português.
-const ATTENDANT_INSTRUCTION = `INSTRUÇÃO FIXA SOBRE O ATENDENTE (sender "right"):
-O atendente responde com EXATAMENTE 1 mensagem no total, sempre em português correto e bem escrito, com uma única interação simples e sutil (ex: parabenizar ou agradecer de volta) — sem emojis, sem exagero, direta e cordial. Gere no máximo 2 a 3 mensagens no total somando cliente + atendente, e o cliente é sempre quem fala primeiro e quem agradece pela ajuda e pela equipe da PROFITX antes do fim da conversa.`;
+// explícito: ele sempre atende do mesmo jeito, uma mensagem só, bem escrita.
+// Muda de idioma junto com o cliente (brasileiro/americano) pra não conflitar
+// com a instrução de idioma do prompt principal.
+function getAttendantInstruction(locale: ClientLocale): string {
+  if (locale === "us") {
+    return `FIXED INSTRUCTION ABOUT THE AGENT (sender "right"):
+The agent replies with EXACTLY 1 message in total, always in natural, well-written American English, with a single simple and subtle interaction (e.g. congratulating or thanking back) — no emojis, no exaggeration, direct and polite. Generate at most 2 to 3 messages in total between client + agent, and the client always speaks first and thanks the team before the end of the conversation.`;
+  }
+  return `INSTRUÇÃO FIXA SOBRE O ATENDENTE (sender "right"):
+O atendente responde com EXATAMENTE 1 mensagem no total, sempre em português correto e bem escrito, com uma única interação simples e sutil (ex: parabenizar ou agradecer de volta) — sem emojis, sem exagero, direta e cordial. Gere no máximo 2 a 3 mensagens no total somando cliente + atendente, e o cliente é sempre quem fala primeiro e quem agradece pela ajuda antes do fim da conversa.`;
+}
 
 function assembleTestimonialPrompt(
   template: string,
   style: string,
   variation: string,
   imageVariant: string,
-  detail: string
+  detail: string,
+  locale: ClientLocale
 ): string {
   let text = template.split("[ESTILO]").join(style);
   text = text.split("[VARIACAO]").join(variation);
   text = text.split("[IMAGEM]").join(imageVariant);
   text = text.split("[ITEM 1]").join(detail || "(nenhum)");
-  return `${text}\n\n${ATTENDANT_INSTRUCTION}`;
+  return `${text}\n\n${getAttendantInstruction(locale)}`;
 }
 
 interface AiGeneratePanelProps {
   platform: Platform;
-  onGenerated: (messages: ConversationMessage[], promptId: string | null) => void;
+  onGenerated: (
+    messages: ConversationMessage[],
+    promptId: string | null,
+    contactName: string | null,
+    contactHandle: string | null
+  ) => void;
   hasExistingMessages: boolean;
 }
 
-function buildSystemPrompt(platform: Platform) {
+function buildSystemPrompt(platform: Platform, locale: ClientLocale) {
+  const localeInstruction =
+    locale === "us"
+      ? `O contato é um cliente americano, dos EUA — gere um "contact_name" tipicamente americano pra ele, e escreva TODAS as mensagens (do contato e do atendente) em inglês americano natural.`
+      : `O contato é um cliente brasileiro — gere um "contact_name" tipicamente brasileiro pra ele, e escreva as mensagens em português.`;
+
   if (platform === "crm") {
     return `Você gera conversas fictícias para simular uma tela de atendimento estilo CRM/suporte ao cliente, com foco no universo de criptomoedas quando fizer sentido pelo contexto pedido.
-Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois) no formato de array de objetos seguindo este schema:
-[{"sender":"left"|"right","text":"string","time":"string"}]
-"left" é o contato/cliente, "right" é o agente/IA de atendimento. Formate "time" como "16 jul, 10:06" (dia abreviado do mês em português + horário). Gere no máximo 12 mensagens, com horários plausíveis e crescentes.`;
+${localeInstruction}
+Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois) seguindo este schema:
+{"contact_name":"string","messages":[{"sender":"left"|"right","text":"string","time":"string"}]}
+"left" é o contato/cliente, "right" é o agente/IA de atendimento. Formate "time" como "16 jul, 10:06" (dia abreviado do mês + horário, no idioma da conversa). Gere no máximo 12 mensagens em "messages", com horários plausíveis e crescentes.`;
   }
   const platformLabel = platform === "whatsapp" ? "WhatsApp" : "Instagram Direct";
+  const handleField =
+    platform === "instagram"
+      ? `,"contact_handle":"string (nome de usuário estilo Instagram pro contato — minúsculo, sem espaço, ex: ana.trader23)"`
+      : "";
   return `Você gera conversas fictícias para simular telas de chat de ${platformLabel}, com foco no universo de criptomoedas quando fizer sentido pelo contexto pedido.
-Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois) no formato de array de objetos seguindo este schema:
-[{"sender":"left"|"right","text":"string","time":"HH:MM","read_status":"sent"|"delivered"|"read"}]
-"left" é o contato, "right" é o dono da conta que está simulando a tela. Gere no máximo 12 mensagens, com horários plausíveis e crescentes.`;
+${localeInstruction}
+Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois) seguindo este schema:
+{"contact_name":"string"${handleField},"messages":[{"sender":"left"|"right","text":"string","time":"HH:MM","read_status":"sent"|"delivered"|"read"}]}
+"left" é o contato, "right" é o dono da conta que está simulando a tela. Gere no máximo 12 mensagens em "messages", com horários plausíveis e crescentes.`;
 }
 
-function parseMessages(raw: string): ConversationMessage[] {
+interface GeneratedConversation {
+  contactName: string | null;
+  contactHandle: string | null;
+  messages: ConversationMessage[];
+}
+
+function parseGeneratedConversation(raw: string): GeneratedConversation {
   const cleaned = raw.trim().replace(/^```(json)?/i, "").replace(/```$/, "").trim();
   const parsed = JSON.parse(cleaned);
-  if (!Array.isArray(parsed)) throw new Error("Formato inesperado.");
-  return parsed.map((item) => ({
+  // Fallback pro formato antigo (array puro) caso o modelo ignore o schema novo.
+  const rawMessages = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.messages) ? parsed.messages : null;
+  if (!rawMessages) throw new Error("Formato inesperado.");
+
+  const messages: ConversationMessage[] = rawMessages.map((item: Record<string, unknown>) => ({
     sender: item.sender === "right" ? "right" : "left",
     text: String(item.text ?? ""),
     time: String(item.time ?? ""),
-    read_status: ["sent", "delivered", "read"].includes(item.read_status) ? item.read_status : "read",
+    read_status: ["sent", "delivered", "read"].includes(item.read_status as string)
+      ? (item.read_status as "sent" | "delivered" | "read")
+      : "read",
   }));
+
+  const contactName = typeof parsed?.contact_name === "string" && parsed.contact_name.trim() ? parsed.contact_name.trim() : null;
+  const contactHandle =
+    typeof parsed?.contact_handle === "string" && parsed.contact_handle.trim() ? parsed.contact_handle.trim() : null;
+
+  return { contactName, contactHandle, messages };
 }
 
 export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: AiGeneratePanelProps) {
   const confirm = useConfirm();
+  const [locale, setLocale] = useState<ClientLocale>("br");
   const [promptMode, setPromptMode] = useState<"livre" | "predefinido">("livre");
   const [prompt, setPrompt] = useState("");
   const [promptId, setPromptId] = useState<string | null>(null);
@@ -119,9 +164,10 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
       selectedStyle?.body ?? "",
       selectedVariation?.body ?? "",
       selectedImageVariant?.body ?? "",
-      detail
+      detail,
+      locale
     );
-  }, [selectedTemplate, selectedStyle, selectedVariation, selectedImageVariant, detail]);
+  }, [selectedTemplate, selectedStyle, selectedVariation, selectedImageVariant, detail, locale]);
 
   async function handleCopyPredefinido() {
     if (!assembledPrompt) return;
@@ -152,15 +198,15 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
         body: JSON.stringify({
           module: "conversa",
           prompt: effectivePrompt,
-          system: buildSystemPrompt(platform),
+          system: buildSystemPrompt(platform, locale),
           promptId: promptMode === "predefinido" ? undefined : promptId ?? undefined,
         }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Erro ao gerar conversa.");
 
-      const messages = parseMessages(body.text);
-      onGenerated(messages, promptMode === "predefinido" ? null : promptId);
+      const { contactName, contactHandle, messages } = parseGeneratedConversation(body.text);
+      onGenerated(messages, promptMode === "predefinido" ? null : promptId, contactName, contactHandle);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao gerar conversa.");
     } finally {
@@ -181,6 +227,14 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
             }}
           />
         )}
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-[10px] text-text-muted">Cliente</label>
+        <Select value={locale} onChange={(e) => setLocale(e.target.value as ClientLocale)} className="h-8 w-full text-[11px]">
+          <option value="br">Cliente brasileiro</option>
+          <option value="us">Cliente americano</option>
+        </Select>
       </div>
 
       <div className="flex gap-1.5">

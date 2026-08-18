@@ -9,21 +9,23 @@ import type { DayIndicator } from "./calendar-grid";
 interface DayInfoPanelProps {
   dateKey: string;
   indicator?: DayIndicator;
+  hasDinamicas: boolean;
 }
 
-export function DayInfoPanel({ dateKey, indicator }: DayInfoPanelProps) {
+export function DayInfoPanel({ dateKey, indicator, hasDinamicas }: DayInfoPanelProps) {
   return (
     <div>
       <div className="flex flex-wrap gap-2 text-xs text-text-secondary">
-        {indicator?.hasDynamic ? (
-          <span className="flex items-center gap-1 rounded-button bg-accent/15 px-2 py-1 text-accent">
-            {indicator.dynamicIcon ?? <Sparkles size={12} />}
-            {indicator.dynamicName ?? "Dinâmica ativa nesse dia"}
-            {indicator.concluded && <CheckCircle2 size={12} className="text-success" />}
-          </span>
-        ) : (
-          <span className="rounded-button bg-card-hover px-2 py-1 text-text-muted">Nenhuma dinâmica rodou ainda</span>
-        )}
+        {hasDinamicas &&
+          (indicator?.hasDynamic ? (
+            <span className="flex items-center gap-1 rounded-button bg-accent/15 px-2 py-1 text-accent">
+              {indicator.dynamicIcon ?? <Sparkles size={12} />}
+              {indicator.dynamicName ?? "Dinâmica ativa nesse dia"}
+              {indicator.concluded && <CheckCircle2 size={12} className="text-success" />}
+            </span>
+          ) : (
+            <span className="rounded-button bg-card-hover px-2 py-1 text-text-muted">Nenhuma dinâmica rodou ainda</span>
+          ))}
         <span className="flex items-center gap-1 rounded-button bg-card-hover px-2 py-1">
           <Users size={12} />
           {indicator?.directCount ?? 0} mensagens X1
@@ -39,16 +41,20 @@ export function DayInfoPanel({ dateKey, indicator }: DayInfoPanelProps) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-        <Link href={`/dinamicas-do-dia?data=${dateKey}`}>
-          <Button type="button" size="sm">
-            Ver/criar Dinâmica do Dia
-          </Button>
-        </Link>
-        <Link href={`/dinamicas-do-dia?data=${dateKey}&mode=livre`}>
-          <Button type="button" variant="secondary" size="sm">
-            Gerar mensagem livre com IA
-          </Button>
-        </Link>
+        {hasDinamicas && (
+          <>
+            <Link href={`/dinamicas-do-dia?data=${dateKey}`}>
+              <Button type="button" size="sm">
+                Ver/criar Dinâmica do Dia
+              </Button>
+            </Link>
+            <Link href={`/dinamicas-do-dia?data=${dateKey}&mode=livre`}>
+              <Button type="button" variant="secondary" size="sm">
+                Gerar mensagem livre com IA
+              </Button>
+            </Link>
+          </>
+        )}
         <Link href={`/mensagens-x1?data=${dateKey}`}>
           <Button type="button" variant="secondary" size="sm">
             Criar Mensagem X1

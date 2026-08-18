@@ -16,6 +16,7 @@ interface CalendarioHubClientProps {
   initialDirectMessages: DirectMessage[];
   initialDynamicSelections: DynamicSelection[];
   dynamics: DynamicMeta[];
+  showDynamicsLegend: boolean;
 }
 
 export function CalendarioHubClient({
@@ -23,6 +24,7 @@ export function CalendarioHubClient({
   initialDirectMessages,
   initialDynamicSelections,
   dynamics,
+  showDynamicsLegend,
 }: CalendarioHubClientProps) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -113,12 +115,18 @@ export function CalendarioHubClient({
             </span>
             mensagens X1
           </span>
-          <span className="flex items-center gap-1.5">✨ dinâmica ativa no dia</span>
+          {showDynamicsLegend && <span className="flex items-center gap-1.5">✨ dinâmica ativa no dia</span>}
         </div>
       </div>
 
       <Modal open={!!selectedDate} onClose={() => setSelectedDate(null)} title={selectedDateLabel}>
-        {selectedDate && <DayInfoPanel dateKey={selectedDate} indicator={indicatorsByDate[selectedDate]} />}
+        {selectedDate && (
+          <DayInfoPanel
+            dateKey={selectedDate}
+            indicator={indicatorsByDate[selectedDate]}
+            hasDinamicas={showDynamicsLegend}
+          />
+        )}
       </Modal>
     </div>
   );

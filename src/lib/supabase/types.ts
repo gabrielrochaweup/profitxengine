@@ -749,6 +749,45 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
         Relationships: [];
       };
+      product_metric_fields: {
+        Row: {
+          id: string;
+          product_id: string;
+          label: string;
+          unit: "numero" | "moeda";
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["product_metric_fields"]["Row"],
+          "id" | "created_at" | "position" | "unit"
+        > & {
+          id?: string;
+          created_at?: string;
+          position?: number;
+          unit?: "numero" | "moeda";
+        };
+        Update: Partial<Database["public"]["Tables"]["product_metric_fields"]["Insert"]>;
+        Relationships: [];
+      };
+      product_daily_metrics: {
+        Row: {
+          id: string;
+          product_id: string;
+          field_id: string;
+          metric_date: string;
+          value: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["product_daily_metrics"]["Row"], "id" | "updated_at"> & {
+          id?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_daily_metrics"]["Insert"]>;
+        Relationships: [];
+      };
       product_access: {
         Row: {
           product_id: string;

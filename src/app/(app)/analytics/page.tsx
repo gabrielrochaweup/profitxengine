@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { getActiveProduct } from "@/lib/products-server";
+import { productOwnsExclusiveRoute } from "@/lib/products";
 import { AnalyticsClient } from "./analytics-client";
+import { ProductMetricsClient } from "./product-metrics-client";
 
 export default async function AnalyticsPage() {
   const supabase = createClient();
@@ -8,6 +11,46 @@ export default async function AnalyticsPage() {
     data: { user },
   } = await getUser();
   if (!user) redirect("/login");
+
+  const { data: profile } = await getProfile(user.id);
+  const isAdmin = profile?.role === "admin";
+  const activeProduct = await getActiveProduct(user.id, isAdmin);
+  const hasDinamicas = !!activeProduct && productOwnsExclusiveRoute(activeProduct.slug, "/dinamicas-do-dia");
+
+  // Produtos sem Dinâmicas do Dia (ex: SEVEN, físico) não usam os campos
+  // fixos do PROFITX — ganham campos configuráveis pelo admin em vez disso.
+  if (!hasDinamicas) {
+    const emptyResult = Promise.resolve({ data: [] });
+    const [{ data: fields }, { data: entries }] = await Promise.all([
+      activeProduct
+        ? supabase.from("product_metric_fields").select("*").eq("product_id", activeProduct.id).order("position")
+        : emptyResult,
+      activeProduct
+        ? supabase
+            .from("product_daily_metrics")
+            .select("*")
+            .eq("product_id", activeProduct.id)
+            .order("metric_date", { ascending: false })
+        : emptyResult,
+    ]);
+
+    return (
+      <div>
+        <h1 className="text-[28px] font-semibold text-text-primary">Analytics</h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          Preencha o resultado de cada dia com os campos configurados pra esse produto.
+        </p>
+
+        <ProductMetricsClient
+          initialFields={fields ?? []}
+          initialEntries={entries ?? []}
+          productId={activeProduct?.id ?? null}
+          currentUserId={user.id}
+          isAdmin={isAdmin}
+        />
+      </div>
+    );
+  }
 
   const [{ data: results }, { data: dynamics }] = await Promise.all([
     supabase

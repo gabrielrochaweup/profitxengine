@@ -24,7 +24,7 @@ export interface NicheNewsResult {
 // qualquer nicho novo sem precisar sair caçando feed específico por
 // vertical (RSS público, sem chave).
 const SEARCH_QUERIES: Record<string, string> = {
-  "saude-bem-estar": "saúde bem-estar wellness",
+  "saude-bem-estar": "health wellness supplements longevity",
   "financas-pessoais": "finanças pessoais investimentos economia",
   "fitness-emagrecimento": "fitness emagrecimento treino dieta",
   "beleza-estetica": "beleza estética procedimentos skincare",
@@ -33,6 +33,14 @@ const SEARCH_QUERIES: Record<string, string> = {
   imoveis: "mercado imobiliário imóveis",
   "apostas-esportivas": "apostas esportivas betting",
 };
+
+// Região/idioma da busca por nicho — padrão é Brasil/português, mas
+// "saúde & bem-estar" foca 100% no mercado americano (produto SEVEN ON
+// HEALTH), então busca em inglês nos EUA em vez de pt-BR.
+const REGION_CONFIG: Record<string, { hl: string; gl: string; ceid: string }> = {
+  "saude-bem-estar": { hl: "en-US", gl: "US", ceid: "US:en" },
+};
+const DEFAULT_REGION = { hl: "pt-BR", gl: "BR", ceid: "BR:pt-419" };
 
 const parser = new XMLParser({ ignoreAttributes: false });
 const genericCache = new Map<string, { items: NicheNewsItem[]; fetchedAt: number }>();
@@ -43,9 +51,9 @@ function stripHtml(text: string | undefined): string | null {
   return text.replace(/<[^>]*>/g, "").trim() || null;
 }
 
-async function fetchGoogleNews(query: string): Promise<NicheNewsItem[]> {
+async function fetchGoogleNews(query: string, region: { hl: string; gl: string; ceid: string }): Promise<NicheNewsItem[]> {
   try {
-    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${region.hl}&gl=${region.gl}&ceid=${region.ceid}`;
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; PROFITXEngine/1.0)" },
       next: { revalidate: 600 },
@@ -89,7 +97,8 @@ export async function getNicheNews(niche: string | null | undefined): Promise<Ni
   }
 
   const query = SEARCH_QUERIES[resolvedNiche] ?? label;
-  const items = await fetchGoogleNews(query);
+  const region = REGION_CONFIG[resolvedNiche] ?? DEFAULT_REGION;
+  const items = await fetchGoogleNews(query, region);
   genericCache.set(resolvedNiche, { items, fetchedAt: Date.now() });
   return { items, trending: [], label };
 }

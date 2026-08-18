@@ -236,9 +236,15 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
               <AiGeneratePanel
                 platform={platform}
                 hasExistingMessages={messages.length > 0}
-                onGenerated={(generated, promptId) => {
+                onGenerated={(generated, promptId, contactNameGenerated, contactHandleGenerated) => {
                   setMessages(generated);
                   setLastPromptId(promptId);
+                  if (contactNameGenerated) setContactName(contactNameGenerated);
+                  // O handle só faz sentido no Instagram — no WhatsApp/CRM esse mesmo
+                  // campo (contactStatus) significa "online/visto por último".
+                  if (contactHandleGenerated && platform === "instagram") {
+                    setContactStatus(contactHandleGenerated.startsWith("@") ? contactHandleGenerated : `@${contactHandleGenerated}`);
+                  }
                 }}
               />
             </Card>

@@ -51,6 +51,14 @@ export function getNavItems(slug: string): NavItem[] {
   return [...SHARED_NAV_TOP, ...(EXCLUSIVE_NAV_ITEMS[slug] ?? []), ...SHARED_NAV_REST];
 }
 
+// Usado por telas compartilhadas (Calendário, Analytics) que mostram
+// conteúdo derivado de Dinâmicas do Dia — essa ferramenta é exclusiva de
+// quem tem ela no menu, então o dado (ícone da dinâmica, KPIs de
+// Pepe/Live/Copy) não pode vazar pra produto que não é dono dela.
+export function productOwnsExclusiveRoute(slug: string, href: string): boolean {
+  return (EXCLUSIVE_NAV_ITEMS[slug] ?? []).some((item) => item.href === href);
+}
+
 export const DEFAULT_PRODUCT_SLUG = "profitx";
 
 // Nicho do produto — define de onde vêm as notícias mostradas no Calendário/
