@@ -43,6 +43,7 @@ export default async function TarefasPage() {
       </p>
 
       <TarefasClient
+        key={product.id}
         productId={product.id}
         initialColumns={columns ?? []}
         initialTasks={tasks ?? []}

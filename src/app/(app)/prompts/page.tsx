@@ -35,6 +35,7 @@ export default async function PromptsPage() {
       </p>
 
       <PromptsClient
+        key={activeProduct?.id ?? "none"}
         initialPrompts={prompts ?? []}
         initialCategories={categories ?? []}
         currentUserId={user.id}

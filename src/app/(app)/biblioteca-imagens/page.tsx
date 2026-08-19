@@ -49,6 +49,7 @@ export default async function BibliotecaImagensPage() {
       </div>
 
       <BibliotecaImagensClient
+        key={activeProduct?.id ?? "none"}
         initialImages={images ?? []}
         initialFolders={folders ?? []}
         currentUserId={user.id}

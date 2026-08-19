@@ -42,6 +42,7 @@ export default async function AnalyticsPage() {
         </p>
 
         <ProductMetricsClient
+          key={activeProduct?.id ?? "none"}
           initialFields={fields ?? []}
           initialEntries={entries ?? []}
           productId={activeProduct?.id ?? null}

@@ -38,6 +38,7 @@ export default async function ModelosDePromptPage() {
       </p>
 
       <ModelosPromptClient
+        key={activeProduct?.id ?? "none"}
         initialTemplates={templates ?? []}
         initialCharacters={characters ?? []}
         initialTones={tones ?? []}
