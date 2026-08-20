@@ -11,12 +11,19 @@ import type { Database } from "@/lib/supabase/types";
 type TaskColumn = Database["public"]["Tables"]["task_columns"]["Row"];
 type Task = Database["public"]["Tables"]["tasks"]["Row"];
 type TaskAttachment = Database["public"]["Tables"]["task_attachments"]["Row"];
+type TaskAttachmentVariant = Database["public"]["Tables"]["task_attachment_variants"]["Row"];
+
+// Toda tarefa nova já nasce com essas 3 — cobre o caso mais comum (o mesmo
+// post em 3 idiomas) sem precisar criar manualmente toda vez. Editável
+// (renomear/excluir) depois, como qualquer variação criada na mão.
+const DEFAULT_VARIANT_NAMES = ["Português", "Espanhol", "Inglês"];
 
 interface TarefasClientProps {
   productId: string;
   initialColumns: TaskColumn[];
   initialTasks: Task[];
   initialAttachments: TaskAttachment[];
+  initialVariants: TaskAttachmentVariant[];
   canEdit: boolean;
   currentUserId: string;
 }
@@ -26,6 +33,7 @@ export function TarefasClient({
   initialColumns,
   initialTasks,
   initialAttachments,
+  initialVariants,
   canEdit,
   currentUserId,
 }: TarefasClientProps) {
@@ -34,6 +42,7 @@ export function TarefasClient({
   const [columns, setColumns] = useState(initialColumns);
   const [tasks, setTasks] = useState(initialTasks);
   const [attachments, setAttachments] = useState(initialAttachments);
+  const [variants, setVariants] = useState(initialVariants);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   async function addColumn(name: string) {
@@ -108,6 +117,19 @@ export function TarefasClient({
       .single();
     if (!error && data) {
       setTasks((prev) => [...prev, data]);
+      const { data: newVariants } = await supabase
+        .from("task_attachment_variants")
+        .insert(
+          DEFAULT_VARIANT_NAMES.map((name, i) => ({
+            task_id: data.id,
+            product_id: productId,
+            name,
+            position: i,
+            created_by: currentUserId,
+          }))
+        )
+        .select();
+      if (newVariants) setVariants((prev) => [...prev, ...newVariants]);
     } else {
       toast.error("Erro ao criar a tarefa.");
     }
@@ -181,7 +203,7 @@ export function TarefasClient({
     });
   }
 
-  async function addAttachment(taskId: string, file: File, variantLabel: string | null) {
+  async function addAttachment(taskId: string, file: File, variantId: string | null) {
     const supabase = createClient();
     const path = `${crypto.randomUUID()}-${file.name}`;
     const { error: uploadError } = await supabase.storage.from("task-attachments").upload(path, file);
@@ -198,7 +220,7 @@ export function TarefasClient({
         file_url: urlData.publicUrl,
         file_name: file.name,
         file_type: file.type || null,
-        variant_label: variantLabel,
+        variant_id: variantId,
         created_by: currentUserId,
       })
       .select()
@@ -217,6 +239,48 @@ export function TarefasClient({
       setAttachments((prev) => prev.filter((a) => a.id !== id));
     } else {
       toast.error("Erro ao remover o anexo.");
+    }
+  }
+
+  async function addVariant(taskId: string, name: string): Promise<TaskAttachmentVariant | null> {
+    const position = variants.filter((v) => v.task_id === taskId).length;
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("task_attachment_variants")
+      .insert({ task_id: taskId, product_id: productId, name, position, created_by: currentUserId })
+      .select()
+      .single();
+    if (!error && data) {
+      setVariants((prev) => [...prev, data]);
+      return data;
+    }
+    toast.error("Erro ao criar a variação.");
+    return null;
+  }
+
+  async function renameVariant(id: string, name: string) {
+    setVariants((prev) => prev.map((v) => (v.id === id ? { ...v, name } : v)));
+    const supabase = createClient();
+    const { error } = await supabase.from("task_attachment_variants").update({ name }).eq("id", id);
+    if (error) toast.error("Erro ao renomear a variação.");
+  }
+
+  async function deleteVariant(id: string) {
+    const variant = variants.find((v) => v.id === id);
+    const ok = await confirm({
+      title: "Excluir variação",
+      description: `Excluir "${variant?.name ?? "essa variação"}"? Os anexos dela voltam pra "Todos", nenhum anexo é apagado.`,
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("task_attachment_variants").delete().eq("id", id);
+    if (!error) {
+      setVariants((prev) => prev.filter((v) => v.id !== id));
+      setAttachments((prev) => prev.map((a) => (a.variant_id === id ? { ...a, variant_id: null } : a)));
+    } else {
+      toast.error("Erro ao excluir a variação.");
     }
   }
 
@@ -243,12 +307,16 @@ export function TarefasClient({
       <TaskDetailModal
         task={openTask}
         attachments={openTask ? attachments.filter((a) => a.task_id === openTask.id) : []}
+        variants={openTask ? variants.filter((v) => v.task_id === openTask.id).sort((a, b) => a.position - b.position) : []}
         canEdit={canEdit}
         onClose={() => setOpenTaskId(null)}
         onUpdate={(patch) => openTask && updateTask(openTask.id, patch)}
         onDelete={() => openTask && deleteTask(openTask.id)}
-        onAddAttachment={(file, variantLabel) => openTask && addAttachment(openTask.id, file, variantLabel)}
+        onAddAttachment={(file, variantId) => openTask && addAttachment(openTask.id, file, variantId)}
         onRemoveAttachment={removeAttachment}
+        onAddVariant={(name) => (openTask ? addVariant(openTask.id, name) : Promise.resolve(null))}
+        onRenameVariant={renameVariant}
+        onDeleteVariant={deleteVariant}
       />
     </div>
   );

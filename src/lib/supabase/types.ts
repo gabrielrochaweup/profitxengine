@@ -855,16 +855,37 @@ export interface Database {
           file_url: string;
           file_name: string;
           file_type: string | null;
-          variant_label: string | null;
+          variant_id: string | null;
           created_by: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["task_attachments"]["Row"], "id" | "created_at" | "variant_label"> & {
+        Insert: Omit<Database["public"]["Tables"]["task_attachments"]["Row"], "id" | "created_at" | "variant_id"> & {
           id?: string;
           created_at?: string;
-          variant_label?: string | null;
+          variant_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["task_attachments"]["Insert"]>;
+        Relationships: [];
+      };
+      task_attachment_variants: {
+        Row: {
+          id: string;
+          task_id: string;
+          product_id: string;
+          name: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["task_attachment_variants"]["Row"],
+          "id" | "created_at" | "position"
+        > & {
+          id?: string;
+          created_at?: string;
+          position?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["task_attachment_variants"]["Insert"]>;
         Relationships: [];
       };
     };

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Paperclip, Trash2, X, FileText, CalendarClock, Circle, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Paperclip, Trash2, X, FileText, CalendarClock, Circle, Plus, Pencil, Check } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,16 +12,21 @@ import type { Database } from "@/lib/supabase/types";
 
 type Task = Database["public"]["Tables"]["tasks"]["Row"];
 type TaskAttachment = Database["public"]["Tables"]["task_attachments"]["Row"];
+type TaskAttachmentVariant = Database["public"]["Tables"]["task_attachment_variants"]["Row"];
 
 interface TaskDetailModalProps {
   task: Task | null;
   attachments: TaskAttachment[];
+  variants: TaskAttachmentVariant[];
   canEdit: boolean;
   onClose: () => void;
   onUpdate: (patch: Partial<Pick<Task, "title" | "description" | "completed" | "due_at">>) => void;
   onDelete: () => void;
-  onAddAttachment: (file: File, variantLabel: string | null) => void;
+  onAddAttachment: (file: File, variantId: string | null) => void;
   onRemoveAttachment: (id: string) => void;
+  onAddVariant: (name: string) => Promise<TaskAttachmentVariant | null>;
+  onRenameVariant: (id: string, name: string) => void;
+  onDeleteVariant: (id: string) => void;
 }
 
 function dueAtToDateInput(dueAt: string | null): string {
@@ -53,12 +58,16 @@ function combineDateTime(dateStr: string, timeStr: string): string | null {
 export function TaskDetailModal({
   task,
   attachments,
+  variants,
   canEdit,
   onClose,
   onUpdate,
   onDelete,
   onAddAttachment,
   onRemoveAttachment,
+  onAddVariant,
+  onRenameVariant,
+  onDeleteVariant,
 }: TaskDetailModalProps) {
   useMinuteTick();
   const [title, setTitle] = useState(task?.title ?? "");
@@ -67,9 +76,11 @@ export function TaskDetailModal({
   const [dueTime, setDueTime] = useState(dueAtToTimeInput(task?.due_at ?? null));
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [activeVariant, setActiveVariant] = useState<string | null>(null);
+  const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
   const [addingVariant, setAddingVariant] = useState(false);
   const [newVariantName, setNewVariantName] = useState("");
+  const [renamingVariantId, setRenamingVariantId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -77,8 +88,9 @@ export function TaskDetailModal({
     setDescription(task?.description ?? "");
     setDueDate(dueAtToDateInput(task?.due_at ?? null));
     setDueTime(dueAtToTimeInput(task?.due_at ?? null));
-    setActiveVariant(null);
+    setActiveVariantId(null);
     setAddingVariant(false);
+    setRenamingVariantId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id]);
 
@@ -86,30 +98,36 @@ export function TaskDetailModal({
     onUpdate({ due_at: combineDateTime(nextDate, nextTime) });
   }
 
-  const variantLabels = useMemo(() => {
-    const labels = new Set<string>();
-    attachments.forEach((a) => {
-      if (a.variant_label) labels.add(a.variant_label);
-    });
-    return Array.from(labels).sort((a, b) => a.localeCompare(b));
-  }, [attachments]);
-
   const visibleAttachments =
-    activeVariant === null ? attachments : attachments.filter((a) => a.variant_label === activeVariant);
+    activeVariantId === null ? attachments : attachments.filter((a) => a.variant_id === activeVariantId);
+  const activeVariantName = variants.find((v) => v.id === activeVariantId)?.name ?? null;
 
   async function handleFilesSelected(files: FileList | File[]) {
     const fileArray = Array.from(files);
     if (fileArray.length === 0) return;
     setUploading(true);
-    await Promise.all(fileArray.map((file) => onAddAttachment(file, activeVariant)));
+    await Promise.all(fileArray.map((file) => onAddAttachment(file, activeVariantId)));
     setUploading(false);
   }
 
-  function commitNewVariant() {
+  async function commitNewVariant() {
     const name = newVariantName.trim();
     setAddingVariant(false);
     setNewVariantName("");
-    if (name) setActiveVariant(name);
+    if (!name) return;
+    const created = await onAddVariant(name);
+    if (created) setActiveVariantId(created.id);
+  }
+
+  function startRenameVariant(variant: TaskAttachmentVariant) {
+    setRenamingVariantId(variant.id);
+    setRenameValue(variant.name);
+  }
+
+  function commitRenameVariant(variant: TaskAttachmentVariant) {
+    const name = renameValue.trim();
+    setRenamingVariantId(null);
+    if (name && name !== variant.name) onRenameVariant(variant.id, name);
   }
 
   const urgency = task ? getUrgencyLevel(task.due_at, task.completed) : "none";
@@ -202,57 +220,102 @@ export function TaskDetailModal({
             </div>
 
             {/* Coluna 3 — anexos, com arrastar-e-soltar múltiplos arquivos */}
-            <div className="space-y-2">
+            <div className="flex min-h-0 flex-col space-y-2">
               <label className="text-xs font-medium text-text-secondary">
                 Anexos {attachments.length > 0 && `(${attachments.length})`}
               </label>
 
-              {(variantLabels.length > 0 || canEdit) && (
+              {(variants.length > 0 || canEdit) && (
                 <div className="flex flex-wrap items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => setActiveVariant(null)}
+                    onClick={() => setActiveVariantId(null)}
                     className={cn(
                       "rounded-button px-2 py-1 text-[11px] font-medium transition-colors",
-                      activeVariant === null
+                      activeVariantId === null
                         ? "bg-accent text-white"
                         : "border border-border-strong text-text-secondary hover:bg-card-hover"
                     )}
                   >
                     Todos
                   </button>
-                  {variantLabels.map((label) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => setActiveVariant(label)}
-                      className={cn(
-                        "rounded-button px-2 py-1 text-[11px] font-medium transition-colors",
-                        activeVariant === label
-                          ? "bg-accent text-white"
-                          : "border border-border-strong text-text-secondary hover:bg-card-hover"
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                  {canEdit &&
-                    (addingVariant ? (
+                  {variants.map((variant) =>
+                    renamingVariantId === variant.id ? (
                       <Input
+                        key={variant.id}
                         autoFocus
-                        value={newVariantName}
-                        onChange={(e) => setNewVariantName(e.target.value)}
-                        onBlur={commitNewVariant}
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onBlur={() => commitRenameVariant(variant)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") e.currentTarget.blur();
-                          if (e.key === "Escape") {
-                            setAddingVariant(false);
-                            setNewVariantName("");
-                          }
+                          if (e.key === "Escape") setRenamingVariantId(null);
                         }}
-                        placeholder="Nome da variação"
-                        className="h-6 w-28 text-[11px]"
+                        className="h-6 w-24 text-[11px]"
                       />
+                    ) : (
+                      <span key={variant.id} className="inline-flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setActiveVariantId(variant.id)}
+                          className={cn(
+                            "rounded-button px-2 py-1 text-[11px] font-medium transition-colors",
+                            activeVariantId === variant.id
+                              ? "bg-accent text-white"
+                              : "border border-border-strong text-text-secondary hover:bg-card-hover"
+                          )}
+                        >
+                          {variant.name}
+                        </button>
+                        {canEdit && activeVariantId === variant.id && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startRenameVariant(variant)}
+                              title="Renomear variação"
+                              className="text-text-muted hover:text-text-primary"
+                            >
+                              <Pencil size={11} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onDeleteVariant(variant.id)}
+                              title="Excluir variação"
+                              className="text-text-muted hover:text-danger"
+                            >
+                              <X size={11} />
+                            </button>
+                          </>
+                        )}
+                      </span>
+                    )
+                  )}
+                  {canEdit &&
+                    (addingVariant ? (
+                      <span className="inline-flex items-center gap-0.5">
+                        <Input
+                          autoFocus
+                          value={newVariantName}
+                          onChange={(e) => setNewVariantName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitNewVariant();
+                            if (e.key === "Escape") {
+                              setAddingVariant(false);
+                              setNewVariantName("");
+                            }
+                          }}
+                          placeholder="Nome da variação"
+                          className="h-6 w-28 text-[11px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={commitNewVariant}
+                          title="Confirmar"
+                          className="text-text-muted hover:text-success"
+                        >
+                          <Check size={13} />
+                        </button>
+                      </span>
                     ) : (
                       <button
                         type="button"
@@ -280,7 +343,7 @@ export function TaskDetailModal({
                   }}
                   onClick={() => fileInputRef.current?.click()}
                   className={cn(
-                    "flex cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed p-3 text-center transition-colors",
+                    "flex shrink-0 cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed p-3 text-center transition-colors",
                     dragOver ? "border-accent bg-accent/5" : "border-border-strong hover:bg-card-hover"
                   )}
                 >
@@ -288,7 +351,7 @@ export function TaskDetailModal({
                   <p className="text-[11px] text-text-muted">
                     {uploading
                       ? "Enviando..."
-                      : `Arraste arquivos aqui ou clique pra escolher (vários de uma vez)${activeVariant ? ` — vai pra "${activeVariant}"` : ""}`}
+                      : `Arraste arquivos aqui ou clique pra escolher (vários de uma vez)${activeVariantName ? ` — vai pra "${activeVariantName}"` : ""}`}
                   </p>
                 </div>
               )}
@@ -303,46 +366,60 @@ export function TaskDetailModal({
                 }}
               />
 
-              {visibleAttachments.length === 0 ? (
-                <p className="text-xs text-text-muted">
-                  {activeVariant ? `Nenhum anexo em "${activeVariant}" ainda.` : "Nenhum anexo ainda."}
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  {visibleAttachments.map((attachment) => (
-                    <div key={attachment.id} className="group relative overflow-hidden rounded-lg border border-border">
-                      <a href={attachment.file_url} target="_blank" rel="noreferrer" className="block">
-                        {attachment.file_type?.startsWith("image/") ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={attachment.file_url} alt={attachment.file_name} className="h-20 w-full object-cover" />
-                        ) : (
-                          <div className="flex h-20 w-full flex-col items-center justify-center gap-1 bg-card-hover px-1">
-                            <FileText size={20} className="text-text-muted" />
-                            <span className="w-full truncate px-1 text-center text-[10px] text-text-muted">
-                              {attachment.file_name}
+              {/* Altura travada — a lista de anexos rola por dentro em vez de
+                  esticar o popup inteiro quando tem muito arquivo. */}
+              <div className="max-h-64 overflow-y-auto pr-0.5">
+                {visibleAttachments.length === 0 ? (
+                  <p className="text-xs text-text-muted">
+                    {activeVariantName ? `Nenhum anexo em "${activeVariantName}" ainda.` : "Nenhum anexo ainda."}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {visibleAttachments.map((attachment) => {
+                      const attachmentVariant =
+                        activeVariantId === null && attachment.variant_id
+                          ? variants.find((v) => v.id === attachment.variant_id)
+                          : null;
+                      return (
+                        <div key={attachment.id} className="group relative overflow-hidden rounded-lg border border-border">
+                          <a href={attachment.file_url} target="_blank" rel="noreferrer" className="block">
+                            {attachment.file_type?.startsWith("image/") ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={attachment.file_url}
+                                alt={attachment.file_name}
+                                className="h-20 w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-20 w-full flex-col items-center justify-center gap-1 bg-card-hover px-1">
+                                <FileText size={20} className="text-text-muted" />
+                                <span className="w-full truncate px-1 text-center text-[10px] text-text-muted">
+                                  {attachment.file_name}
+                                </span>
+                              </div>
+                            )}
+                          </a>
+                          {attachmentVariant && (
+                            <span className="absolute bottom-1 left-1 rounded-button bg-black/60 px-1.5 py-0.5 text-[9px] text-white">
+                              {attachmentVariant.name}
                             </span>
-                          </div>
-                        )}
-                      </a>
-                      {activeVariant === null && attachment.variant_label && (
-                        <span className="absolute bottom-1 left-1 rounded-button bg-black/60 px-1.5 py-0.5 text-[9px] text-white">
-                          {attachment.variant_label}
-                        </span>
-                      )}
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => onRemoveAttachment(attachment.id)}
-                          title="Remover anexo"
-                          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                        >
-                          <X size={11} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                          )}
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => onRemoveAttachment(attachment.id)}
+                              title="Remover anexo"
+                              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                            >
+                              <X size={11} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

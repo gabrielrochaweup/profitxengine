@@ -27,10 +27,11 @@ export default async function TarefasPage() {
   }
 
   const supabase = createClient();
-  const [{ data: columns }, { data: tasks }, { data: attachments }] = await Promise.all([
+  const [{ data: columns }, { data: tasks }, { data: attachments }, { data: variants }] = await Promise.all([
     supabase.from("task_columns").select("*").eq("product_id", product.id).order("position"),
     supabase.from("tasks").select("*").eq("product_id", product.id).order("position"),
     supabase.from("task_attachments").select("*").eq("product_id", product.id).order("created_at"),
+    supabase.from("task_attachment_variants").select("*").eq("product_id", product.id).order("position"),
   ]);
 
   return (
@@ -48,6 +49,7 @@ export default async function TarefasPage() {
         initialColumns={columns ?? []}
         initialTasks={tasks ?? []}
         initialAttachments={attachments ?? []}
+        initialVariants={variants ?? []}
         canEdit={canEdit}
         currentUserId={user.id}
       />
