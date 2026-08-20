@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Paperclip, Trash2, X, FileText, CalendarClock, Circle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Paperclip, Trash2, X, FileText, CalendarClock, Circle, Plus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,7 @@ interface TaskDetailModalProps {
   onClose: () => void;
   onUpdate: (patch: Partial<Pick<Task, "title" | "description" | "completed" | "due_at">>) => void;
   onDelete: () => void;
-  onAddAttachment: (file: File) => void;
+  onAddAttachment: (file: File, variantLabel: string | null) => void;
   onRemoveAttachment: (id: string) => void;
 }
 
@@ -67,6 +67,9 @@ export function TaskDetailModal({
   const [dueTime, setDueTime] = useState(dueAtToTimeInput(task?.due_at ?? null));
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [activeVariant, setActiveVariant] = useState<string | null>(null);
+  const [addingVariant, setAddingVariant] = useState(false);
+  const [newVariantName, setNewVariantName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -74,6 +77,8 @@ export function TaskDetailModal({
     setDescription(task?.description ?? "");
     setDueDate(dueAtToDateInput(task?.due_at ?? null));
     setDueTime(dueAtToTimeInput(task?.due_at ?? null));
+    setActiveVariant(null);
+    setAddingVariant(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id]);
 
@@ -81,12 +86,30 @@ export function TaskDetailModal({
     onUpdate({ due_at: combineDateTime(nextDate, nextTime) });
   }
 
+  const variantLabels = useMemo(() => {
+    const labels = new Set<string>();
+    attachments.forEach((a) => {
+      if (a.variant_label) labels.add(a.variant_label);
+    });
+    return Array.from(labels).sort((a, b) => a.localeCompare(b));
+  }, [attachments]);
+
+  const visibleAttachments =
+    activeVariant === null ? attachments : attachments.filter((a) => a.variant_label === activeVariant);
+
   async function handleFilesSelected(files: FileList | File[]) {
     const fileArray = Array.from(files);
     if (fileArray.length === 0) return;
     setUploading(true);
-    await Promise.all(fileArray.map((file) => onAddAttachment(file)));
+    await Promise.all(fileArray.map((file) => onAddAttachment(file, activeVariant)));
     setUploading(false);
+  }
+
+  function commitNewVariant() {
+    const name = newVariantName.trim();
+    setAddingVariant(false);
+    setNewVariantName("");
+    if (name) setActiveVariant(name);
   }
 
   const urgency = task ? getUrgencyLevel(task.due_at, task.completed) : "none";
@@ -184,6 +207,65 @@ export function TaskDetailModal({
                 Anexos {attachments.length > 0 && `(${attachments.length})`}
               </label>
 
+              {(variantLabels.length > 0 || canEdit) && (
+                <div className="flex flex-wrap items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setActiveVariant(null)}
+                    className={cn(
+                      "rounded-button px-2 py-1 text-[11px] font-medium transition-colors",
+                      activeVariant === null
+                        ? "bg-accent text-white"
+                        : "border border-border-strong text-text-secondary hover:bg-card-hover"
+                    )}
+                  >
+                    Todos
+                  </button>
+                  {variantLabels.map((label) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setActiveVariant(label)}
+                      className={cn(
+                        "rounded-button px-2 py-1 text-[11px] font-medium transition-colors",
+                        activeVariant === label
+                          ? "bg-accent text-white"
+                          : "border border-border-strong text-text-secondary hover:bg-card-hover"
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  {canEdit &&
+                    (addingVariant ? (
+                      <Input
+                        autoFocus
+                        value={newVariantName}
+                        onChange={(e) => setNewVariantName(e.target.value)}
+                        onBlur={commitNewVariant}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") e.currentTarget.blur();
+                          if (e.key === "Escape") {
+                            setAddingVariant(false);
+                            setNewVariantName("");
+                          }
+                        }}
+                        placeholder="Nome da variação"
+                        className="h-6 w-28 text-[11px]"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setAddingVariant(true)}
+                        title="Nova variação"
+                        className="flex h-6 w-6 items-center justify-center rounded-button border border-dashed border-border-strong text-text-muted hover:bg-card-hover"
+                      >
+                        <Plus size={12} />
+                      </button>
+                    ))}
+                </div>
+              )}
+
               {canEdit && (
                 <div
                   onDragOver={(e) => {
@@ -204,7 +286,9 @@ export function TaskDetailModal({
                 >
                   <Paperclip size={14} className="text-text-muted" />
                   <p className="text-[11px] text-text-muted">
-                    {uploading ? "Enviando..." : "Arraste arquivos aqui ou clique pra escolher (vários de uma vez)"}
+                    {uploading
+                      ? "Enviando..."
+                      : `Arraste arquivos aqui ou clique pra escolher (vários de uma vez)${activeVariant ? ` — vai pra "${activeVariant}"` : ""}`}
                   </p>
                 </div>
               )}
@@ -219,11 +303,13 @@ export function TaskDetailModal({
                 }}
               />
 
-              {attachments.length === 0 ? (
-                <p className="text-xs text-text-muted">Nenhum anexo ainda.</p>
+              {visibleAttachments.length === 0 ? (
+                <p className="text-xs text-text-muted">
+                  {activeVariant ? `Nenhum anexo em "${activeVariant}" ainda.` : "Nenhum anexo ainda."}
+                </p>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  {attachments.map((attachment) => (
+                  {visibleAttachments.map((attachment) => (
                     <div key={attachment.id} className="group relative overflow-hidden rounded-lg border border-border">
                       <a href={attachment.file_url} target="_blank" rel="noreferrer" className="block">
                         {attachment.file_type?.startsWith("image/") ? (
@@ -238,6 +324,11 @@ export function TaskDetailModal({
                           </div>
                         )}
                       </a>
+                      {activeVariant === null && attachment.variant_label && (
+                        <span className="absolute bottom-1 left-1 rounded-button bg-black/60 px-1.5 py-0.5 text-[9px] text-white">
+                          {attachment.variant_label}
+                        </span>
+                      )}
                       {canEdit && (
                         <button
                           type="button"

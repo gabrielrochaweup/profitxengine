@@ -855,12 +855,14 @@ export interface Database {
           file_url: string;
           file_name: string;
           file_type: string | null;
+          variant_label: string | null;
           created_by: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["task_attachments"]["Row"], "id" | "created_at"> & {
+        Insert: Omit<Database["public"]["Tables"]["task_attachments"]["Row"], "id" | "created_at" | "variant_label"> & {
           id?: string;
           created_at?: string;
+          variant_label?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["task_attachments"]["Insert"]>;
         Relationships: [];

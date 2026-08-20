@@ -16,16 +16,20 @@ type TestimonialStyle = Database["public"]["Tables"]["testimonial_prompt_styles"
 type TestimonialVariation = Database["public"]["Tables"]["testimonial_prompt_variations"]["Row"];
 type TestimonialImageVariant = Database["public"]["Tables"]["testimonial_prompt_image_variants"]["Row"];
 
-type ClientLocale = "br" | "us";
+type ClientLocale = "br" | "us" | "es";
 
 // Instrução fixa sobre o atendente — não vem de dropdown porque o pedido foi
 // explícito: ele sempre atende do mesmo jeito, uma mensagem só, bem escrita.
-// Muda de idioma junto com o cliente (brasileiro/americano) pra não conflitar
-// com a instrução de idioma do prompt principal.
+// Muda de idioma junto com o cliente (brasileiro/americano/latino) pra não
+// conflitar com a instrução de idioma do prompt principal.
 function getAttendantInstruction(locale: ClientLocale): string {
   if (locale === "us") {
     return `FIXED INSTRUCTION ABOUT THE AGENT (sender "right"):
 The agent replies with EXACTLY 1 message in total, always in natural, well-written American English, with a single simple and subtle interaction (e.g. congratulating or thanking back) — no emojis, no exaggeration, direct and polite. Generate at most 2 to 3 messages in total between client + agent, and the client always speaks first and thanks the team before the end of the conversation.`;
+  }
+  if (locale === "es") {
+    return `INSTRUCCIÓN FIJA SOBRE EL AGENTE (sender "right"):
+El agente responde con EXACTAMENTE 1 mensaje en total, siempre en español latinoamericano natural y bien escrito (evita "vosotros"/"vale"/modismos de España — usa "ustedes" y un tono neutro de Latinoamérica), con una única interacción simple y sutil (ej: felicitar o agradecer de vuelta) — sin emojis, sin exagerar, directo y cordial. Genera como máximo 2 a 3 mensajes en total entre cliente y agente, y el cliente siempre habla primero y agradece al equipo antes de terminar la conversación.`;
   }
   return `INSTRUÇÃO FIXA SOBRE O ATENDENTE (sender "right"):
 O atendente responde com EXATAMENTE 1 mensagem no total, sempre em português correto e bem escrito, com uma única interação simples e sutil (ex: parabenizar ou agradecer de volta) — sem emojis, sem exagero, direta e cordial. Gere no máximo 2 a 3 mensagens no total somando cliente + atendente, e o cliente é sempre quem fala primeiro e quem agradece pela ajuda antes do fim da conversa.`;
@@ -61,7 +65,9 @@ function buildSystemPrompt(platform: Platform, locale: ClientLocale) {
   const localeInstruction =
     locale === "us"
       ? `O contato é um cliente americano, dos EUA — gere um "contact_name" tipicamente americano pra ele, e escreva TODAS as mensagens (do contato e do atendente) em inglês americano natural.`
-      : `O contato é um cliente brasileiro — gere um "contact_name" tipicamente brasileiro pra ele, e escreva as mensagens em português.`;
+      : locale === "es"
+        ? `O contato é um cliente latino-americano (não da Espanha) — gere um "contact_name" típico de algum país da América Latina (México, Colômbia, Argentina, Chile, Peru etc.), e escreva TODAS as mensagens (do contato e do atendente) em espanhol latino-americano natural, evitando "vosotros" e expressões tipicamente espanholas.`
+        : `O contato é um cliente brasileiro — gere um "contact_name" tipicamente brasileiro pra ele, e escreva as mensagens em português.`;
 
   if (platform === "crm") {
     return `Você gera conversas fictícias para simular uma tela de atendimento estilo CRM/suporte ao cliente, com foco no universo de criptomoedas quando fizer sentido pelo contexto pedido.
@@ -234,6 +240,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
         <Select value={locale} onChange={(e) => setLocale(e.target.value as ClientLocale)} className="h-8 w-full text-[11px]">
           <option value="br">Cliente brasileiro</option>
           <option value="us">Cliente americano</option>
+          <option value="es">Cliente latino (espanhol)</option>
         </Select>
       </div>
 

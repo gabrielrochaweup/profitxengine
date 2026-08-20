@@ -72,7 +72,7 @@ export function HeaderEditor({
       const { data } = supabase.storage.from("conversation-avatars").getPublicUrl(path);
       onDone(data.publicUrl);
     } else {
-      toast.error("Erro ao enviar a imagem. Tente novamente.");
+      toast.error(`Erro ao enviar a imagem: ${error.message}`);
     }
     setBusy(false);
   }

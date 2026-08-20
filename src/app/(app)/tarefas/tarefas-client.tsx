@@ -181,12 +181,12 @@ export function TarefasClient({
     });
   }
 
-  async function addAttachment(taskId: string, file: File) {
+  async function addAttachment(taskId: string, file: File, variantLabel: string | null) {
     const supabase = createClient();
     const path = `${crypto.randomUUID()}-${file.name}`;
     const { error: uploadError } = await supabase.storage.from("task-attachments").upload(path, file);
     if (uploadError) {
-      toast.error("Erro ao enviar o arquivo.");
+      toast.error(`Erro ao enviar o arquivo: ${uploadError.message}`);
       return;
     }
     const { data: urlData } = supabase.storage.from("task-attachments").getPublicUrl(path);
@@ -198,6 +198,7 @@ export function TarefasClient({
         file_url: urlData.publicUrl,
         file_name: file.name,
         file_type: file.type || null,
+        variant_label: variantLabel,
         created_by: currentUserId,
       })
       .select()
@@ -246,7 +247,7 @@ export function TarefasClient({
         onClose={() => setOpenTaskId(null)}
         onUpdate={(patch) => openTask && updateTask(openTask.id, patch)}
         onDelete={() => openTask && deleteTask(openTask.id)}
-        onAddAttachment={(file) => openTask && addAttachment(openTask.id, file)}
+        onAddAttachment={(file, variantLabel) => openTask && addAttachment(openTask.id, file, variantLabel)}
         onRemoveAttachment={removeAttachment}
       />
     </div>

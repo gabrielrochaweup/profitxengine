@@ -69,7 +69,7 @@ export function MessageEditor({ platform, messages, onChange }: MessageEditorPro
       const { data } = supabase.storage.from("conversation-avatars").getPublicUrl(path);
       updateMessage(index, { image_url: data.publicUrl });
     } else {
-      toast.error("Erro ao enviar a imagem. Tente novamente.");
+      toast.error(`Erro ao enviar a imagem: ${error.message}`);
     }
     setUploadingIndex(null);
     setUploadTargetIndex(null);
