@@ -106,25 +106,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Nenhum produto ativo." }, { status: 422 });
   }
 
-  const settings = await getProviderSettings(body.module);
-  if (settings.provider === "anthropic") {
-    return NextResponse.json(
-      { error: "Anthropic não suporta geração de imagens. Selecione OpenAI ou Google em Configurações." },
-      { status: 422 }
-    );
-  }
-
-  const apiKey = await getDecryptedKey(settings.provider);
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: `Nenhuma chave válida configurada para ${settings.provider}. Configure em Configurações.` },
-      { status: 422 }
-    );
-  }
-
-  const model = settings.model || DEFAULT_MODELS[settings.provider].image || DEFAULT_MODELS.openai.image!;
-
+  // Tudo a partir daqui (inclusive ler/descriptografar a chave salva) entra
+  // no try — se CREDENTIALS_ENCRYPTION_KEY estiver ausente ou diferente da
+  // que criptografou a chave original, decryptSecret() lança uma exceção;
+  // fora do try isso escapava cru e virava um 500 sem JSON pro cliente.
   try {
+    const settings = await getProviderSettings(body.module);
+    if (settings.provider === "anthropic") {
+      return NextResponse.json(
+        { error: "Anthropic não suporta geração de imagens. Selecione OpenAI ou Google em Configurações." },
+        { status: 422 }
+      );
+    }
+
+    const apiKey = await getDecryptedKey(settings.provider);
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: `Nenhuma chave válida configurada para ${settings.provider}. Configure em Configurações.` },
+        { status: 422 }
+      );
+    }
+
+    const model = settings.model || DEFAULT_MODELS[settings.provider].image || DEFAULT_MODELS.openai.image!;
+
     const aspectRatio = body.aspectRatio ?? "1:1";
     const quality = body.quality ?? "medium";
 

@@ -33,19 +33,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "module e prompt são obrigatórios." }, { status: 400 });
   }
 
-  const settings = body.provider
-    ? { provider: body.provider, model: body.model ?? "gpt-4o-mini" }
-    : await getProviderSettings(body.module);
-
-  const apiKey = await getDecryptedKey(settings.provider);
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: `Nenhuma chave válida configurada para ${settings.provider}. Configure em Configurações.` },
-      { status: 422 }
-    );
-  }
-
+  // Tudo a partir daqui (inclusive ler/descriptografar a chave salva) entra
+  // no try — se CREDENTIALS_ENCRYPTION_KEY estiver ausente ou diferente da
+  // que criptografou a chave original, decryptSecret() lança uma exceção;
+  // fora do try isso escapava cru e virava um 500 sem JSON pro cliente.
   try {
+    const settings = body.provider
+      ? { provider: body.provider, model: body.model ?? "gpt-4o-mini" }
+      : await getProviderSettings(body.module);
+
+    const apiKey = await getDecryptedKey(settings.provider);
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: `Nenhuma chave válida configurada para ${settings.provider}. Configure em Configurações.` },
+        { status: 422 }
+      );
+    }
+
     const performanceContext = body.performanceScope
       ? formatApprovalContext(await getApprovalContext(body.performanceScope))
       : undefined;
