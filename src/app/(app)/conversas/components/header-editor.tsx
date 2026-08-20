@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { pickAvatar } from "@/lib/avatar-library";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
+import { sanitizeFileName } from "@/lib/sanitize-filename";
 import type { Platform } from "@/lib/supabase/types";
 
 interface HeaderEditorProps {
@@ -66,7 +67,7 @@ export function HeaderEditor({
   async function uploadAvatar(file: File, onDone: (url: string) => void, setBusy: (v: boolean) => void) {
     setBusy(true);
     const supabase = createClient();
-    const path = `${crypto.randomUUID()}-${file.name}`;
+    const path = `${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
     const { error } = await supabase.storage.from("conversation-avatars").upload(path, file);
     if (!error) {
       const { data } = supabase.storage.from("conversation-avatars").getPublicUrl(path);

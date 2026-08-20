@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
+import { sanitizeFileName } from "@/lib/sanitize-filename";
 import type { ConversationMessage, Platform } from "@/lib/supabase/types";
 
 interface MessageEditorProps {
@@ -63,7 +64,7 @@ export function MessageEditor({ platform, messages, onChange }: MessageEditorPro
     const index = uploadTargetIndex;
     setUploadingIndex(index);
     const supabase = createClient();
-    const path = `messages/${crypto.randomUUID()}-${file.name}`;
+    const path = `messages/${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
     const { error } = await supabase.storage.from("conversation-avatars").upload(path, file);
     if (!error) {
       const { data } = supabase.storage.from("conversation-avatars").getPublicUrl(path);

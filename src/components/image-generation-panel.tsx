@@ -11,6 +11,7 @@ import { PromptPicker } from "@/components/prompt-picker";
 import { GeneratedImagesGallery } from "@/components/generated-images-gallery";
 import { ImagePreviewModal } from "@/components/image-preview-modal";
 import { downloadImageUrl } from "@/lib/download-file";
+import { sanitizeFileName } from "@/lib/sanitize-filename";
 import { useActiveProduct } from "@/components/layout/active-product-context";
 import type { Database, ImageAspectRatio, ImageContextType, ImageQuality } from "@/lib/supabase/types";
 
@@ -192,7 +193,7 @@ export function ImageGenerationPanel({
   async function handleReferenceFileSelected(file: File) {
     setUploadingReference(true);
     const supabase = createClient();
-    const path = `refs/${crypto.randomUUID()}-${file.name}`;
+    const path = `refs/${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
     const { error: uploadError } = await supabase.storage.from("reference-images").upload(path, file);
     if (!uploadError) {
       const { data } = supabase.storage.from("reference-images").getPublicUrl(path);

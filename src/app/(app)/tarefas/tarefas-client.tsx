@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
+import { sanitizeFileName } from "@/lib/sanitize-filename";
 import { KanbanBoard } from "./components/kanban-board";
 import { TaskDetailModal } from "./components/task-detail-modal";
 import type { Database } from "@/lib/supabase/types";
@@ -205,7 +206,7 @@ export function TarefasClient({
 
   async function addAttachment(taskId: string, file: File, variantId: string | null) {
     const supabase = createClient();
-    const path = `${crypto.randomUUID()}-${file.name}`;
+    const path = `${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
     const { error: uploadError } = await supabase.storage.from("task-attachments").upload(path, file);
     if (uploadError) {
       toast.error(`Erro ao enviar o arquivo: ${uploadError.message}`);
