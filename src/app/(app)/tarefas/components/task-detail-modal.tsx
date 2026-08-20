@@ -134,14 +134,14 @@ export function TaskDetailModal({
   const label = task ? urgencyLabel(task.due_at, task.completed) : null;
 
   return (
-    <Modal open={task !== null} onClose={onClose} title="Detalhes da tarefa" className="max-w-4xl">
+    <Modal open={task !== null} onClose={onClose} title="Detalhes da tarefa" className="max-w-6xl">
       {task && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             {/* Coluna 1 — título e descrição */}
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-text-secondary">Título</label>
+                <label className="flex h-4 items-center text-xs font-medium text-text-secondary">Título</label>
                 <Input
                   value={title}
                   disabled={!canEdit}
@@ -165,33 +165,35 @@ export function TaskDetailModal({
 
             {/* Coluna 2 — prazo (integrado ao calendário) + urgência */}
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
-                  <CalendarClock size={13} />
-                  Data
-                </label>
-                <Input
-                  type="date"
-                  value={dueDate}
-                  disabled={!canEdit}
-                  onChange={(e) => {
-                    setDueDate(e.target.value);
-                    commitDueAt(e.target.value, dueTime);
-                  }}
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="flex h-4 items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <CalendarClock size={13} />
+                    Data
+                  </label>
+                  <Input
+                    type="date"
+                    value={dueDate}
+                    disabled={!canEdit}
+                    onChange={(e) => {
+                      setDueDate(e.target.value);
+                      commitDueAt(e.target.value, dueTime);
+                    }}
+                  />
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-text-secondary">Horário</label>
-                <Input
-                  type="time"
-                  value={dueTime}
-                  disabled={!canEdit || !dueDate}
-                  onChange={(e) => {
-                    setDueTime(e.target.value);
-                    commitDueAt(dueDate, e.target.value);
-                  }}
-                />
+                <div className="space-y-1.5">
+                  <label className="flex h-4 items-center text-xs font-medium text-text-secondary">Horário</label>
+                  <Input
+                    type="time"
+                    value={dueTime}
+                    disabled={!canEdit || !dueDate}
+                    onChange={(e) => {
+                      setDueTime(e.target.value);
+                      commitDueAt(dueDate, e.target.value);
+                    }}
+                  />
+                </div>
               </div>
 
               {dueDate && (
@@ -221,12 +223,12 @@ export function TaskDetailModal({
 
             {/* Coluna 3 — anexos, com arrastar-e-soltar múltiplos arquivos */}
             <div className="flex min-h-0 flex-col space-y-2">
-              <label className="text-xs font-medium text-text-secondary">
+              <label className="flex h-4 items-center text-xs font-medium text-text-secondary">
                 Anexos {attachments.length > 0 && `(${attachments.length})`}
               </label>
 
               {(variants.length > 0 || canEdit) && (
-                <div className="flex flex-wrap items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => setActiveVariantId(null)}
