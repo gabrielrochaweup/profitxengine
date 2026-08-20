@@ -1,26 +1,10 @@
 import Link from "next/link";
-import {
-  CalendarDays,
-  Mail,
-  Library,
-  MessageSquare,
-  Zap,
-  UsersRound,
-  Newspaper,
-} from "lucide-react";
+import { Newspaper } from "lucide-react";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { getNicheNews } from "@/lib/news/niche-feeds";
 import { getActiveProduct } from "@/lib/products-server";
-
-const SHORTCUTS = [
-  { href: "/conversas", label: "Simulador de Conversas", icon: MessageSquare },
-  { href: "/calendario", label: "Calendário", icon: CalendarDays },
-  { href: "/dinamicas-do-dia", label: "Dinâmicas do Dia", icon: Zap },
-  { href: "/mensagens-x1", label: "Mensagens X1", icon: UsersRound },
-  { href: "/emails", label: "E-mails", icon: Mail },
-  { href: "/prompts", label: "Biblioteca de Prompts", icon: Library },
-];
+import { getNavItems } from "@/lib/products";
 
 // getHours() usa o fuso do servidor (UTC na Vercel), não o do usuário — como
 // o app é só em português pra um público no Brasil, fixamos America/Sao_Paulo
@@ -58,6 +42,7 @@ async function getData() {
     schemaReady: !prompts.error,
     topNews: news[0] ?? null,
     newsLabel: label,
+    productSlug: activeProduct?.slug ?? null,
   };
 }
 
@@ -65,6 +50,12 @@ export default async function DashboardPage() {
   const data = await getData();
   const displayName = data.fullName || data.email || "";
   const greeting = getGreeting();
+  // Puxa direto do mesmo menu lateral do produto ativo — nunca fica
+  // desatualizado quando uma ferramenta nova entra, e já respeita o que é
+  // exclusivo de cada produto (ex: Dinâmicas do Dia só existe pro PROFITX).
+  const shortcuts = data.productSlug
+    ? getNavItems(data.productSlug).filter((item) => item.href !== "/dashboard")
+    : [];
 
   return (
     <div>
@@ -99,8 +90,8 @@ export default async function DashboardPage() {
         <p className="mt-2 text-sm text-text-secondary sm:mt-3 sm:text-base">Comece a criar.</p>
       </div>
 
-      <div className="mx-auto grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
-        {SHORTCUTS.map((shortcut) => (
+      <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+        {shortcuts.map((shortcut) => (
           <Link
             key={shortcut.href}
             href={shortcut.href}
