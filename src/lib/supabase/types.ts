@@ -827,13 +827,14 @@ export interface Database {
           description: string | null;
           position: number;
           completed: boolean;
+          due_at: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: Omit<
           Database["public"]["Tables"]["tasks"]["Row"],
-          "id" | "created_at" | "updated_at" | "position" | "completed" | "description"
+          "id" | "created_at" | "updated_at" | "position" | "completed" | "description" | "due_at"
         > & {
           id?: string;
           created_at?: string;
@@ -841,6 +842,7 @@ export interface Database {
           position?: number;
           completed?: boolean;
           description?: string | null;
+          due_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["tasks"]["Insert"]>;
         Relationships: [];

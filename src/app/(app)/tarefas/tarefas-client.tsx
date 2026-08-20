@@ -113,7 +113,7 @@ export function TarefasClient({
     }
   }
 
-  async function updateTask(id: string, patch: Partial<Pick<Task, "title" | "description" | "completed">>) {
+  async function updateTask(id: string, patch: Partial<Pick<Task, "title" | "description" | "completed" | "due_at">>) {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
     const supabase = createClient();
     const { error } = await supabase
