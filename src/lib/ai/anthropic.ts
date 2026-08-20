@@ -10,7 +10,9 @@ export async function generateText(
 
   const message = await client.messages.create({
     model: params.model,
-    max_tokens: params.maxTokens ?? 2048,
+    // 4096 em vez de 2048 — dá mais folga pra respostas mais longas (ex:
+    // conversas com várias mensagens em JSON) não cortarem no meio.
+    max_tokens: params.maxTokens ?? 4096,
     system: combineSystem(params),
     messages: [{ role: "user", content: params.prompt }],
   });

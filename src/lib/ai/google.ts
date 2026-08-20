@@ -31,7 +31,9 @@ export async function generateText(
     contents: params.prompt,
     config: {
       ...(system ? { systemInstruction: system } : {}),
-      maxOutputTokens: params.maxTokens ?? 2048,
+      // 4096 em vez de 2048 — dá mais folga pra respostas mais longas (ex:
+      // conversas com várias mensagens em JSON) não cortarem no meio.
+      maxOutputTokens: params.maxTokens ?? 4096,
     },
   });
 

@@ -47,7 +47,11 @@ export async function generateText(
 ): Promise<GenerateTextResult> {
   const client = new OpenAI({ apiKey });
   const system = combineSystem(params);
-  const maxTokens = params.maxTokens ?? 2048;
+  // 4096 em vez de 2048: modelos "reasoning" (o1/o3/o4/gpt-5) consomem parte
+  // do orçamento de tokens só com raciocínio interno antes do texto visível
+  // — com 2048 a resposta podia cortar no meio, virando um JSON inválido/
+  // incompleto do lado do cliente.
+  const maxTokens = params.maxTokens ?? 4096;
 
   const completion = await client.chat.completions.create({
     model: params.model,

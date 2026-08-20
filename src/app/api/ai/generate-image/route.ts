@@ -6,6 +6,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getActiveProduct } from "@/lib/products-server";
 import type { AiModule, ImageAspectRatio, ImageContextType, ImageQuality } from "@/lib/supabase/types";
 
+// Geração de imagem pode passar do limite padrão de função serverless do
+// Vercel (10s), principalmente em qualidade alta.
+export const maxDuration = 60;
+
 interface GenerateImageBody {
   module: AiModule;
   prompt: string;

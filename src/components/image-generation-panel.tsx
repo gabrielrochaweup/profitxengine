@@ -225,19 +225,34 @@ export function ImageGenerationPanel({
           referenceImageUrl: referenceImageUrl ?? undefined,
         }),
       });
-      const body = await res.json();
+      // A resposta pode vir vazia (timeout da função no servidor) — nesse
+      // caso res.json() lança um erro de parse cru e confuso. Trata isso
+      // com uma mensagem clara.
+      let body: { url?: string; id?: string; error?: string };
+      try {
+        body = await res.json();
+      } catch {
+        throw new Error(
+          res.ok
+            ? "A resposta demorou demais e voltou vazia. Tente gerar de novo."
+            : `Erro ao gerar imagem (${res.status}). Tente de novo em alguns segundos.`
+        );
+      }
       if (!res.ok) throw new Error(body.error || "Erro ao gerar imagem.");
-      onChange(body.url);
-      if (contextId && body.id && activeProductId) {
+      if (!body.url) throw new Error("A IA não retornou nenhuma imagem. Tente gerar de novo.");
+      const generatedUrl = body.url;
+      const generatedId = body.id;
+      onChange(generatedUrl);
+      if (contextId && generatedId && activeProductId) {
         setLibraryImages((prev) => [
           {
-            id: body.id,
+            id: generatedId,
             product_id: activeProductId,
             context_type: contextType,
             context_id: contextId,
             prompt: effectivePrompt,
             prompt_id: promptMode === "predefinido" ? null : promptId,
-            image_url: body.url,
+            image_url: generatedUrl,
             provider: "",
             model: "",
             format: aspectRatio,

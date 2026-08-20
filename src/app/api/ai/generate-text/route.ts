@@ -6,6 +6,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getApprovalContext, formatApprovalContext } from "@/lib/performance/message-approval";
 import type { AiModule, AiProvider } from "@/lib/supabase/types";
 
+// Geração de texto (principalmente conversas com várias mensagens) pode
+// passar do limite padrão de função serverless do Vercel (10s) — isso
+// cortava a resposta no meio, virando JSON inválido do lado do cliente.
+export const maxDuration = 60;
+
 interface GenerateTextBody {
   module: AiModule;
   prompt: string;

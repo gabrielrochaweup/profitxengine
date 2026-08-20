@@ -208,8 +208,21 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
           promptId: promptMode === "predefinido" ? undefined : promptId ?? undefined,
         }),
       });
-      const body = await res.json();
+      // A resposta pode vir vazia (timeout da função no servidor, geração
+      // demorada) — nesse caso res.json() lança um erro de parse cru e
+      // confuso ("unexpected end of data"). Trata isso com uma mensagem clara.
+      let body: { text?: string; error?: string };
+      try {
+        body = await res.json();
+      } catch {
+        throw new Error(
+          res.ok
+            ? "A resposta demorou demais e voltou vazia. Tente gerar de novo."
+            : `Erro ao gerar conversa (${res.status}). Tente de novo em alguns segundos.`
+        );
+      }
       if (!res.ok) throw new Error(body.error || "Erro ao gerar conversa.");
+      if (!body.text) throw new Error("A IA não retornou nenhum conteúdo. Tente gerar de novo.");
 
       const { contactName, contactHandle, messages } = parseGeneratedConversation(body.text);
       onGenerated(messages, promptMode === "predefinido" ? null : promptId, contactName, contactHandle);
