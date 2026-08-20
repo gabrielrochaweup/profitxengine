@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Paperclip, GripVertical, Clock } from "lucide-react";
+import { Paperclip, GripVertical, Clock, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getUrgencyLevel, URGENCY_TEXT_CLASS, formatDueAt, useMinuteTick } from "../lib/urgency";
 import type { Database } from "@/lib/supabase/types";
@@ -15,9 +15,10 @@ interface TaskCardProps {
   attachmentCount: number;
   onToggleComplete: (completed: boolean) => void;
   onOpen: () => void;
+  onDuplicate: () => void;
 }
 
-export function TaskCard({ task, canEdit, attachmentCount, onToggleComplete, onOpen }: TaskCardProps) {
+export function TaskCard({ task, canEdit, attachmentCount, onToggleComplete, onOpen, onDuplicate }: TaskCardProps) {
   useMinuteTick();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -81,6 +82,19 @@ export function TaskCard({ task, canEdit, attachmentCount, onToggleComplete, onO
           <Paperclip size={11} />
           {attachmentCount}
         </span>
+      )}
+      {canEdit && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDuplicate();
+          }}
+          title="Duplicar tarefa"
+          className="mt-0.5 shrink-0 text-text-muted opacity-0 hover:text-text-primary group-hover:opacity-100"
+        >
+          <Copy size={12} />
+        </button>
       )}
     </div>
   );

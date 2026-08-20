@@ -123,6 +123,31 @@ export function TarefasClient({
     if (error) toast.error("Erro ao salvar a tarefa.");
   }
 
+  async function duplicateTask(id: string) {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const position = tasks.filter((t) => t.column_id === task.column_id).length;
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert({
+        product_id: productId,
+        column_id: task.column_id,
+        title: `${task.title} (cópia)`,
+        description: task.description,
+        due_at: task.due_at,
+        position,
+        created_by: currentUserId,
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      setTasks((prev) => [...prev, data]);
+    } else {
+      toast.error("Erro ao duplicar a tarefa.");
+    }
+  }
+
   async function deleteTask(id: string) {
     const task = tasks.find((t) => t.id === id);
     const ok = await confirm({
@@ -210,6 +235,7 @@ export function TarefasClient({
         onAddTask={addTask}
         onToggleComplete={(id, completed) => updateTask(id, { completed })}
         onOpenTask={setOpenTaskId}
+        onDuplicateTask={duplicateTask}
         onReorderTasks={reorderTasks}
       />
 

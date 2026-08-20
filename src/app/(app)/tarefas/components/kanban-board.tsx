@@ -1,20 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, X, Clock, Paperclip } from "lucide-react";
 import {
   DndContext,
+  DragOverlay,
   closestCorners,
   PointerSensor,
   useSensor,
   useSensors,
   useDroppable,
+  type DragStartEvent,
+  type DragOverEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { TaskCard } from "./task-card";
+import { getUrgencyLevel, URGENCY_TEXT_CLASS, formatDueAt } from "../lib/urgency";
 import type { Database } from "@/lib/supabase/types";
 
 type TaskColumn = Database["public"]["Tables"]["task_columns"]["Row"];
@@ -33,6 +38,7 @@ interface KanbanBoardProps {
   onAddTask: (columnId: string, title: string) => void;
   onToggleComplete: (id: string, completed: boolean) => void;
   onOpenTask: (id: string) => void;
+  onDuplicateTask: (id: string) => void;
   onReorderTasks: (tasks: Task[]) => void;
 }
 
@@ -48,52 +54,107 @@ export function KanbanBoard({
   onAddTask,
   onToggleComplete,
   onOpenTask,
+  onDuplicateTask,
   onReorderTasks,
 }: KanbanBoardProps) {
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
+  const [activeId, setActiveId] = useState<string | null>(null);
+  // Cópia local usada só durante o arraste, pra mover o card entre colunas
+  // visualmente em tempo real (onDragOver) sem gravar no banco a cada
+  // hover — só persiste de verdade uma vez, no drop (handleDragEnd).
+  const [previewTasks, setPreviewTasks] = useState<Task[] | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  const displayTasks = previewTasks ?? tasks;
+  const activeTask = activeId ? displayTasks.find((t) => t.id === activeId) : null;
+
   function tasksForColumn(columnId: string): Task[] {
-    return tasks.filter((t) => t.column_id === columnId).sort((a, b) => a.position - b.position);
+    return displayTasks.filter((t) => t.column_id === columnId).sort((a, b) => a.position - b.position);
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
+    setPreviewTasks(tasks);
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+    const activeTaskId = String(active.id);
+    const overId = String(over.id);
+    if (activeTaskId === overId) return;
+
+    setPreviewTasks((current) => {
+      const list = current ?? tasks;
+      const dragged = list.find((t) => t.id === activeTaskId);
+      if (!dragged) return current;
+
+      const overTask = list.find((t) => t.id === overId);
+      const overColumnId = overTask ? overTask.column_id : columns.some((c) => c.id === overId) ? overId : null;
+      if (!overColumnId) return current;
+      if (dragged.column_id === overColumnId && overTask?.id === dragged.id) return current;
+
+      const withoutDragged = list.filter((t) => t.id !== activeTaskId);
+      const targetList = withoutDragged
+        .filter((t) => t.column_id === overColumnId)
+        .sort((a, b) => a.position - b.position);
+
+      let insertIndex = targetList.length;
+      if (overTask) {
+        const idx = targetList.findIndex((t) => t.id === overTask.id);
+        if (idx !== -1) insertIndex = idx;
+      }
+
+      targetList.splice(insertIndex, 0, { ...dragged, column_id: overColumnId });
+      const reindexedTarget = targetList.map((t, i) => ({ ...t, position: i }));
+      const otherTasks = withoutDragged.filter((t) => t.column_id !== overColumnId);
+      return [...otherTasks, ...reindexedTarget];
+    });
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over) return;
-    const activeTask = tasks.find((t) => t.id === active.id);
-    if (!activeTask) return;
+    setActiveId(null);
+    const finalTasks = previewTasks;
+    setPreviewTasks(null);
+    if (!finalTasks || !event.over) return;
 
-    const overTask = tasks.find((t) => t.id === over.id);
-    const targetColumnId = overTask
-      ? overTask.column_id
-      : columns.some((c) => c.id === over.id)
-        ? String(over.id)
-        : activeTask.column_id;
+    // Recalcula a posição final de cada tarefa dentro da sua coluna (o
+    // preview do onDragOver já deixa isso quase certo, isso só garante
+    // consistência) e só persiste se algo realmente mudou.
+    const byColumn = new Map<string, Task[]>();
+    finalTasks.forEach((t) => {
+      const list = byColumn.get(t.column_id) ?? [];
+      list.push(t);
+      byColumn.set(t.column_id, list);
+    });
+    const recomputed: Task[] = [];
+    byColumn.forEach((list) => {
+      list
+        .sort((a, b) => a.position - b.position)
+        .forEach((t, i) => recomputed.push({ ...t, position: i }));
+    });
 
-    const sourceColumnId = activeTask.column_id;
-    const sourceList = tasksForColumn(sourceColumnId).filter((t) => t.id !== activeTask.id);
-    const targetList = sourceColumnId === targetColumnId ? sourceList : tasksForColumn(targetColumnId);
-
-    let insertIndex = targetList.length;
-    if (overTask && overTask.id !== activeTask.id) {
-      const foundIndex = targetList.findIndex((t) => t.id === overTask.id);
-      if (foundIndex !== -1) insertIndex = foundIndex;
-    }
-
-    const movedTask: Task = { ...activeTask, column_id: targetColumnId };
-    targetList.splice(insertIndex, 0, movedTask);
-
-    const updatedTargetList = targetList.map((t, i) => ({ ...t, position: i }));
-    const updatedSourceList = sourceColumnId === targetColumnId ? [] : sourceList.map((t, i) => ({ ...t, position: i }));
-
-    const changedIds = new Set([...updatedTargetList.map((t) => t.id), ...updatedSourceList.map((t) => t.id)]);
-    const untouched = tasks.filter((t) => !changedIds.has(t.id));
-    onReorderTasks([...untouched, ...updatedTargetList, ...updatedSourceList]);
+    const original = new Map(tasks.map((t) => [t.id, t]));
+    const changed = recomputed.some((t) => {
+      const orig = original.get(t.id);
+      return !orig || orig.column_id !== t.column_id || orig.position !== t.position;
+    });
+    if (changed) onReorderTasks(recomputed);
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => {
+        setActiveId(null);
+        setPreviewTasks(null);
+      }}
+    >
       <div className="flex items-start gap-4 overflow-x-auto pb-4">
         {columns.map((column, index) => (
           <KanbanColumn
@@ -110,6 +171,7 @@ export function KanbanBoard({
             onAddTask={(title) => onAddTask(column.id, title)}
             onToggleComplete={onToggleComplete}
             onOpenTask={onOpenTask}
+            onDuplicateTask={onDuplicateTask}
           />
         ))}
 
@@ -158,7 +220,39 @@ export function KanbanBoard({
           </div>
         )}
       </div>
+
+      <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0, 0, 1)" }}>
+        {activeTask && (
+          <TaskCardPreview
+            task={activeTask}
+            attachmentCount={attachments.filter((a) => a.task_id === activeTask.id).length}
+          />
+        )}
+      </DragOverlay>
     </DndContext>
+  );
+}
+
+function TaskCardPreview({ task, attachmentCount }: { task: Task; attachmentCount: number }) {
+  const urgency = getUrgencyLevel(task.due_at, task.completed);
+  return (
+    <div className="flex w-72 cursor-grabbing items-start gap-2 rounded-lg border border-accent bg-card px-2.5 py-2 text-sm shadow-popover">
+      <div className="min-w-0 flex-1">
+        <p className={cn("truncate text-text-primary", task.completed && "line-through")}>{task.title}</p>
+        {task.due_at && (
+          <span className={cn("mt-0.5 flex items-center gap-1 text-[10px]", URGENCY_TEXT_CLASS[urgency])}>
+            <Clock size={9} />
+            {formatDueAt(task.due_at)}
+          </span>
+        )}
+      </div>
+      {attachmentCount > 0 && (
+        <span className="mt-0.5 flex shrink-0 items-center gap-0.5 text-[11px] text-text-muted">
+          <Paperclip size={11} />
+          {attachmentCount}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -175,6 +269,7 @@ function KanbanColumn({
   onAddTask,
   onToggleComplete,
   onOpenTask,
+  onDuplicateTask,
 }: {
   column: TaskColumn;
   tasks: Task[];
@@ -188,8 +283,9 @@ function KanbanColumn({
   onAddTask: (title: string) => void;
   onToggleComplete: (id: string, completed: boolean) => void;
   onOpenTask: (id: string) => void;
+  onDuplicateTask: (id: string) => void;
 }) {
-  const { setNodeRef } = useDroppable({ id: column.id });
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(column.name);
   const [addingTask, setAddingTask] = useState(false);
@@ -259,7 +355,13 @@ function KanbanColumn({
         )}
       </div>
 
-      <div ref={setNodeRef} className="min-h-[40px] space-y-2">
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "min-h-[40px] space-y-2 rounded-lg transition-colors",
+          isOver && "bg-accent/5 ring-1 ring-inset ring-accent/30"
+        )}
+      >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
             <TaskCard
@@ -269,6 +371,7 @@ function KanbanColumn({
               attachmentCount={attachments.filter((a) => a.task_id === task.id).length}
               onToggleComplete={(completed) => onToggleComplete(task.id, completed)}
               onOpen={() => onOpenTask(task.id)}
+              onDuplicate={() => onDuplicateTask(task.id)}
             />
           ))}
         </SortableContext>
