@@ -40,6 +40,14 @@ export function ExportControls({ platform }: ExportControlsProps) {
     setDownloading(true);
     (async () => {
       try {
+        // Sem isso, a lib pode tirar o "print" do DOM antes da fonte (Geist)
+        // terminar de carregar — o navegador renderiza com uma fonte de
+        // fallback nesse instante, que tem largura de caractere diferente e
+        // quebra o texto em linhas diferentes do que aparece na tela.
+        if (typeof document !== "undefined" && document.fonts?.ready) {
+          await document.fonts.ready;
+        }
+
         const { toPng } = await import("html-to-image");
         const dataUrl = await toPng(node, {
           pixelRatio: EXPORT_PIXEL_RATIO,
