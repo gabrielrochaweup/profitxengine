@@ -43,6 +43,12 @@ export const CLIENT_LOCALE_LABELS: Record<ClientLocale, string> = {
   us: "Inglês",
   es: "Espanhol",
 };
+// Versão curta pra caber junto de outros controles na mesma linha (ex: carrossel do preview).
+export const CLIENT_LOCALE_SHORT_LABELS: Record<ClientLocale, string> = {
+  br: "PT",
+  us: "EN",
+  es: "ES",
+};
 
 export interface ConversationTranslation {
   contact_name: string | null;

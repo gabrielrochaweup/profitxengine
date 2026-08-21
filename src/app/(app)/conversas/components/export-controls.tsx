@@ -86,8 +86,14 @@ export function ExportControls({ platform }: ExportControlsProps) {
   }
 
   return (
-    <Button type="button" onClick={handleDownload} disabled={downloading} className="no-export shadow-popover">
-      <Download size={16} />
+    <Button
+      type="button"
+      size="sm"
+      onClick={handleDownload}
+      disabled={downloading}
+      className="no-export shadow-popover shrink-0"
+    >
+      <Download size={14} />
       {downloading ? "Gerando..." : "Baixar imagem"}
     </Button>
   );

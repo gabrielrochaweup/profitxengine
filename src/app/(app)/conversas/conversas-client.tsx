@@ -365,7 +365,7 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
               </ExportCanvas>
             </div>
 
-            <div className="flex w-full flex-wrap items-center justify-between gap-3">
+            <div className="flex w-full items-center justify-between gap-2">
               <ExportControls platform={platform} />
               <LocaleCarousel active={activeLocale} onChange={setActiveLocale} />
             </div>
