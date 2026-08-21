@@ -213,6 +213,7 @@ export function TarefasClient({
       return;
     }
     const { data: urlData } = supabase.storage.from("task-attachments").getPublicUrl(path);
+    const position = attachments.filter((a) => a.task_id === taskId && a.variant_id === variantId).length;
     const { data, error } = await supabase
       .from("task_attachments")
       .insert({
@@ -222,6 +223,7 @@ export function TarefasClient({
         file_name: file.name,
         file_type: file.type || null,
         variant_id: variantId,
+        position,
         created_by: currentUserId,
       })
       .select()
@@ -241,6 +243,22 @@ export function TarefasClient({
     } else {
       toast.error("Erro ao remover o anexo.");
     }
+  }
+
+  // Chamado pelo TaskDetailModal já com a posição recalculada pros anexos
+  // visíveis no momento do arraste (uma variação por vez, ou "Todos" quando
+  // a tarefa não tem nenhuma variação cadastrada).
+  function reorderAttachments(nextAttachments: TaskAttachment[]) {
+    setAttachments((prev) => {
+      const byId = new Map(nextAttachments.map((a) => [a.id, a]));
+      return prev.map((a) => byId.get(a.id) ?? a);
+    });
+    const supabase = createClient();
+    Promise.all(
+      nextAttachments.map((a) => supabase.from("task_attachments").update({ position: a.position }).eq("id", a.id))
+    ).then((results) => {
+      if (results.some((r) => r.error)) toast.error("Erro ao reordenar os anexos.");
+    });
   }
 
   async function addVariant(taskId: string, name: string): Promise<TaskAttachmentVariant | null> {
@@ -315,6 +333,7 @@ export function TarefasClient({
         onDelete={() => openTask && deleteTask(openTask.id)}
         onAddAttachment={(file, variantId) => openTask && addAttachment(openTask.id, file, variantId)}
         onRemoveAttachment={removeAttachment}
+        onReorderAttachments={reorderAttachments}
         onAddVariant={(name) => (openTask ? addVariant(openTask.id, name) : Promise.resolve(null))}
         onRenameVariant={renameVariant}
         onDeleteVariant={deleteVariant}

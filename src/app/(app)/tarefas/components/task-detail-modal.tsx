@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Paperclip, Trash2, X, FileText, CalendarClock, Circle, Plus, Pencil, Check } from "lucide-react";
+import { Paperclip, Trash2, X, FileText, CalendarClock, Circle, Plus, Pencil, Check, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +34,7 @@ interface TaskDetailModalProps {
   onDelete: () => void;
   onAddAttachment: (file: File, variantId: string | null) => void;
   onRemoveAttachment: (id: string) => void;
+  onReorderAttachments: (attachments: TaskAttachment[]) => void;
   onAddVariant: (name: string) => Promise<TaskAttachmentVariant | null>;
   onRenameVariant: (id: string, name: string) => void;
   onDeleteVariant: (id: string) => void;
@@ -65,6 +76,7 @@ export function TaskDetailModal({
   onDelete,
   onAddAttachment,
   onRemoveAttachment,
+  onReorderAttachments,
   onAddVariant,
   onRenameVariant,
   onDeleteVariant,
@@ -98,9 +110,37 @@ export function TaskDetailModal({
     onUpdate({ due_at: combineDateTime(nextDate, nextTime) });
   }
 
-  const visibleAttachments =
-    activeVariantId === null ? attachments : attachments.filter((a) => a.variant_id === activeVariantId);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  // Arrastar só reordena de verdade quando dá pra manter uma sequência
+  // coerente: dentro de uma variação específica, ou em "Todos" quando a
+  // tarefa não tem nenhuma variação (aí "Todos" é a única lista que existe).
+  // Com variações cadastradas, "Todos" mistura sequências independentes —
+  // arrastar ali não teria uma ordem única e correta pra persistir.
+  const canReorder = activeVariantId !== null || variants.length === 0;
+  const variantPosition = new Map(variants.map((v) => [v.id, v.position]));
+
+  const visibleAttachments = (
+    activeVariantId === null ? attachments : attachments.filter((a) => a.variant_id === activeVariantId)
+  )
+    .slice()
+    .sort((a, b) => {
+      const av = a.variant_id ? (variantPosition.get(a.variant_id) ?? 0) : -1;
+      const bv = b.variant_id ? (variantPosition.get(b.variant_id) ?? 0) : -1;
+      if (av !== bv) return av - bv;
+      return a.position - b.position;
+    });
   const activeVariantName = variants.find((v) => v.id === activeVariantId)?.name ?? null;
+
+  function handleAttachmentDragEnd(event: DragEndEvent) {
+    if (!canReorder) return;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = visibleAttachments.findIndex((a) => a.id === active.id);
+    const newIndex = visibleAttachments.findIndex((a) => a.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(visibleAttachments, oldIndex, newIndex).map((a, i) => ({ ...a, position: i }));
+    onReorderAttachments(reordered);
+  }
 
   async function handleFilesSelected(files: FileList | File[]) {
     const fileArray = Array.from(files);
@@ -376,50 +416,34 @@ export function TaskDetailModal({
                     {activeVariantName ? `Nenhum anexo em "${activeVariantName}" ainda.` : "Nenhum anexo ainda."}
                   </p>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {visibleAttachments.map((attachment) => {
-                      const attachmentVariant =
-                        activeVariantId === null && attachment.variant_id
-                          ? variants.find((v) => v.id === attachment.variant_id)
-                          : null;
-                      return (
-                        <div key={attachment.id} className="group relative overflow-hidden rounded-lg border border-border">
-                          <a href={attachment.file_url} target="_blank" rel="noreferrer" className="block">
-                            {attachment.file_type?.startsWith("image/") ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={attachment.file_url}
-                                alt={attachment.file_name}
-                                className="h-20 w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-20 w-full flex-col items-center justify-center gap-1 bg-card-hover px-1">
-                                <FileText size={20} className="text-text-muted" />
-                                <span className="w-full truncate px-1 text-center text-[10px] text-text-muted">
-                                  {attachment.file_name}
-                                </span>
-                              </div>
-                            )}
-                          </a>
-                          {attachmentVariant && (
-                            <span className="absolute bottom-1 left-1 rounded-button bg-black/60 px-1.5 py-0.5 text-[9px] text-white">
-                              {attachmentVariant.name}
-                            </span>
-                          )}
-                          {canEdit && (
-                            <button
-                              type="button"
-                              onClick={() => onRemoveAttachment(attachment.id)}
-                              title="Remover anexo"
-                              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                            >
-                              <X size={11} />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleAttachmentDragEnd}>
+                    <SortableContext
+                      items={visibleAttachments.map((a) => a.id)}
+                      strategy={rectSortingStrategy}
+                      disabled={!canEdit || !canReorder}
+                    >
+                      <div className="grid grid-cols-2 gap-2">
+                        {visibleAttachments.map((attachment, index) => {
+                          const attachmentVariant =
+                            activeVariantId === null && attachment.variant_id
+                              ? variants.find((v) => v.id === attachment.variant_id)
+                              : null;
+                          return (
+                            <AttachmentThumb
+                              key={attachment.id}
+                              attachment={attachment}
+                              index={index}
+                              variantName={attachmentVariant?.name ?? null}
+                              showPosition={canReorder}
+                              canDrag={canEdit && canReorder}
+                              canRemove={canEdit}
+                              onRemove={() => onRemoveAttachment(attachment.id)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
             </div>
@@ -445,5 +469,86 @@ export function TaskDetailModal({
         </div>
       )}
     </Modal>
+  );
+}
+
+function AttachmentThumb({
+  attachment,
+  index,
+  variantName,
+  showPosition,
+  canDrag,
+  canRemove,
+  onRemove,
+}: {
+  attachment: TaskAttachment;
+  index: number;
+  variantName: string | null;
+  showPosition: boolean;
+  canDrag: boolean;
+  canRemove: boolean;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: attachment.id,
+    disabled: !canDrag,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group relative overflow-hidden rounded-lg border border-border"
+    >
+      <a href={attachment.file_url} target="_blank" rel="noreferrer" className="block">
+        {attachment.file_type?.startsWith("image/") ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={attachment.file_url} alt={attachment.file_name} className="h-20 w-full object-cover" />
+        ) : (
+          <div className="flex h-20 w-full flex-col items-center justify-center gap-1 bg-card-hover px-1">
+            <FileText size={20} className="text-text-muted" />
+            <span className="w-full truncate px-1 text-center text-[10px] text-text-muted">
+              {attachment.file_name}
+            </span>
+          </div>
+        )}
+      </a>
+      {showPosition && (
+        <span className="absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-medium text-white">
+          {index + 1}
+        </span>
+      )}
+      {variantName && (
+        <span className="absolute bottom-1 left-1 rounded-button bg-black/60 px-1.5 py-0.5 text-[9px] text-white">
+          {variantName}
+        </span>
+      )}
+      {canDrag && (
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          title="Arrastar pra reordenar"
+          className="absolute bottom-1 right-1 flex h-5 w-5 cursor-grab touch-none items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          <GripVertical size={11} />
+        </button>
+      )}
+      {canRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          title="Remover anexo"
+          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          <X size={11} />
+        </button>
+      )}
+    </div>
   );
 }

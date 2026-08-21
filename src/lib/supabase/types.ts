@@ -882,13 +882,18 @@ export interface Database {
           file_name: string;
           file_type: string | null;
           variant_id: string | null;
+          position: number;
           created_by: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["task_attachments"]["Row"], "id" | "created_at" | "variant_id"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["task_attachments"]["Row"],
+          "id" | "created_at" | "variant_id" | "position"
+        > & {
           id?: string;
           created_at?: string;
           variant_id?: string | null;
+          position?: number;
         };
         Update: Partial<Database["public"]["Tables"]["task_attachments"]["Insert"]>;
         Relationships: [];
