@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Save } from "lucide-react";
+import { Plus, Save, ChevronDown, ChevronUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { pickAvatar } from "@/lib/avatar-library";
 import { Card } from "@/components/ui/card";
@@ -67,6 +67,7 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [lastPromptId, setLastPromptId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [headerOpen, setHeaderOpen] = useState(false);
 
   const [platform, setPlatform] = useState<Platform>(DEFAULT_STATE.platform);
   const [showFrame, setShowFrame] = useState(DEFAULT_STATE.showFrame);
@@ -255,36 +256,47 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_480px]">
         <div className="space-y-6">
           <Card className="p-4">
-            <h3 className="mb-3 text-sm font-medium text-text-primary">Cabeçalho</h3>
-            <HeaderEditor
-              platform={platform}
-              contactName={active.contactName}
-              contactAvatarUrl={contactAvatarUrl}
-              contactStatus={active.contactStatus}
-              statusBarTime={statusBarTime}
-              crmInstanceName={crmInstanceName}
-              crmAssigneeName={crmAssigneeName}
-              crmAssigneeAvatarUrl={crmAssigneeAvatarUrl}
-              crmStatus={crmStatus}
-              onChange={(patch) => {
-                if (patch.contactName !== undefined || patch.contactStatus !== undefined) {
-                  setVersions((prev) => ({
-                    ...prev,
-                    [activeLocale]: {
-                      ...prev[activeLocale],
-                      ...(patch.contactName !== undefined ? { contactName: patch.contactName } : {}),
-                      ...(patch.contactStatus !== undefined ? { contactStatus: patch.contactStatus } : {}),
-                    },
-                  }));
-                }
-                if (patch.contactAvatarUrl !== undefined) setContactAvatarUrl(patch.contactAvatarUrl);
-                if (patch.statusBarTime !== undefined) setStatusBarTime(patch.statusBarTime);
-                if (patch.crmInstanceName !== undefined) setCrmInstanceName(patch.crmInstanceName);
-                if (patch.crmAssigneeName !== undefined) setCrmAssigneeName(patch.crmAssigneeName);
-                if (patch.crmAssigneeAvatarUrl !== undefined) setCrmAssigneeAvatarUrl(patch.crmAssigneeAvatarUrl);
-                if (patch.crmStatus !== undefined) setCrmStatus(patch.crmStatus);
-              }}
-            />
+            <button
+              type="button"
+              onClick={() => setHeaderOpen((v) => !v)}
+              className="flex w-full items-center justify-between"
+            >
+              <h3 className="text-sm font-medium text-text-primary">Cabeçalho</h3>
+              {headerOpen ? <ChevronUp size={16} className="text-text-muted" /> : <ChevronDown size={16} className="text-text-muted" />}
+            </button>
+            {headerOpen && (
+              <div className="mt-3">
+                <HeaderEditor
+                  platform={platform}
+                  contactName={active.contactName}
+                  contactAvatarUrl={contactAvatarUrl}
+                  contactStatus={active.contactStatus}
+                  statusBarTime={statusBarTime}
+                  crmInstanceName={crmInstanceName}
+                  crmAssigneeName={crmAssigneeName}
+                  crmAssigneeAvatarUrl={crmAssigneeAvatarUrl}
+                  crmStatus={crmStatus}
+                  onChange={(patch) => {
+                    if (patch.contactName !== undefined || patch.contactStatus !== undefined) {
+                      setVersions((prev) => ({
+                        ...prev,
+                        [activeLocale]: {
+                          ...prev[activeLocale],
+                          ...(patch.contactName !== undefined ? { contactName: patch.contactName } : {}),
+                          ...(patch.contactStatus !== undefined ? { contactStatus: patch.contactStatus } : {}),
+                        },
+                      }));
+                    }
+                    if (patch.contactAvatarUrl !== undefined) setContactAvatarUrl(patch.contactAvatarUrl);
+                    if (patch.statusBarTime !== undefined) setStatusBarTime(patch.statusBarTime);
+                    if (patch.crmInstanceName !== undefined) setCrmInstanceName(patch.crmInstanceName);
+                    if (patch.crmAssigneeName !== undefined) setCrmAssigneeName(patch.crmAssigneeName);
+                    if (patch.crmAssigneeAvatarUrl !== undefined) setCrmAssigneeAvatarUrl(patch.crmAssigneeAvatarUrl);
+                    if (patch.crmStatus !== undefined) setCrmStatus(patch.crmStatus);
+                  }}
+                />
+              </div>
+            )}
           </Card>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -335,8 +347,6 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
 
         <div className="mx-auto w-full max-w-[480px]">
           <Card className="flex flex-col items-center gap-4 p-6">
-            <LocaleCarousel active={activeLocale} onChange={setActiveLocale} />
-
             <div className="w-full overflow-x-auto">
               <ExportCanvas>
                 <PhonePreview
@@ -355,7 +365,10 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
               </ExportCanvas>
             </div>
 
-            <ExportControls platform={platform} />
+            <div className="flex w-full flex-wrap items-center justify-between gap-3">
+              <ExportControls platform={platform} />
+              <LocaleCarousel active={activeLocale} onChange={setActiveLocale} />
+            </div>
           </Card>
         </div>
       </div>
