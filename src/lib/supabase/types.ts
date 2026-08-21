@@ -32,6 +32,25 @@ export interface ConversationMessage {
   image_url?: string | null;
 }
 
+// Idiomas gerados automaticamente pra cada conversa fake — "br" é o idioma
+// principal (fica nas colunas antigas contact_name/contact_status/messages,
+// pra não quebrar conversas salvas antes dessa feature); "us"/"es" ficam
+// dentro da coluna translations.
+export const CLIENT_LOCALES = ["br", "us", "es"] as const;
+export type ClientLocale = (typeof CLIENT_LOCALES)[number];
+export const CLIENT_LOCALE_LABELS: Record<ClientLocale, string> = {
+  br: "Português",
+  us: "Inglês",
+  es: "Espanhol",
+};
+
+export interface ConversationTranslation {
+  contact_name: string | null;
+  contact_status: string | null;
+  messages: ConversationMessage[];
+}
+export type ConversationTranslations = Partial<Record<Extract<ClientLocale, "us" | "es">, ConversationTranslation>>;
+
 export type TradingProduct = "pepe" | "live" | "copy";
 export type TradingWindow = "dia" | "semana" | "mes" | "total";
 export type StudentSegment = "iniciante" | "avancado" | "inativo";
@@ -139,6 +158,7 @@ export interface Database {
           contact_avatar_url: string | null;
           contact_status: string | null;
           messages: ConversationMessage[];
+          translations: ConversationTranslations | null;
           prompt_id: string | null;
           tema: string | null;
           export_format: string | null;

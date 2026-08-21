@@ -16,7 +16,15 @@ import { MessageEditor } from "./components/message-editor";
 import { HeaderEditor } from "./components/header-editor";
 import { AiGeneratePanel } from "./components/ai-generate-panel";
 import { HistoryPanel } from "./components/history-panel";
-import type { ConversationMessage, Database, Platform } from "@/lib/supabase/types";
+import { LocaleCarousel } from "./components/locale-carousel";
+import { CLIENT_LOCALES } from "@/lib/supabase/types";
+import type {
+  ClientLocale,
+  ConversationMessage,
+  ConversationTranslations,
+  Database,
+  Platform,
+} from "@/lib/supabase/types";
 
 type FakeConversation = Database["public"]["Tables"]["fake_conversations"]["Row"];
 
@@ -25,16 +33,27 @@ interface ConversasClientProps {
   currentUserId: string;
 }
 
+interface LocaleVersion {
+  contactName: string;
+  contactStatus: string;
+  messages: ConversationMessage[];
+}
+
+function makeDefaultVersions(): Record<ClientLocale, LocaleVersion> {
+  return {
+    br: { contactName: "Ana Trader", contactStatus: "online", messages: [] },
+    us: { contactName: "", contactStatus: "", messages: [] },
+    es: { contactName: "", contactStatus: "", messages: [] },
+  };
+}
+
 const DEFAULT_STATE = {
-  platform: "whatsapp" as Platform,
-  showFrame: true,
+  platform: "instagram" as Platform,
+  showFrame: false,
   title: "",
   tema: "",
-  contactName: "Ana Trader",
   contactAvatarUrl: null as string | null,
-  contactStatus: "online",
   statusBarTime: "9:41",
-  messages: [] as ConversationMessage[],
   crmInstanceName: "",
   crmAssigneeName: "",
   crmAssigneeAvatarUrl: null as string | null,
@@ -53,11 +72,10 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
   const [showFrame, setShowFrame] = useState(DEFAULT_STATE.showFrame);
   const [title, setTitle] = useState(DEFAULT_STATE.title);
   const [tema, setTema] = useState(DEFAULT_STATE.tema);
-  const [contactName, setContactName] = useState(DEFAULT_STATE.contactName);
   const [contactAvatarUrl, setContactAvatarUrl] = useState<string | null>(DEFAULT_STATE.contactAvatarUrl);
-  const [contactStatus, setContactStatus] = useState(DEFAULT_STATE.contactStatus);
   const [statusBarTime, setStatusBarTime] = useState(DEFAULT_STATE.statusBarTime);
-  const [messages, setMessages] = useState<ConversationMessage[]>(DEFAULT_STATE.messages);
+  const [versions, setVersions] = useState<Record<ClientLocale, LocaleVersion>>(makeDefaultVersions());
+  const [activeLocale, setActiveLocale] = useState<ClientLocale>("br");
   const [crmInstanceName, setCrmInstanceName] = useState(DEFAULT_STATE.crmInstanceName);
   const [crmAssigneeName, setCrmAssigneeName] = useState(DEFAULT_STATE.crmAssigneeName);
   const [crmAssigneeAvatarUrl, setCrmAssigneeAvatarUrl] = useState<string | null>(DEFAULT_STATE.crmAssigneeAvatarUrl);
@@ -70,11 +88,10 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
     setShowFrame(DEFAULT_STATE.showFrame);
     setTitle(DEFAULT_STATE.title);
     setTema(DEFAULT_STATE.tema);
-    setContactName(DEFAULT_STATE.contactName);
     setContactAvatarUrl(DEFAULT_STATE.contactAvatarUrl);
-    setContactStatus(DEFAULT_STATE.contactStatus);
     setStatusBarTime(DEFAULT_STATE.statusBarTime);
-    setMessages(DEFAULT_STATE.messages);
+    setVersions(makeDefaultVersions());
+    setActiveLocale("br");
     setCrmInstanceName(DEFAULT_STATE.crmInstanceName);
     setCrmAssigneeName(DEFAULT_STATE.crmAssigneeName);
     setCrmAssigneeAvatarUrl(DEFAULT_STATE.crmAssigneeAvatarUrl);
@@ -93,16 +110,32 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
   }, []);
 
   function loadConversation(conversation: FakeConversation) {
+    const translations = (conversation.translations as ConversationTranslations | null) ?? {};
     setCurrentId(conversation.id);
     setLastPromptId(conversation.prompt_id);
     setPlatform(conversation.platform);
     setTitle(conversation.title ?? "");
     setTema(conversation.tema ?? "");
-    setContactName(conversation.contact_name ?? "");
     setContactAvatarUrl(conversation.contact_avatar_url);
-    setContactStatus(conversation.contact_status ?? "");
     setStatusBarTime("9:41");
-    setMessages((conversation.messages as ConversationMessage[]) ?? []);
+    setVersions({
+      br: {
+        contactName: conversation.contact_name ?? "",
+        contactStatus: conversation.contact_status ?? "",
+        messages: (conversation.messages as ConversationMessage[]) ?? [],
+      },
+      us: {
+        contactName: translations.us?.contact_name ?? "",
+        contactStatus: translations.us?.contact_status ?? "",
+        messages: translations.us?.messages ?? [],
+      },
+      es: {
+        contactName: translations.es?.contact_name ?? "",
+        contactStatus: translations.es?.contact_status ?? "",
+        messages: translations.es?.messages ?? [],
+      },
+    });
+    setActiveLocale("br");
     setCrmInstanceName(conversation.crm_instance_name ?? "");
     setCrmAssigneeName(conversation.crm_assignee_name ?? "");
     setCrmAssigneeAvatarUrl(conversation.crm_assignee_avatar_url);
@@ -112,13 +145,26 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
   async function handleSave() {
     setSaving(true);
     const supabase = createClient();
+    const translations: ConversationTranslations = {
+      us: {
+        contact_name: versions.us.contactName || null,
+        contact_status: versions.us.contactStatus || null,
+        messages: versions.us.messages,
+      },
+      es: {
+        contact_name: versions.es.contactName || null,
+        contact_status: versions.es.contactStatus || null,
+        messages: versions.es.messages,
+      },
+    };
     const payload = {
       platform,
       title: title || null,
-      contact_name: contactName || null,
+      contact_name: versions.br.contactName || null,
       contact_avatar_url: contactAvatarUrl,
-      contact_status: contactStatus || null,
-      messages,
+      contact_status: versions.br.contactStatus || null,
+      messages: versions.br.messages,
+      translations,
       prompt_id: lastPromptId,
       tema: tema || null,
       export_format: "stories",
@@ -173,6 +219,8 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
     }
   }
 
+  const active = versions[activeLocale];
+
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -181,7 +229,7 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
           {platform !== "crm" && (
             <label className="flex items-center gap-1.5 text-xs text-text-secondary">
               <input type="checkbox" checked={showFrame} onChange={(e) => setShowFrame(e.target.checked)} />
-              Moldura de celular
+              Moldura de celular (opcional)
             </label>
           )}
         </div>
@@ -210,18 +258,26 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
             <h3 className="mb-3 text-sm font-medium text-text-primary">Cabeçalho</h3>
             <HeaderEditor
               platform={platform}
-              contactName={contactName}
+              contactName={active.contactName}
               contactAvatarUrl={contactAvatarUrl}
-              contactStatus={contactStatus}
+              contactStatus={active.contactStatus}
               statusBarTime={statusBarTime}
               crmInstanceName={crmInstanceName}
               crmAssigneeName={crmAssigneeName}
               crmAssigneeAvatarUrl={crmAssigneeAvatarUrl}
               crmStatus={crmStatus}
               onChange={(patch) => {
-                if (patch.contactName !== undefined) setContactName(patch.contactName);
+                if (patch.contactName !== undefined || patch.contactStatus !== undefined) {
+                  setVersions((prev) => ({
+                    ...prev,
+                    [activeLocale]: {
+                      ...prev[activeLocale],
+                      ...(patch.contactName !== undefined ? { contactName: patch.contactName } : {}),
+                      ...(patch.contactStatus !== undefined ? { contactStatus: patch.contactStatus } : {}),
+                    },
+                  }));
+                }
                 if (patch.contactAvatarUrl !== undefined) setContactAvatarUrl(patch.contactAvatarUrl);
-                if (patch.contactStatus !== undefined) setContactStatus(patch.contactStatus);
                 if (patch.statusBarTime !== undefined) setStatusBarTime(patch.statusBarTime);
                 if (patch.crmInstanceName !== undefined) setCrmInstanceName(patch.crmInstanceName);
                 if (patch.crmAssigneeName !== undefined) setCrmAssigneeName(patch.crmAssigneeName);
@@ -235,44 +291,69 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
             <Card className="h-fit p-4">
               <AiGeneratePanel
                 platform={platform}
-                hasExistingMessages={messages.length > 0}
-                onGenerated={(generated, promptId, contactNameGenerated, contactHandleGenerated) => {
-                  setMessages(generated);
+                hasExistingMessages={CLIENT_LOCALES.some((loc) => versions[loc].messages.length > 0)}
+                onGenerated={(byLocale, promptId) => {
                   setLastPromptId(promptId);
-                  if (contactNameGenerated) setContactName(contactNameGenerated);
-                  // O handle só faz sentido no Instagram — no WhatsApp/CRM esse mesmo
-                  // campo (contactStatus) significa "online/visto por último".
-                  if (contactHandleGenerated && platform === "instagram") {
-                    setContactStatus(contactHandleGenerated.startsWith("@") ? contactHandleGenerated : `@${contactHandleGenerated}`);
-                  }
+                  setVersions((prev) => {
+                    const next = { ...prev };
+                    for (const loc of CLIENT_LOCALES) {
+                      const generated = byLocale[loc];
+                      if (!generated) continue;
+                      // O handle só faz sentido no Instagram — no WhatsApp/CRM esse mesmo
+                      // campo (contactStatus) significa "online/visto por último".
+                      const contactStatus =
+                        platform === "instagram" && generated.contactHandle
+                          ? generated.contactHandle.startsWith("@")
+                            ? generated.contactHandle
+                            : `@${generated.contactHandle}`
+                          : prev[loc].contactStatus;
+                      next[loc] = {
+                        contactName: generated.contactName ?? prev[loc].contactName,
+                        contactStatus,
+                        messages: generated.messages,
+                      };
+                    }
+                    return next;
+                  });
+                  setActiveLocale("br");
                 }}
               />
             </Card>
 
             <Card className="h-fit p-4">
               <h3 className="mb-3 text-sm font-medium text-text-primary">Mensagens</h3>
-              <MessageEditor platform={platform} messages={messages} onChange={setMessages} />
+              <MessageEditor
+                platform={platform}
+                messages={active.messages}
+                onChange={(messages) =>
+                  setVersions((prev) => ({ ...prev, [activeLocale]: { ...prev[activeLocale], messages } }))
+                }
+              />
             </Card>
           </div>
         </div>
 
         <div className="mx-auto w-full max-w-[480px]">
-          <Card className="flex flex-col items-center gap-4 overflow-x-auto p-6">
-            <ExportCanvas>
-              <PhonePreview
-                platform={platform}
-                showFrame={showFrame}
-                contactName={contactName}
-                contactAvatarUrl={contactAvatarUrl}
-                contactStatus={contactStatus}
-                statusBarTime={statusBarTime}
-                messages={messages}
-                crmInstanceName={crmInstanceName}
-                crmAssigneeName={crmAssigneeName}
-                crmAssigneeAvatarUrl={crmAssigneeAvatarUrl}
-                crmStatus={crmStatus}
-              />
-            </ExportCanvas>
+          <Card className="flex flex-col items-center gap-4 p-6">
+            <LocaleCarousel active={activeLocale} onChange={setActiveLocale} />
+
+            <div className="w-full overflow-x-auto">
+              <ExportCanvas>
+                <PhonePreview
+                  platform={platform}
+                  showFrame={showFrame}
+                  contactName={active.contactName}
+                  contactAvatarUrl={contactAvatarUrl}
+                  contactStatus={active.contactStatus}
+                  statusBarTime={statusBarTime}
+                  messages={active.messages}
+                  crmInstanceName={crmInstanceName}
+                  crmAssigneeName={crmAssigneeName}
+                  crmAssigneeAvatarUrl={crmAssigneeAvatarUrl}
+                  crmStatus={crmStatus}
+                />
+              </ExportCanvas>
+            </div>
 
             <ExportControls platform={platform} />
           </Card>

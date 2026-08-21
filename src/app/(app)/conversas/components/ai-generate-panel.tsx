@@ -9,14 +9,13 @@ import { Button } from "@/components/ui/button";
 import { PromptPicker } from "@/components/prompt-picker";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { createClient } from "@/lib/supabase/client";
-import type { ConversationMessage, Database, Platform } from "@/lib/supabase/types";
+import { CLIENT_LOCALES, CLIENT_LOCALE_LABELS } from "@/lib/supabase/types";
+import type { ClientLocale, ConversationMessage, Database, Platform } from "@/lib/supabase/types";
 
 type TestimonialTemplate = Database["public"]["Tables"]["testimonial_prompt_templates"]["Row"];
 type TestimonialStyle = Database["public"]["Tables"]["testimonial_prompt_styles"]["Row"];
 type TestimonialVariation = Database["public"]["Tables"]["testimonial_prompt_variations"]["Row"];
 type TestimonialImageVariant = Database["public"]["Tables"]["testimonial_prompt_image_variants"]["Row"];
-
-type ClientLocale = "br" | "us" | "es";
 
 // Instrução fixa sobre o atendente — não vem de dropdown porque o pedido foi
 // explícito: ele sempre atende do mesmo jeito, uma mensagem só, bem escrita.
@@ -50,14 +49,16 @@ function assembleTestimonialPrompt(
   return `${text}\n\n${getAttendantInstruction(locale)}`;
 }
 
+export interface GeneratedConversation {
+  contactName: string | null;
+  contactHandle: string | null;
+  messages: ConversationMessage[];
+}
+export type GeneratedConversationsByLocale = Partial<Record<ClientLocale, GeneratedConversation>>;
+
 interface AiGeneratePanelProps {
   platform: Platform;
-  onGenerated: (
-    messages: ConversationMessage[],
-    promptId: string | null,
-    contactName: string | null,
-    contactHandle: string | null
-  ) => void;
+  onGenerated: (byLocale: GeneratedConversationsByLocale, promptId: string | null) => void;
   hasExistingMessages: boolean;
 }
 
@@ -88,12 +89,6 @@ Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois) se
 "left" é o contato, "right" é o dono da conta que está simulando a tela. Gere no máximo 12 mensagens em "messages", com horários plausíveis e crescentes.`;
 }
 
-interface GeneratedConversation {
-  contactName: string | null;
-  contactHandle: string | null;
-  messages: ConversationMessage[];
-}
-
 function parseGeneratedConversation(raw: string): GeneratedConversation {
   const cleaned = raw.trim().replace(/^```(json)?/i, "").replace(/```$/, "").trim();
   const parsed = JSON.parse(cleaned);
@@ -119,7 +114,6 @@ function parseGeneratedConversation(raw: string): GeneratedConversation {
 
 export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: AiGeneratePanelProps) {
   const confirm = useConfirm();
-  const [locale, setLocale] = useState<ClientLocale>("br");
   const [promptMode, setPromptMode] = useState<"livre" | "predefinido">("livre");
   const [prompt, setPrompt] = useState("");
   const [promptId, setPromptId] = useState<string | null>(null);
@@ -163,6 +157,8 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
   const selectedVariation = variations.find((v) => v.id === variationId) ?? null;
   const selectedImageVariant = imageVariants.find((iv) => iv.id === imageVariantId) ?? null;
 
+  // Preview/cópia do prompt pré-definido usa sempre a versão em português —
+  // as versões en/es são montadas na hora de gerar, uma pra cada idioma.
   const assembledPrompt = useMemo(() => {
     if (!selectedTemplate) return "";
     return assembleTestimonialPrompt(
@@ -171,9 +167,24 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
       selectedVariation?.body ?? "",
       selectedImageVariant?.body ?? "",
       detail,
-      locale
+      "br"
     );
-  }, [selectedTemplate, selectedStyle, selectedVariation, selectedImageVariant, detail, locale]);
+  }, [selectedTemplate, selectedStyle, selectedVariation, selectedImageVariant, detail]);
+
+  function getEffectivePrompt(loc: ClientLocale) {
+    if (promptMode === "predefinido") {
+      if (!selectedTemplate) return "";
+      return assembleTestimonialPrompt(
+        selectedTemplate.body,
+        selectedStyle?.body ?? "",
+        selectedVariation?.body ?? "",
+        selectedImageVariant?.body ?? "",
+        detail,
+        loc
+      );
+    }
+    return prompt;
+  }
 
   async function handleCopyPredefinido() {
     if (!assembledPrompt) return;
@@ -183,12 +194,11 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
   }
 
   async function handleGenerate() {
-    const effectivePrompt = promptMode === "predefinido" ? assembledPrompt : prompt;
-    if (!effectivePrompt.trim()) return;
+    if (!getEffectivePrompt("br").trim()) return;
     if (hasExistingMessages) {
       const ok = await confirm({
         title: "Substituir mensagens",
-        description: "Isso vai substituir as mensagens atuais do editor. Continuar?",
+        description: "Isso vai substituir as mensagens atuais (PT/EN/ES) do editor. Continuar?",
         confirmLabel: "Substituir",
       });
       if (!ok) return;
@@ -198,34 +208,62 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
     setError(null);
 
     try {
-      const res = await fetch("/api/ai/generate-text", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          module: "conversa",
-          prompt: effectivePrompt,
-          system: buildSystemPrompt(platform, locale),
-          promptId: promptMode === "predefinido" ? undefined : promptId ?? undefined,
-        }),
-      });
-      // A resposta pode vir vazia (timeout da função no servidor, geração
-      // demorada) — nesse caso res.json() lança um erro de parse cru e
-      // confuso ("unexpected end of data"). Trata isso com uma mensagem clara.
-      let body: { text?: string; error?: string };
-      try {
-        body = await res.json();
-      } catch {
-        throw new Error(
-          res.ok
-            ? "A resposta demorou demais e voltou vazia. Tente gerar de novo."
-            : `Erro ao gerar conversa (${res.status}). Tente de novo em alguns segundos.`
-        );
-      }
-      if (!res.ok) throw new Error(body.error || "Erro ao gerar conversa.");
-      if (!body.text) throw new Error("A IA não retornou nenhum conteúdo. Tente gerar de novo.");
+      // Gera as 3 versões (PT/EN/ES) em paralelo. Cada idioma tem seu
+      // próprio prompt montado (a instrução do atendente muda de idioma
+      // junto) e seu próprio system prompt.
+      const results = await Promise.allSettled(
+        CLIENT_LOCALES.map(async (loc) => {
+          const effectivePrompt = getEffectivePrompt(loc);
+          const res = await fetch("/api/ai/generate-text", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              module: "conversa",
+              prompt: effectivePrompt,
+              system: buildSystemPrompt(platform, loc),
+              // Só conta o uso do prompt salvo uma vez, na chamada em PT.
+              promptId: promptMode === "predefinido" || loc !== "br" ? undefined : promptId ?? undefined,
+            }),
+          });
+          // A resposta pode vir vazia (timeout da função no servidor, geração
+          // demorada) — nesse caso res.json() lança um erro de parse cru e
+          // confuso ("unexpected end of data"). Trata isso com uma mensagem clara.
+          let body: { text?: string; error?: string };
+          try {
+            body = await res.json();
+          } catch {
+            throw new Error(
+              res.ok
+                ? "A resposta demorou demais e voltou vazia."
+                : `Erro ao gerar (${res.status}).`
+            );
+          }
+          if (!res.ok) throw new Error(body.error || "Erro ao gerar conversa.");
+          if (!body.text) throw new Error("A IA não retornou nenhum conteúdo.");
+          return parseGeneratedConversation(body.text);
+        })
+      );
 
-      const { contactName, contactHandle, messages } = parseGeneratedConversation(body.text);
-      onGenerated(messages, promptMode === "predefinido" ? null : promptId, contactName, contactHandle);
+      const byLocale: GeneratedConversationsByLocale = {};
+      const failedLabels: string[] = [];
+      results.forEach((result, index) => {
+        const loc = CLIENT_LOCALES[index];
+        if (result.status === "fulfilled") {
+          byLocale[loc] = result.value;
+        } else {
+          failedLabels.push(CLIENT_LOCALE_LABELS[loc]);
+        }
+      });
+
+      if (Object.keys(byLocale).length === 0) {
+        throw new Error("Erro ao gerar as conversas. Tente de novo em alguns segundos.");
+      }
+
+      onGenerated(byLocale, promptMode === "predefinido" ? null : promptId);
+
+      if (failedLabels.length > 0) {
+        setError(`Não deu pra gerar: ${failedLabels.join(", ")}. As demais versões foram geradas normalmente.`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao gerar conversa.");
     } finally {
@@ -248,14 +286,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
         )}
       </div>
 
-      <div className="space-y-1">
-        <label className="text-[10px] text-text-muted">Cliente</label>
-        <Select value={locale} onChange={(e) => setLocale(e.target.value as ClientLocale)} className="h-8 w-full text-[11px]">
-          <option value="br">Cliente brasileiro</option>
-          <option value="us">Cliente americano</option>
-          <option value="es">Cliente latino (espanhol)</option>
-        </Select>
-      </div>
+      <p className="text-[11px] text-text-muted">Gera automaticamente em português, inglês e espanhol de uma vez.</p>
 
       <div className="flex gap-1.5">
         <PromptModeTab active={promptMode === "predefinido"} onClick={() => setPromptMode("predefinido")}>
