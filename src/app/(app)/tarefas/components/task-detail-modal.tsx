@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Paperclip, Trash2, X, FileText, CalendarClock, Circle, Plus, Pencil, Check, GripVertical } from "lucide-react";
+import { Paperclip, Trash2, X, FileText, CalendarClock, Circle, Plus, Pencil, Check, GripVertical, Download } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { downloadImageUrl } from "@/lib/download-file";
 import { getUrgencyLevel, URGENCY_TEXT_CLASS, urgencyLabel, useMinuteTick } from "../lib/urgency";
 import type { Database } from "@/lib/supabase/types";
 
@@ -263,9 +264,27 @@ export function TaskDetailModal({
 
             {/* Coluna 3 — anexos, com arrastar-e-soltar múltiplos arquivos */}
             <div className="flex min-h-0 flex-col space-y-2">
-              <label className="flex h-4 items-center text-xs font-medium text-text-secondary">
-                Anexos {attachments.length > 0 && `(${attachments.length})`}
-              </label>
+              <div className="flex h-4 items-center justify-between">
+                <label className="text-xs font-medium text-text-secondary">
+                  Anexos {attachments.length > 0 && `(${attachments.length})`}
+                </label>
+                {visibleAttachments.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      for (const a of visibleAttachments) {
+                        // eslint-disable-next-line no-await-in-loop
+                        await downloadImageUrl(a.file_url, a.file_name);
+                      }
+                    }}
+                    title="Baixar todos os anexos exibidos"
+                    className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary"
+                  >
+                    <Download size={11} />
+                    Baixar imagens
+                  </button>
+                )}
+              </div>
 
               {(variants.length > 0 || canEdit) && (
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -539,16 +558,30 @@ function AttachmentThumb({
           <GripVertical size={11} />
         </button>
       )}
-      {canRemove && (
+      <div className="absolute right-1 top-1 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           type="button"
-          onClick={onRemove}
-          title="Remover anexo"
-          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            downloadImageUrl(attachment.file_url, attachment.file_name);
+          }}
+          title="Baixar anexo"
+          className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
         >
-          <X size={11} />
+          <Download size={11} />
         </button>
-      )}
+        {canRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            title="Remover anexo"
+            className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+          >
+            <X size={11} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
