@@ -120,7 +120,17 @@ export function calcularMelhorCenarioCopy(
 // excelente disfarça um Copy ruim na mesma semana. Rendimento negativo do
 // Copy pesa muito mais que o % de acerto sozinho: prometer prejuízo não
 // pode "vencer" só porque o placar (V x D) parece razoável.
+//
+// "Dia" fica de fora do disputa por decisão explícita: os resultados do dia
+// (placar das 22h30) e os resultados mostrados ao longo do dia sempre
+// preferem Semana; só sobem pra Mês se a Semana for pior, e só sobem pra
+// Total se o Mês também for pior — nunca caem pro Dia (amostra pequena
+// demais, varia muito de um dia pro outro). Isso é equivalente a pegar o
+// maior score entre Semana/Mês/Total: a "cascata" sempre acaba escolhendo
+// o de maior score dos três, então basta excluir Dia da lista de janelas.
 // ============================================================
+const CASCADE_WEIGHTS = WINDOW_WEIGHTS.filter(({ window }) => window !== "dia");
+
 export function calcularMelhorCenarioTriad(
   acertoPepe: Record<TradingWindow, number>,
   acertoLive: Record<TradingWindow, number>,
@@ -128,7 +138,7 @@ export function calcularMelhorCenarioTriad(
   rendimentoCopy: Record<TradingWindow, number>
 ): MelhorCenario | null {
   let best: MelhorCenario | null = null;
-  for (const { window, peso } of WINDOW_WEIGHTS) {
+  for (const { window, peso } of CASCADE_WEIGHTS) {
     const pepe = acertoPepe[window] ?? 0;
     const live = acertoLive[window] ?? 0;
     const copy = acertoCopy[window] ?? 0;
@@ -205,6 +215,57 @@ export function sortearDepoimento(nomes: string[], valores: string[], situacoes:
   const idx = Math.floor(Math.random() * situacoes.length);
   const nome = nomes[Math.floor(Math.random() * nomes.length)];
   return { nome, valor: valores[idx % valores.length], situacao: situacoes[idx] };
+}
+
+// ============================================================
+// ALAVANCAGEM POR FAIXA — depósito × % da faixa (teto) + bônus do plano.
+// Fórmula reconstruída e CONFERIDA contra as dezenas de exemplos já escritos
+// nas mensagens de Batalha/Bônus/Mentoria/Premium (todos batem exato):
+//   • Faixa usa sempre o TETO do intervalo (nunca o piso) — Turbo até 40%,
+//     Suprema até 50%, Lendária até 60%, Galáctica 100%, Ignição até 30%.
+//   • Start/Pró/Elite somam PONTOS percentuais ao teto da faixa (+5/+10/+20)
+//     — é soma, não multiplicação (65/70/80% pra faixa Lendária = 60+5/60+10/60+20).
+//   • Mentoria e Premium NÃO têm bônus de plano — usam só o teto da faixa.
+// ============================================================
+export function tierCeilingPct(depositoUSD: number): number {
+  if (depositoUSD >= 10000) return 100;
+  if (depositoUSD >= 5000) return 60;
+  if (depositoUSD >= 2000) return 50;
+  if (depositoUSD >= 500) return 40;
+  if (depositoUSD >= 200) return 30;
+  return 0;
+}
+
+export type PlanoAlavancagem = "start" | "pro" | "elite";
+
+const PLANO_BONUS_PTS: Record<PlanoAlavancagem, number> = { start: 5, pro: 10, elite: 20 };
+
+export interface ResultadoAlavancagem {
+  pct: number;
+  lucroUSD: number;
+  lucroBRL: number;
+  totalBRL: number;
+}
+
+export function calcAlavancagem(
+  depositoUSD: number,
+  cotacao: number,
+  plano?: PlanoAlavancagem
+): ResultadoAlavancagem {
+  const pct = tierCeilingPct(depositoUSD) + (plano ? PLANO_BONUS_PTS[plano] : 0);
+  const lucroUSD = depositoUSD * (pct / 100);
+  return {
+    pct,
+    lucroUSD,
+    lucroBRL: lucroUSD * cotacao,
+    totalBRL: (depositoUSD + lucroUSD) * cotacao,
+  };
+}
+
+// Quantas "operações sniper extras" um depósito garante (Premium): 1 a cada
+// $1.000 depositado, arredondado pra baixo.
+export function snipersExtras(depositoUSD: number): number {
+  return Math.floor(depositoUSD / 1000);
 }
 
 // ============================================================

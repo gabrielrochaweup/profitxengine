@@ -1,5 +1,6 @@
 import type { RotatingBanks, TradingWindow, Top5Config, VagasConfig } from "@/lib/supabase/types";
 import {
+  calcAlavancagem,
   calcRendimentoCopy,
   calcResultadoMaratona,
   fmtBR,
@@ -7,13 +8,18 @@ import {
   fonteFrasePlacar,
   getResult,
   rotate,
+  snipersExtras,
   vagasNaPosicao,
   type Depoimento,
+  type PlanoAlavancagem,
   type TradingConfigValues,
 } from "./calc-engine";
 
-// Valores de depósito usados como exemplo nos templates da dinâmica "Maratona".
-const MARATONA_EXEMPLOS_USD = [500, 1000, 2000, 3000, 5000, 7500, 10000, 15000, 20000];
+// Valores de depósito usados como exemplo nos templates das dinâmicas com
+// Alavancagem (Maratona, Batalha, Bônus, Mentoria, Premium) — mesmo conjunto
+// pros dois usos (exemplos de escala progressiva e exemplos de faixa+plano).
+const EXEMPLOS_DEPOSITO_USD = [500, 1000, 2000, 3000, 5000, 7500, 10000, 15000, 20000];
+const PLANOS_ALAVANCAGEM: PlanoAlavancagem[] = ["start", "pro", "elite"];
 
 export interface ProductStatsByWindow {
   pepe: Record<TradingWindow, number>;
@@ -154,11 +160,39 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
   // Exemplos de resultado da escala progressiva da Maratona (${mLucroX}/${mTotalX}),
   // calculados a partir da cotação real em vez de fixos no texto.
   const maratonaExemplos = Object.fromEntries(
-    MARATONA_EXEMPLOS_USD.flatMap((valor) => {
+    EXEMPLOS_DEPOSITO_USD.flatMap((valor) => {
       const resultado = calcResultadoMaratona(valor, config.cotacao);
       return [
         [`mLucro${valor}`, fmtBR(resultado.lucroBRL)],
         [`mTotal${valor}`, fmtBR(resultado.totalBRL)],
+      ];
+    })
+  );
+
+  // Exemplos de Alavancagem por faixa (Batalha/Bônus/Mentoria/Premium) —
+  // sempre pelo TETO da faixa do depósito, em tempo real a partir da
+  // cotação. ${lucroXElite}/${totalXElite} etc. pros planos com bônus
+  // (Start/Pró/Elite); ${lucroX}/${totalX} sem plano (Mentoria/Premium,
+  // que não têm bônus por plano) e ${snipersX} só pro Premium.
+  const alavancagemExemplos = Object.fromEntries(
+    EXEMPLOS_DEPOSITO_USD.flatMap((valor) => {
+      const semPlano = calcAlavancagem(valor, config.cotacao);
+      const porPlano = PLANOS_ALAVANCAGEM.flatMap((plano) => {
+        const r = calcAlavancagem(valor, config.cotacao, plano);
+        const sufixo = plano.charAt(0).toUpperCase() + plano.slice(1);
+        return [
+          [`lucro${valor}${sufixo}`, fmtBR(r.lucroBRL)],
+          [`total${valor}${sufixo}`, fmtBR(r.totalBRL)],
+        ];
+      });
+      const elite = calcAlavancagem(valor, config.cotacao, "elite");
+      const start = calcAlavancagem(valor, config.cotacao, "start");
+      return [
+        [`lucro${valor}`, fmtBR(semPlano.lucroBRL)],
+        [`total${valor}`, fmtBR(semPlano.totalBRL)],
+        [`snipers${valor}`, snipersExtras(valor)],
+        [`diferencaEliteStart${valor}`, fmtBR(elite.totalBRL - start.totalBRL)],
+        ...porPlano,
       ];
     })
   );
@@ -175,6 +209,7 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
 
   const vars: Record<string, string | number> = {
     ...maratonaExemplos,
+    ...alavancagemExemplos,
     escalaMaratona,
     // Bancos rotativos genéricos — qualquer ${nomeDoBanco} definido em rotating_banks
     ...Object.fromEntries(Object.keys(rotatingBanks).map((name) => [name, bankValue(rotatingBanks, name, position)])),
