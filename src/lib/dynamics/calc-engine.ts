@@ -154,6 +154,48 @@ export function calcularMelhorCenarioTriad(
 }
 
 // ============================================================
+// VAGAS INICIAIS DO DIA — sorteadas por data (não fica fixo nos mesmos
+// números todo dia — Regra Permanente 2). PRNG determinístico (seed = data
+// + dinâmica + faixa): mesma data sempre gera o mesmo número pra todo mundo
+// que abrir a tela naquele dia, mas cada dia sorteia um valor novo. Sempre
+// abaixo de 50 (pedido explícito) — faixa 8 a 49.
+// ============================================================
+const VAGAS_ALEATORIAS_MIN = 8;
+const VAGAS_ALEATORIAS_MAX = 49;
+
+function hashSeed(seed: string): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
+  }
+  return h >>> 0;
+}
+
+function seededRandomInt(seed: string, min: number, max: number): number {
+  const a = (hashSeed(seed) + 0x6d2b79f5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  const rnd = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  return min + Math.floor(rnd * (max - min + 1));
+}
+
+export function vagasIniciaisDoDia(
+  dateKey: string,
+  dynamicSlug: string,
+  ignicaoHabilitada: boolean
+): VagasTiers {
+  const sorteio = (tier: string) =>
+    seededRandomInt(`${dateKey}:${dynamicSlug}:${tier}`, VAGAS_ALEATORIAS_MIN, VAGAS_ALEATORIAS_MAX);
+  return {
+    turbo: sorteio("turbo"),
+    suprema: sorteio("suprema"),
+    lendaria: sorteio("lendaria"),
+    galactica: sorteio("galactica"),
+    ignicao: ignicaoHabilitada ? sorteio("ignicao") : undefined,
+  };
+}
+
+// ============================================================
 // VAGAS — decaem ao longo do dia (curva configurável).
 // Curva LINEAR: msg 1 = 100%, última msg = ~10%.
 // ============================================================

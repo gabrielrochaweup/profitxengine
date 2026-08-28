@@ -40,6 +40,7 @@ function dayGroupForTimeLabel(timeLabel: string | null): string {
 export interface DynamicMessagesBoardProps {
   selectedDynamic: MessageDynamic;
   slots: MessageDynamicSlot[];
+  dateKey: string;
   stats: ProductStatsByWindow;
   config: {
     cotacao: number;
@@ -72,6 +73,7 @@ export interface DynamicMessagesBoardProps {
 export function DynamicMessagesBoard({
   selectedDynamic,
   slots,
+  dateKey,
   stats,
   config,
   depoimento,
@@ -156,6 +158,8 @@ export function DynamicMessagesBoard({
                     config,
                     depoimento,
                     isWeekend: isMaratona,
+                    dateKey,
+                    dynamicSlug: selectedDynamic.slug,
                   });
                   const override = textOverrides[slot.msg_key];
                   const blocked = !override && isResultBlocked(text, computedValues);

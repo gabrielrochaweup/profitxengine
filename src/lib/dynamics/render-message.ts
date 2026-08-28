@@ -9,6 +9,7 @@ import {
   rotate,
   snipersExtras,
   tierCeilingPct,
+  vagasIniciaisDoDia,
   vagasNaPosicao,
   type Depoimento,
   type PlanoAlavancagem,
@@ -50,6 +51,11 @@ export interface RenderSlotInput {
   // Só a Maratona usa a tabela de faixas do fim de semana (+5 pontos em
   // toda faixa) — as demais dinâmicas usam a tabela padrão de segunda a sexta.
   isWeekend?: boolean;
+  // Data (YYYY-MM-DD) da dinâmica sendo renderizada e slug da dinâmica —
+  // seed do sorteio diário de vagas (não pode ficar fixo no mesmo número
+  // todo dia — Regra Permanente 2).
+  dateKey: string;
+  dynamicSlug: string;
 }
 
 // Frases de apoio pro bloco "faixa exclusiva" (ordem de serviço "Ajuste das
@@ -95,6 +101,8 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     config,
     depoimento,
     isWeekend = false,
+    dateKey,
+    dynamicSlug,
   } = input;
 
   const pepe = getResult(stats.pepe[fonte], fonte);
@@ -109,13 +117,7 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
   const vagas =
     vagasMode === "tiered"
       ? vagasNaPosicao(
-          {
-            turbo: vagasConfig.turbo ?? 0,
-            suprema: vagasConfig.suprema ?? 0,
-            lendaria: vagasConfig.lendaria ?? 0,
-            galactica: vagasConfig.galactica ?? 0,
-            ignicao: vagasConfig.ignicao,
-          },
+          vagasIniciaisDoDia(dateKey, dynamicSlug, (vagasConfig.ignicao ?? 0) > 0),
           vagasConfig.curva ?? "linear",
           position,
           totalSlots

@@ -15,6 +15,7 @@ import {
 } from "@/lib/dynamics/calc-engine";
 import { type ProductStatsByWindow } from "@/lib/dynamics/render-message";
 import { DynamicMessagesBoard } from "./dynamic-messages-board";
+import { toDateKey } from "../../calendario/lib/date-utils";
 import type { Database, TradingWindow } from "@/lib/supabase/types";
 
 type MessageDynamic = Database["public"]["Tables"]["message_dynamics"]["Row"];
@@ -192,6 +193,7 @@ export function DynamicConsultaPanel() {
         <DynamicMessagesBoard
           selectedDynamic={selectedDynamic}
           slots={slots}
+          dateKey={toDateKey(new Date())}
           stats={stats}
           config={config}
           depoimento={depoimento}

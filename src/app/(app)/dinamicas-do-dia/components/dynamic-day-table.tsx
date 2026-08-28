@@ -261,6 +261,7 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
         <DynamicMessagesBoard
           selectedDynamic={selectedDynamic}
           slots={slots}
+          dateKey={dateKey}
           stats={stats}
           config={config}
           depoimento={depoimento}
