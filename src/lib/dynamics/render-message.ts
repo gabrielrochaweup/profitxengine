@@ -2,13 +2,13 @@ import type { RotatingBanks, TradingWindow, Top5Config, VagasConfig } from "@/li
 import {
   calcAlavancagem,
   calcRendimentoCopy,
-  calcResultadoMaratona,
   fmtBR,
   fonteFraseLucro,
   fonteFrasePlacar,
   getResult,
   rotate,
   snipersExtras,
+  tierCeilingPct,
   vagasNaPosicao,
   type Depoimento,
   type PlanoAlavancagem,
@@ -56,6 +56,9 @@ export interface RenderSlotInput {
   // bloco precisa dizer "DO FDS" só nela; as demais dinâmicas com TOP5
   // (ex: Premium) rodam só um dia, então é "DO DIA".
   top5PeriodLabel?: "FDS" | "DIA";
+  // Só a Maratona usa a tabela de faixas do fim de semana (+5 pontos em
+  // toda faixa) — as demais dinâmicas usam a tabela padrão de segunda a sexta.
+  isWeekend?: boolean;
 }
 
 const TOP5_MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
@@ -129,6 +132,7 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     top5,
     top5Occurrence,
     top5PeriodLabel,
+    isWeekend = false,
   } = input;
 
   const pepe = getResult(stats.pepe[fonte], fonte);
@@ -157,58 +161,55 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
       : { turbo: 0, suprema: 0, lendaria: 0, galactica: 0, ignicao: 0 };
   const vagasTotais = (vagas.turbo ?? 0) + (vagas.suprema ?? 0) + (vagas.lendaria ?? 0) + (vagas.galactica ?? 0);
 
-  // Exemplos de resultado da escala progressiva da Maratona (${mLucroX}/${mTotalX}),
-  // calculados a partir da cotação real em vez de fixos no texto.
-  const maratonaExemplos = Object.fromEntries(
-    EXEMPLOS_DEPOSITO_USD.flatMap((valor) => {
-      const resultado = calcResultadoMaratona(valor, config.cotacao);
-      return [
-        [`mLucro${valor}`, fmtBR(resultado.lucroBRL)],
-        [`mTotal${valor}`, fmtBR(resultado.totalBRL)],
-      ];
-    })
-  );
-
-  // Exemplos de Alavancagem por faixa (Batalha/Bônus/Mentoria/Premium) —
-  // sempre pelo TETO da faixa do depósito, em tempo real a partir da
-  // cotação. ${lucroXElite}/${totalXElite} etc. pros planos com bônus
-  // (Start/Pró/Elite); ${lucroX}/${totalX} sem plano (Mentoria/Premium,
-  // que não têm bônus por plano) e ${snipersX} só pro Premium.
+  // Exemplos de Alavancagem por faixa (todas as dinâmicas) — sempre pelo
+  // TETO da faixa do depósito, em tempo real a partir da cotação.
+  // ${lucroXElite}/${totalXElite} etc. pros planos com bônus (Start/Pró/
+  // Elite, vale em toda dinâmica inclusive Maratona); ${lucroX}/${totalX}
+  // sem plano (Mentoria/Premium) e ${snipersX} só pro Premium. Na Maratona
+  // (isWeekend), a faixa usa a tabela de fim de semana (+5 pontos) — e
+  // ${mLucroX}/${mTotalX} (nome herdado dos templates antigos) ficam como
+  // alias de ${lucroXElite}/${totalXElite} pra não precisar editar o texto.
   const alavancagemExemplos = Object.fromEntries(
     EXEMPLOS_DEPOSITO_USD.flatMap((valor) => {
-      const semPlano = calcAlavancagem(valor, config.cotacao);
+      const semPlano = calcAlavancagem(valor, config.cotacao, undefined, isWeekend);
       const porPlano = PLANOS_ALAVANCAGEM.flatMap((plano) => {
-        const r = calcAlavancagem(valor, config.cotacao, plano);
+        const r = calcAlavancagem(valor, config.cotacao, plano, isWeekend);
         const sufixo = plano.charAt(0).toUpperCase() + plano.slice(1);
         return [
           [`lucro${valor}${sufixo}`, fmtBR(r.lucroBRL)],
           [`total${valor}${sufixo}`, fmtBR(r.totalBRL)],
         ];
       });
-      const elite = calcAlavancagem(valor, config.cotacao, "elite");
-      const start = calcAlavancagem(valor, config.cotacao, "start");
+      const elite = calcAlavancagem(valor, config.cotacao, "elite", isWeekend);
+      const start = calcAlavancagem(valor, config.cotacao, "start", isWeekend);
       return [
         [`lucro${valor}`, fmtBR(semPlano.lucroBRL)],
         [`total${valor}`, fmtBR(semPlano.totalBRL)],
+        [`mLucro${valor}`, fmtBR(elite.lucroBRL)],
+        [`mTotal${valor}`, fmtBR(elite.totalBRL)],
         [`snipers${valor}`, snipersExtras(valor)],
         [`diferencaEliteStart${valor}`, fmtBR(elite.totalBRL - start.totalBRL)],
         ...porPlano,
       ];
     })
   );
+
+  // Tabela de faixas (${escalaMaratona}) — mesmo texto pras duas versões
+  // (padrão e FDS), só troca os tetos conforme isWeekend.
+  const tetoTxt = (tier: "ignicao" | "turbo" | "suprema" | "lendaria" | "galactica") => {
+    const deposito = { ignicao: 200, turbo: 500, suprema: 2000, lendaria: 5000, galactica: 10000 }[tier];
+    return fmtBR(tierCeilingPct(deposito, isWeekend));
+  };
   const escalaMaratona = [
-    "$200 a $999 → *50%*",
-    `$1.000 → *${fmtBR(calcResultadoMaratona(1000, config.cotacao).pct)}%*`,
-    `$2.000 → *${fmtBR(calcResultadoMaratona(2000, config.cotacao).pct)}%*`,
-    `$3.000 → *${fmtBR(calcResultadoMaratona(3000, config.cotacao).pct)}%*`,
-    `$5.000 → *${fmtBR(calcResultadoMaratona(5000, config.cotacao).pct)}%*`,
-    `$10.000 → *${fmtBR(calcResultadoMaratona(10000, config.cotacao).pct)}%* (DOBRA a banca!)`,
-    `$20.000 → *${fmtBR(calcResultadoMaratona(20000, config.cotacao).pct)}%* (TRIPLICA!)`,
-    `$30.000 → *${fmtBR(calcResultadoMaratona(30000, config.cotacao).pct)}%* (QUADRUPLICA!)`,
+    `🔥 IGNIÇÃO $200 – $499 → até *${tetoTxt("ignicao")}%*`,
+    `⚡ TURBO $500 – $1.999 → até *${tetoTxt("turbo")}%*`,
+    `💥 SUPREMA $2.000 – $4.999 → até *${tetoTxt("suprema")}%*`,
+    `👑 LENDÁRIA $5.000 – $9.999 → até *${tetoTxt("lendaria")}%*`,
+    `🌀 GALÁCTICA $10.000+ → até *${tetoTxt("galactica")}%*`,
+    "🔒 Acima de $30.000: condições especiais exclusivas — fala com o comercial",
   ].join("\n");
 
   const vars: Record<string, string | number> = {
-    ...maratonaExemplos,
     ...alavancagemExemplos,
     escalaMaratona,
     // Bancos rotativos genéricos — qualquer ${nomeDoBanco} definido em rotating_banks

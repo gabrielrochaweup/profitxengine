@@ -219,20 +219,24 @@ export function sortearDepoimento(nomes: string[], valores: string[], situacoes:
 
 // ============================================================
 // ALAVANCAGEM POR FAIXA — depósito × % da faixa (teto) + bônus do plano.
-// Fórmula reconstruída e CONFERIDA contra as dezenas de exemplos já escritos
-// nas mensagens de Batalha/Bônus/Mentoria/Premium (todos batem exato):
-//   • Faixa usa sempre o TETO do intervalo (nunca o piso) — Turbo até 40%,
-//     Suprema até 50%, Lendária até 60%, Galáctica 100%, Ignição até 30%.
+// Tabela oficial (ordem de serviço "Ajuste das Mensagens das Dinâmicas"):
+//   • Faixa usa sempre o TETO do intervalo (nunca o piso).
+//   • Semana (seg-sex): Ignição até 20%, Turbo até 30%, Suprema até 40%,
+//     Lendária até 50%, Galáctica até 80%.
+//   • Fim de semana (Maratona): +5 pontos em cada faixa — Ignição até 25%,
+//     Turbo até 35%, Suprema até 45%, Lendária até 55%, Galáctica até 85%.
 //   • Start/Pró/Elite somam PONTOS percentuais ao teto da faixa (+5/+10/+20)
-//     — é soma, não multiplicação (65/70/80% pra faixa Lendária = 60+5/60+10/60+20).
-//   • Mentoria e Premium NÃO têm bônus de plano — usam só o teto da faixa.
+//     — é soma, não multiplicação. Vale em toda dinâmica, inclusive Maratona.
+// Conferida contra a tabela-resumo oficial (coluna "+Elite" bate com
+// teto+20 em toda faixa, semana e FDS).
 // ============================================================
-export function tierCeilingPct(depositoUSD: number): number {
-  if (depositoUSD >= 10000) return 100;
-  if (depositoUSD >= 5000) return 60;
-  if (depositoUSD >= 2000) return 50;
-  if (depositoUSD >= 500) return 40;
-  if (depositoUSD >= 200) return 30;
+export function tierCeilingPct(depositoUSD: number, isWeekend = false): number {
+  const bump = isWeekend ? 5 : 0;
+  if (depositoUSD >= 10000) return 80 + bump;
+  if (depositoUSD >= 5000) return 50 + bump;
+  if (depositoUSD >= 2000) return 40 + bump;
+  if (depositoUSD >= 500) return 30 + bump;
+  if (depositoUSD >= 200) return 20 + bump;
   return 0;
 }
 
@@ -250,9 +254,10 @@ export interface ResultadoAlavancagem {
 export function calcAlavancagem(
   depositoUSD: number,
   cotacao: number,
-  plano?: PlanoAlavancagem
+  plano?: PlanoAlavancagem,
+  isWeekend = false
 ): ResultadoAlavancagem {
-  const pct = tierCeilingPct(depositoUSD) + (plano ? PLANO_BONUS_PTS[plano] : 0);
+  const pct = tierCeilingPct(depositoUSD, isWeekend) + (plano ? PLANO_BONUS_PTS[plano] : 0);
   const lucroUSD = depositoUSD * (pct / 100);
   return {
     pct,
@@ -266,41 +271,6 @@ export function calcAlavancagem(
 // $1.000 depositado, arredondado pra baixo.
 export function snipersExtras(depositoUSD: number): number {
   return Math.floor(depositoUSD / 1000);
-}
-
-// ============================================================
-// MARATONA — escala progressiva de alavancagem por depósito.
-// Fórmula reconstruída a partir dos exemplos reais dos templates
-// (conferida contra dezenas de pares depósito→resultado): de $200 a
-// $999 fica fixo em 50%; a partir de $1.000 cresce linearmente
-// +0,5% a cada $1 depositado (equivalente a +5% a cada $1.000), sem
-// teto. Ex.: $7.500 → 87,5% → lucro R$ 36.094 (cotação 5,5).
-// ============================================================
-export function pctEscalaMaratona(depositoUSD: number): number {
-  if (depositoUSD < 200) return 0;
-  if (depositoUSD < 1000) return 50;
-  return 50 + depositoUSD * 0.005;
-}
-
-export interface ResultadoMaratona {
-  pct: number;
-  lucroUSD: number;
-  lucroBRL: number;
-  totalUSD: number;
-  totalBRL: number;
-}
-
-export function calcResultadoMaratona(depositoUSD: number, cotacao: number): ResultadoMaratona {
-  const pct = pctEscalaMaratona(depositoUSD);
-  const lucroUSD = depositoUSD * (pct / 100);
-  const totalUSD = depositoUSD + lucroUSD;
-  return {
-    pct,
-    lucroUSD,
-    lucroBRL: lucroUSD * cotacao,
-    totalUSD,
-    totalBRL: totalUSD * cotacao,
-  };
 }
 
 // ============================================================
