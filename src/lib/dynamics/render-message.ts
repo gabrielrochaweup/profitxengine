@@ -1,11 +1,13 @@
 import type { RotatingBanks, TradingWindow, VagasConfig } from "@/lib/supabase/types";
 import {
+  acertoDestaqueTexto,
   calcAlavancagem,
   calcRendimentoCopy,
   fmtBR,
   fonteFraseLucro,
   fonteFrasePlacar,
   getResult,
+  produtoEmDestaque,
   rotate,
   snipersExtras,
   tierCeilingPct,
@@ -112,6 +114,7 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
 
   const rendimentoCopy = calcRendimentoCopy(config.bancaCopy, rendPct) * config.cotacao;
   const acertoTotal = Math.round((pepe.acerto + live.acerto + copy.acerto) / 3);
+  const melhorProduto = produtoEmDestaque(pepe.acerto, live.acerto, copy.acerto);
 
   const vagasMode = vagasConfig.mode ?? "tiered";
   const vagas =
@@ -189,26 +192,33 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     vagasTotais,
     // Pepe
     acertoP: pepe.acerto,
+    acertoPDestaque: acertoDestaqueTexto(pepe.acerto),
     winsP: stats.pepeWins[fonte] ?? 0,
     lossP: stats.pepeLosses[fonte] ?? 0,
     fontePepe: fonte,
     entradaP: config.entradaPepe,
+    destaquePepe: melhorProduto === "pepe" ? "🔥 " : "",
     // Live
     acertoL: live.acerto,
+    acertoLDestaque: acertoDestaqueTexto(live.acerto),
     winsL: stats.liveWins[fonte] ?? 0,
     lossL: stats.liveLosses[fonte] ?? 0,
     fonteLive: fonte,
     entradaL: config.entradaLive,
+    destaqueLive: melhorProduto === "live" ? "🔥 " : "",
     // Copy
     acertoC: copy.acerto,
+    acertoCDestaque: acertoDestaqueTexto(copy.acerto),
     winsC: stats.copyWins[fonte] ?? 0,
     lossC: stats.copyLosses[fonte] ?? 0,
     fonteCopy: fonte,
     rendimentoCopyR: fmtBR(rendimentoCopy),
     bancaCopy: fmtBR(config.bancaCopy),
+    destaqueCopy: melhorProduto === "copy" ? "🔥 " : "",
     // TRIAD total
     fonteTRIAD: fonte,
     acertoT: acertoTotal,
+    acertoTDestaque: acertoDestaqueTexto(acertoTotal),
     // Fontes com preposição correta
     fontePlacar: fonteFrasePlacar(fonte),
     fonteLucro: fonteFraseLucro(fonte),

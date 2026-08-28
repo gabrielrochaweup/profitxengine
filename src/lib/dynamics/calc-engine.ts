@@ -35,6 +35,33 @@ export function getResult(acerto: number, fonte: TradingWindow): ProductResult {
   return { acerto, fonte };
 }
 
+// ============================================================
+// DESTAQUE DE WIN RATE — Regra Permanente 4: só dá destaque (caixa alta +
+// exclamação) quando o acerto está ≥77%. Abaixo disso, mostra o número sem
+// alarde — não é pra esconder o dado, só não empolgar em cima de um
+// resultado fraco.
+// ============================================================
+export const WIN_RATE_DESTAQUE_MIN = 77;
+
+export function acertoDestaqueTexto(acerto: number): string {
+  return acerto >= WIN_RATE_DESTAQUE_MIN ? "DE ACERTO!" : "de acerto";
+}
+
+// ============================================================
+// PRODUTO EM DESTAQUE — Regra Permanente 3: se o Copy vier fraco na
+// semana, destaca o Pepe (ou o Live) em vez de insistir num número ruim.
+// Usado nas mensagens que mostram Pepe+Live+Copy juntos (placar
+// consolidado) — o 🔥 vai pro produto com maior acerto NAQUELE momento,
+// não fica fixo em um deles.
+// ============================================================
+export type ProdutoTriad = "pepe" | "live" | "copy";
+
+export function produtoEmDestaque(acertoPepe: number, acertoLive: number, acertoCopy: number): ProdutoTriad {
+  if (acertoCopy >= acertoPepe && acertoCopy >= acertoLive) return "copy";
+  if (acertoLive >= acertoPepe) return "live";
+  return "pepe";
+}
+
 export function toReais(usd: number, cotacao: number): number {
   return usd * cotacao;
 }
