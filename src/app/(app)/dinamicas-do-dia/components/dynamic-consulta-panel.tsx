@@ -15,7 +15,7 @@ import {
 } from "@/lib/dynamics/calc-engine";
 import { type ProductStatsByWindow } from "@/lib/dynamics/render-message";
 import { DynamicMessagesBoard } from "./dynamic-messages-board";
-import type { Database, Top5Config, TradingWindow } from "@/lib/supabase/types";
+import type { Database, TradingWindow } from "@/lib/supabase/types";
 
 type MessageDynamic = Database["public"]["Tables"]["message_dynamics"]["Row"];
 type MessageDynamicSlot = Database["public"]["Tables"]["message_dynamic_slots"]["Row"];
@@ -54,7 +54,6 @@ export function DynamicConsultaPanel() {
     entradaPepe: 10,
     entradaLive: 50,
   });
-  const [top5, setTop5] = useState<Top5Config>({ enabled: false, values: [0, 0, 0, 0, 0] });
   const [fonteOverrides, setFonteOverrides] = useState<Record<string, TradingWindow>>({});
   const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
   const [depoimento, setDepoimento] = useState<Depoimento | null>(null);
@@ -65,11 +64,10 @@ export function DynamicConsultaPanel() {
     async function load() {
       setLoading(true);
       const supabase = createClient();
-      const [{ data: dyns }, { data: statsRows }, { data: configRow }, { data: top5Row }] = await Promise.all([
+      const [{ data: dyns }, { data: statsRows }, { data: configRow }] = await Promise.all([
         supabase.from("message_dynamics").select("*").eq("active", true).order("name"),
         supabase.from("trading_performance_stats").select("*"),
         supabase.from("trading_config").select("*").eq("id", 1).single(),
-        supabase.from("top5_stats").select("*").eq("id", 1).single(),
       ]);
 
       setDynamics(dyns ?? []);
@@ -95,8 +93,6 @@ export function DynamicConsultaPanel() {
         });
         setStats(next);
       }
-
-      if (top5Row) setTop5({ enabled: top5Row.enabled, values: top5Row.values });
 
       if (configRow) {
         setConfig({
@@ -198,7 +194,6 @@ export function DynamicConsultaPanel() {
           slots={slots}
           stats={stats}
           config={config}
-          top5={top5}
           depoimento={depoimento}
           fonteOverrides={fonteOverrides}
           textOverrides={textOverrides}

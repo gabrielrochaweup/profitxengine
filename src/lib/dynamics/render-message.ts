@@ -1,4 +1,4 @@
-import type { RotatingBanks, TradingWindow, Top5Config, VagasConfig } from "@/lib/supabase/types";
+import type { RotatingBanks, TradingWindow, VagasConfig } from "@/lib/supabase/types";
 import {
   calcAlavancagem,
   calcRendimentoCopy,
@@ -47,63 +47,28 @@ export interface RenderSlotInput {
   stats: ProductStatsByWindow;
   config: TradingConfigValues;
   depoimento?: Depoimento | null;
-  top5?: Top5Config | null;
-  // Índice (0, 1, 2...) de qual ocorrência do bloco ${top5_bloco} esta
-  // mensagem é dentro da dinâmica — não a posição bruta do slot. Ver
-  // TOP5_FICTICIO_STEP abaixo pra entender por que isso importa.
-  top5Occurrence?: number;
-  // Só a Maratona roda o fim de semana inteiro (sáb+dom) — o texto do
-  // bloco precisa dizer "DO FDS" só nela; as demais dinâmicas com TOP5
-  // (ex: Premium) rodam só um dia, então é "DO DIA".
-  top5PeriodLabel?: "FDS" | "DIA";
   // Só a Maratona usa a tabela de faixas do fim de semana (+5 pontos em
   // toda faixa) — as demais dinâmicas usam a tabela padrão de segunda a sexta.
   isWeekend?: boolean;
 }
 
-const TOP5_MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
-const TOP5_PLACEHOLDER = "${top5_bloco}";
+// Frases de apoio pro bloco "faixa exclusiva" (ordem de serviço "Ajuste das
+// Mensagens das Dinâmicas", Tarefa 1 — substitui o antigo TOP 5: em vez de
+// ranking/disputa por maior depósito, puxa ticket alto mostrando a própria
+// escada de faixas + tratamento exclusivo pra quem deposita mais).
+const FAIXA_EXCLUSIVA_FRASES = [
+  "Quanto maior a banca, maior a faixa — é o tamanho da operação que muda",
+  "Ticket alto tem tratamento direto com o comercial",
+  "A faixa Galáctica é a maior da tabela — e ainda soma o bônus do teu plano",
+];
 
-// Enquanto ninguém preenche o TOP 5 real em Performance de Trading, o bloco
-// não pode ficar vazio — usa um fictício que cresce a cada OCORRÊNCIA do
-// bloco (não a cada posição de slot), simulando depósitos se acumulando ao
-// longo do fim de semana. O formato imita uma disputa real: o 1º lugar fica
-// isolado na frente, o 2º fica no meio-termo, e o 3º/4º/5º ficam quase
-// empatados brigando pela última vaga — por isso os outros 4 lugares são
-// FRAÇÕES do 1º (não uma distância fixa em dólar), senão a proporção fica
-// estranha conforme os valores crescem. Com o 1º lugar indo de ~$1.000 na
-// primeira ocorrência até ~$10.000 na última (13 ocorrências na Maratona),
-// o 5º lugar acompanha de ~$200 a ~$2.000.
-const TOP5_FICTICIO_BASE = 1000;
-const TOP5_FICTICIO_STEP = 750;
-const TOP5_FICTICIO_RATIOS = [1, 0.6, 0.3, 0.25, 0.2];
-
-// Usado pra sinalizar na lista de mensagens (Dinâmicas do Dia) quais slots
-// dependem do TOP 5 global — essas não podem ser agendadas antes de alguém
-// atualizar os valores em Performance de Trading.
-export function hasTop5Placeholder(template: string): boolean {
-  return template.includes(TOP5_PLACEHOLDER);
-}
-
-// Monta o bloco "TOP 5 ACUMULADO". Com valores reais preenchidos (Performance
-// de Trading → TOP 5, igual ao placar/% de acerto), usa eles fixos. Sem
-// preenchimento, usa o fictício crescente acima com base em qual ocorrência
-// do bloco esta mensagem representa.
-function buildTop5Bloco(
-  config: Top5Config | null | undefined,
-  top5Occurrence: number,
-  periodLabel: "FDS" | "DIA"
-): string {
-  const values = config?.enabled
-    ? config.values.slice(0, 5)
-    : (() => {
-        const primeiro = TOP5_FICTICIO_BASE + TOP5_FICTICIO_STEP * top5Occurrence;
-        return TOP5_FICTICIO_RATIOS.map((ratio) => primeiro * ratio);
-      })();
-  const linhas = values.map(
-    (valor, i) => `${TOP5_MEDALS[i] ?? `${i + 1}º`} ${i + 1}º → *$${Math.round(valor).toLocaleString("en-US")}*`
-  );
-  return [`🏆 *TOP 5 ACUMULADO DO ${periodLabel}:*`, ...linhas].join("\n");
+function buildFaixaExclusivaBloco(position: number, isWeekend: boolean): string {
+  const galacticaPct = tierCeilingPct(10000, isWeekend);
+  return [
+    `🌀 *GALÁCTICA | $10.000+ → até ${galacticaPct}% + bônus do teu plano*`,
+    "🔒 Acima de $30.000: condições especiais exclusivas — fala com o comercial",
+    rotate(FAIXA_EXCLUSIVA_FRASES, position),
+  ].join("\n");
 }
 
 export interface RenderSlotOutput {
@@ -129,9 +94,6 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     stats,
     config,
     depoimento,
-    top5,
-    top5Occurrence,
-    top5PeriodLabel,
     isWeekend = false,
   } = input;
 
@@ -258,14 +220,19 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     depNome: depoimento?.nome ?? "",
     depValor: (depoimento?.valor ?? "").replace("R$ ", ""),
     depSituacao: depoimento?.situacao ?? "",
-    // TOP 5 acumulado (global, Performance de Trading)
-    top5_bloco: buildTop5Bloco(top5, top5Occurrence ?? 0, top5PeriodLabel ?? "DIA"),
+    // Faixa exclusiva (substitui o antigo TOP 5 — ver Tarefa 1)
+    faixa_exclusiva: buildFaixaExclusivaBloco(position, isWeekend),
   };
 
   let text = template;
   for (const [key, value] of Object.entries(vars)) {
     text = text.split(`\${${key}}`).join(String(value));
   }
+
+  // Rodapé fixo obrigatório em toda mensagem de dinâmica (ordem de serviço
+  // "Ajuste das Mensagens das Dinâmicas") — colado aqui no motor em vez de
+  // em cada template pra garantir que nenhuma mensagem saia sem ele.
+  text = `${text}\n\n_Valores são projeção, não garantia. Opere com capital de risco._`;
 
   return {
     text,

@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
 import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { isResultBlocked, type Depoimento, type MelhorCenario } from "@/lib/dynamics/calc-engine";
-import { hasTop5Placeholder, renderSlot, type ProductStatsByWindow } from "@/lib/dynamics/render-message";
+import { renderSlot, type ProductStatsByWindow } from "@/lib/dynamics/render-message";
 import { MessageRow } from "./message-row";
-import type { Database, Top5Config, TradingWindow } from "@/lib/supabase/types";
+import type { Database, TradingWindow } from "@/lib/supabase/types";
 
 type MessageDynamic = Database["public"]["Tables"]["message_dynamics"]["Row"];
 type MessageDynamicSlot = Database["public"]["Tables"]["message_dynamic_slots"]["Row"];
@@ -50,7 +49,6 @@ export interface DynamicMessagesBoardProps {
     entradaPepe: number;
     entradaLive: number;
   };
-  top5: Top5Config;
   depoimento: Depoimento | null;
   fonteOverrides: Record<string, TradingWindow>;
   textOverrides: Record<string, string>;
@@ -76,7 +74,6 @@ export function DynamicMessagesBoard({
   slots,
   stats,
   config,
-  top5,
   depoimento,
   fonteOverrides,
   textOverrides,
@@ -93,23 +90,6 @@ export function DynamicMessagesBoard({
   const isMaratona = selectedDynamic.slug === "maratona";
   const groups = isMaratona ? DAY_GROUPS : PERIODS;
   const groupForSlot = isMaratona ? dayGroupForTimeLabel : periodForTimeLabel;
-
-  // O crescimento fictício do TOP 5 é por OCORRÊNCIA do bloco na dinâmica
-  // (em ordem de posição), não pela posição bruta do slot — senão o
-  // intervalo entre duas mensagens com TOP5 varia dependendo de quantas
-  // mensagens sem TOP5 existem entre elas, e a sequência perde a garantia
-  // de que todo bloco novo supera qualquer bloco anterior.
-  const top5OccurrenceByMsgKey = useMemo(() => {
-    const map: Record<string, number> = {};
-    let occurrence = 0;
-    for (const slot of slots) {
-      if (hasTop5Placeholder(slot.template)) {
-        map[slot.msg_key] = occurrence;
-        occurrence++;
-      }
-    }
-    return map;
-  }, [slots]);
 
   return (
     <>
@@ -175,9 +155,6 @@ export function DynamicMessagesBoard({
                     stats,
                     config,
                     depoimento,
-                    top5,
-                    top5Occurrence: top5OccurrenceByMsgKey[slot.msg_key],
-                    top5PeriodLabel: isMaratona ? "FDS" : "DIA",
                     isWeekend: isMaratona,
                   });
                   const override = textOverrides[slot.msg_key];
@@ -190,7 +167,7 @@ export function DynamicMessagesBoard({
                       computedText={text}
                       overrideText={override}
                       blocked={blocked}
-                      needsRealtimeUpdate={slot.needs_realtime_update || hasTop5Placeholder(slot.template)}
+                      needsRealtimeUpdate={slot.needs_realtime_update}
                       fonte={fonte}
                       onFonteChange={(f) => onFonteChange(slot.msg_key, f)}
                       onUseVariant={(variantText) => onUseVariant(slot.msg_key, variantText)}
