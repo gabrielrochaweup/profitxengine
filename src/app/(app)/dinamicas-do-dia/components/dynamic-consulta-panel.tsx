@@ -8,6 +8,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import {
   calcularMelhorCenario,
   calcularMelhorCenarioCopy,
+  calcularMelhorCenarioTriad,
   sortearDepoimento,
   type Depoimento,
   type MelhorCenario,
@@ -148,6 +149,10 @@ export function DynamicConsultaPanel() {
     () => calcularMelhorCenarioCopy(stats.copy, stats.copyRendimento),
     [stats.copy, stats.copyRendimento]
   );
+  const melhorTriad: MelhorCenario | null = useMemo(
+    () => calcularMelhorCenarioTriad(stats.pepe, stats.live, stats.copy, stats.copyRendimento),
+    [stats.pepe, stats.live, stats.copy, stats.copyRendimento]
+  );
 
   function handleFonteChange(msgKey: string, fonte: TradingWindow) {
     setFonteOverrides((prev) => ({ ...prev, [msgKey]: fonte }));
@@ -203,6 +208,7 @@ export function DynamicConsultaPanel() {
           melhorPepe={melhorPepe}
           melhorLive={melhorLive}
           melhorCopy={melhorCopy}
+          melhorTriad={melhorTriad}
           rulesOpen={rulesOpen}
           onToggleRules={() => setRulesOpen((v) => !v)}
         />

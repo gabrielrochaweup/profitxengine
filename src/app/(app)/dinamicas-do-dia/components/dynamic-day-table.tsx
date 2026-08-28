@@ -9,6 +9,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import {
   calcularMelhorCenario,
   calcularMelhorCenarioCopy,
+  calcularMelhorCenarioTriad,
   sortearDepoimento,
   type Depoimento,
   type MelhorCenario,
@@ -157,6 +158,10 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
     () => calcularMelhorCenarioCopy(stats.copy, stats.copyRendimento),
     [stats.copy, stats.copyRendimento]
   );
+  const melhorTriad: MelhorCenario | null = useMemo(
+    () => calcularMelhorCenarioTriad(stats.pepe, stats.live, stats.copy, stats.copyRendimento),
+    [stats.pepe, stats.live, stats.copy, stats.copyRendimento]
+  );
 
   async function persistSelection(patch: {
     dynamicId?: string;
@@ -275,6 +280,7 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
           melhorPepe={melhorPepe}
           melhorLive={melhorLive}
           melhorCopy={melhorCopy}
+          melhorTriad={melhorTriad}
           rulesOpen={rulesOpen}
           onToggleRules={() => setRulesOpen((v) => !v)}
         />

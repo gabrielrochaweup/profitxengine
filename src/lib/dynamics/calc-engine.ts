@@ -113,6 +113,37 @@ export function calcularMelhorCenarioCopy(
 }
 
 // ============================================================
+// MELHOR CENÁRIO DO TRIAD — a mensagem de placar mostra Pepe + Live +
+// Copy juntos, então a janela escolhida não pode ser "a melhor pro Pepe" e
+// ignorar que o Copy foi mal nela. Usa o MÍNIMO entre os três produtos (o
+// elo mais fraco limita a janela inteira) em vez de média — senão um Pepe
+// excelente disfarça um Copy ruim na mesma semana. Rendimento negativo do
+// Copy pesa muito mais que o % de acerto sozinho: prometer prejuízo não
+// pode "vencer" só porque o placar (V x D) parece razoável.
+// ============================================================
+export function calcularMelhorCenarioTriad(
+  acertoPepe: Record<TradingWindow, number>,
+  acertoLive: Record<TradingWindow, number>,
+  acertoCopy: Record<TradingWindow, number>,
+  rendimentoCopy: Record<TradingWindow, number>
+): MelhorCenario | null {
+  let best: MelhorCenario | null = null;
+  for (const { window, peso } of WINDOW_WEIGHTS) {
+    const pepe = acertoPepe[window] ?? 0;
+    const live = acertoLive[window] ?? 0;
+    const copy = acertoCopy[window] ?? 0;
+    const rend = rendimentoCopy[window] ?? 0;
+    const copyScore = rend < 0 ? rend * 10 : copy;
+    const geral = Math.min(pepe, live, copyScore);
+    const score = geral * peso;
+    if (!best || score > best.score) {
+      best = { fonte: window, acerto: Math.round((pepe + live + copy) / 3), score };
+    }
+  }
+  return best;
+}
+
+// ============================================================
 // VAGAS — decaem ao longo do dia (curva configurável).
 // Curva LINEAR: msg 1 = 100%, última msg = ~10%.
 // ============================================================

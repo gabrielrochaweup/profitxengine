@@ -60,6 +60,7 @@ export interface DynamicMessagesBoardProps {
   melhorPepe: MelhorCenario | null;
   melhorLive: MelhorCenario | null;
   melhorCopy: MelhorCenario | null;
+  melhorTriad: MelhorCenario | null;
   rulesOpen: boolean;
   onToggleRules: () => void;
 }
@@ -85,6 +86,7 @@ export function DynamicMessagesBoard({
   melhorPepe,
   melhorLive,
   melhorCopy,
+  melhorTriad,
   rulesOpen,
   onToggleRules,
 }: DynamicMessagesBoardProps) {
@@ -112,6 +114,7 @@ export function DynamicMessagesBoard({
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
+        {melhorTriad && <MelhorBadge label="Usando" cenario={melhorTriad} triad />}
         {melhorPepe && <MelhorBadge label="Pepe" cenario={melhorPepe} />}
         {melhorLive && <MelhorBadge label="Live" cenario={melhorLive} />}
         {melhorCopy && <MelhorBadge label="Copy" cenario={melhorCopy} />}
@@ -149,10 +152,17 @@ export function DynamicMessagesBoard({
               <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{group.label}</h3>
               <div className="space-y-2">
                 {periodSlots.map((slot) => {
+                  // Prioridade: escolha manual do admin pra essa msg > melhor
+                  // cenário calculado em tempo real (Pepe+Live+Copy juntos,
+                  // não só Pepe) > default estático da msg (herdado de quando
+                  // essa coluna era digitada à mão) > "semana" como último
+                  // fallback. O default estático fica DEPOIS do cálculo ao
+                  // vivo de propósito — antes ele vinha primeiro e deixava o
+                  // "melhor cenário" morto (sempre "semana" fixo).
                   const fonte =
                     fonteOverrides[slot.msg_key] ??
+                    melhorTriad?.fonte ??
                     (slot.fonte_default as TradingWindow) ??
-                    melhorPepe?.fonte ??
                     "semana";
                   const { text, computedValues } = renderSlot({
                     template: slot.template,
@@ -196,9 +206,9 @@ export function DynamicMessagesBoard({
   );
 }
 
-function MelhorBadge({ label, cenario }: { label: string; cenario: MelhorCenario }) {
+function MelhorBadge({ label, cenario, triad }: { label: string; cenario: MelhorCenario; triad?: boolean }) {
   return (
-    <Badge tone="success" className="flex items-center gap-1">
+    <Badge tone={triad ? "warning" : "success"} className="flex items-center gap-1">
       <Trophy size={11} />
       {label}: {cenario.fonte} ({cenario.acerto}%)
     </Badge>
