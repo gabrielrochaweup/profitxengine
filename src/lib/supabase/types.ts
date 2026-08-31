@@ -1036,6 +1036,57 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["tracking_webhook_endpoints"]["Insert"]>;
         Relationships: [];
       };
+      ad_platform_credentials: {
+        Row: {
+          id: string;
+          product_id: string;
+          platform: "meta" | "google";
+          encrypted_credentials: string;
+          ad_account_id: string | null;
+          is_valid: boolean;
+          last_checked_at: string | null;
+          last_synced_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["ad_platform_credentials"]["Row"],
+          "id" | "ad_account_id" | "is_valid" | "last_checked_at" | "last_synced_at" | "created_by" | "created_at"
+        > & {
+          id?: string;
+          ad_account_id?: string | null;
+          is_valid?: boolean;
+          last_checked_at?: string | null;
+          last_synced_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_platform_credentials"]["Insert"]>;
+        Relationships: [];
+      };
+      ad_campaign_spend: {
+        Row: {
+          id: string;
+          product_id: string;
+          platform: "meta" | "google";
+          campaign_id: string;
+          campaign_name: string | null;
+          spend_cents: number;
+          spend_date: string;
+          synced_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["ad_campaign_spend"]["Row"],
+          "id" | "campaign_name" | "spend_cents" | "synced_at"
+        > & {
+          id?: string;
+          campaign_name?: string | null;
+          spend_cents?: number;
+          synced_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_campaign_spend"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

@@ -27,7 +27,7 @@ export default async function TrackingPage() {
   const from = new Date(now);
   from.setDate(from.getDate() - 90);
 
-  const [{ data: report }, { data: events }, { data: endpoints }] = await Promise.all([
+  const [{ data: report }, { data: events }, { data: endpoints }, { data: adCredentials }] = await Promise.all([
     supabase.rpc("tracking_campaign_report", {
       p_product_id: activeProduct.id,
       p_from: from.toISOString(),
@@ -46,6 +46,12 @@ export default async function TrackingPage() {
           .eq("product_id", activeProduct.id)
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [] }),
+    isAdmin
+      ? supabase
+          .from("ad_platform_credentials")
+          .select("platform, ad_account_id, is_valid, last_checked_at, last_synced_at")
+          .eq("product_id", activeProduct.id)
+      : Promise.resolve({ data: [] }),
   ]);
 
   return (
@@ -61,6 +67,7 @@ export default async function TrackingPage() {
         initialReport={report ?? []}
         initialEvents={events ?? []}
         initialEndpoints={endpoints ?? []}
+        initialAdCredentials={adCredentials ?? []}
         isAdmin={isAdmin}
       />
     </div>
