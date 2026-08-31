@@ -919,6 +919,117 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["task_attachment_variants"]["Insert"]>;
         Relationships: [];
       };
+      tracking_leads: {
+        Row: {
+          id: string;
+          product_id: string;
+          utm_source: string | null;
+          utm_medium: string | null;
+          utm_campaign: string | null;
+          utm_content: string | null;
+          utm_term: string | null;
+          fbclid: string | null;
+          gclid: string | null;
+          fbp: string | null;
+          fbc: string | null;
+          landing_url: string | null;
+          referrer: string | null;
+          email: string | null;
+          first_seen_at: string;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["tracking_leads"]["Row"],
+          | "utm_source"
+          | "utm_medium"
+          | "utm_campaign"
+          | "utm_content"
+          | "utm_term"
+          | "fbclid"
+          | "gclid"
+          | "fbp"
+          | "fbc"
+          | "landing_url"
+          | "referrer"
+          | "email"
+          | "first_seen_at"
+          | "created_at"
+        > & {
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          utm_content?: string | null;
+          utm_term?: string | null;
+          fbclid?: string | null;
+          gclid?: string | null;
+          fbp?: string | null;
+          fbc?: string | null;
+          landing_url?: string | null;
+          referrer?: string | null;
+          email?: string | null;
+          first_seen_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tracking_leads"]["Insert"]>;
+        Relationships: [];
+      };
+      tracking_events: {
+        Row: {
+          id: string;
+          product_id: string;
+          lead_id: string | null;
+          event_type: "page_view" | "purchase" | "members_access" | "broker_signup" | "broker_deposit";
+          source: string;
+          email: string | null;
+          amount_cents: number | null;
+          currency: string;
+          external_id: string | null;
+          raw_payload: Record<string, unknown> | null;
+          occurred_at: string;
+          received_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["tracking_events"]["Row"],
+          "id" | "lead_id" | "email" | "amount_cents" | "currency" | "external_id" | "raw_payload" | "occurred_at" | "received_at"
+        > & {
+          id?: string;
+          lead_id?: string | null;
+          email?: string | null;
+          amount_cents?: number | null;
+          currency?: string;
+          external_id?: string | null;
+          raw_payload?: Record<string, unknown> | null;
+          occurred_at?: string;
+          received_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tracking_events"]["Insert"]>;
+        Relationships: [];
+      };
+      tracking_webhook_endpoints: {
+        Row: {
+          id: string;
+          product_id: string;
+          kind: "checkout" | "members_area" | "broker";
+          platform: string | null;
+          endpoint_slug: string;
+          encrypted_secret: string;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["tracking_webhook_endpoints"]["Row"],
+          "id" | "platform" | "active" | "created_by" | "created_at"
+        > & {
+          id?: string;
+          platform?: string | null;
+          active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tracking_webhook_endpoints"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -931,6 +1042,20 @@ export interface Database {
           role: UserRole;
           status: UserStatus;
           created_at: string;
+        }[];
+      };
+      tracking_campaign_report: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: {
+          utm_source: string;
+          utm_campaign: string;
+          leads: number;
+          purchases: number;
+          purchase_revenue_cents: number;
+          members_access: number;
+          broker_signups: number;
+          deposits: number;
+          deposits_total_cents: number;
         }[];
       };
     };

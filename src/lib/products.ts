@@ -10,6 +10,7 @@ import {
   BarChart3,
   Wand2,
   KanbanSquare,
+  Radar,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ const SHARED_NAV_REST: NavItem[] = [
   { href: "/mensagens-x1", label: "Mensagens X1", icon: UsersRound },
   { href: "/emails", label: "E-mails", icon: Mail },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/tracking", label: "Tracking", icon: Radar },
   { href: "/calendario", label: "Calendário", icon: CalendarDays },
   { href: "/prompts", label: "Biblioteca de Prompts", icon: Library },
   { href: "/biblioteca-imagens", label: "Biblioteca de Imagens", icon: Images },
