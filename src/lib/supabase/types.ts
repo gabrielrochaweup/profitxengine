@@ -1041,6 +1041,7 @@ export interface Database {
           id: string;
           product_id: string;
           platform: "meta" | "google";
+          label: string | null;
           encrypted_credentials: string;
           ad_account_id: string | null;
           is_valid: boolean;
@@ -1051,9 +1052,17 @@ export interface Database {
         };
         Insert: Omit<
           Database["public"]["Tables"]["ad_platform_credentials"]["Row"],
-          "id" | "ad_account_id" | "is_valid" | "last_checked_at" | "last_synced_at" | "created_by" | "created_at"
+          | "id"
+          | "label"
+          | "ad_account_id"
+          | "is_valid"
+          | "last_checked_at"
+          | "last_synced_at"
+          | "created_by"
+          | "created_at"
         > & {
           id?: string;
+          label?: string | null;
           ad_account_id?: string | null;
           is_valid?: boolean;
           last_checked_at?: string | null;

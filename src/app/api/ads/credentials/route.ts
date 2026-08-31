@@ -7,6 +7,8 @@ import { testGoogleCredentials, type GoogleCredentials } from "@/lib/ads/google-
 
 // Nunca devolve encrypted_credentials — só status, mesmo cuidado de
 // ai_credentials.
+const SELECT_FIELDS = "id, platform, label, ad_account_id, is_valid, last_checked_at, last_synced_at";
+
 export async function GET(request: Request) {
   const profile = await getSessionProfile();
   if (!profile || !hasRole(profile.role, "admin")) {
@@ -19,19 +21,46 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("ad_platform_credentials")
-    .select("platform, ad_account_id, is_valid, last_checked_at, last_synced_at")
-    .eq("product_id", productId);
+    .select(SELECT_FIELDS)
+    .eq("product_id", productId)
+    .order("created_at", { ascending: true });
 
-  return NextResponse.json({ credentials: data ?? [] });
+  return NextResponse.json({ accounts: data ?? [] });
 }
 
 interface CredentialsBody {
   product_id?: string;
   platform?: "meta" | "google";
+  label?: string | null;
   meta?: MetaCredentials;
   google?: GoogleCredentials;
 }
 
+async function buildAndTest(body: CredentialsBody) {
+  if (body.platform === "meta") {
+    if (!body.meta?.access_token || !body.meta?.ad_account_id) {
+      throw new Response(JSON.stringify({ error: "access_token e ad_account_id são obrigatórios." }), { status: 400 });
+    }
+    return {
+      credentialsPayload: body.meta as MetaCredentials | GoogleCredentials,
+      adAccountId: body.meta.ad_account_id,
+      testResult: await testMetaCredentials(body.meta),
+    };
+  }
+  const g = body.google;
+  if (!g?.developer_token || !g?.client_id || !g?.client_secret || !g?.refresh_token || !g?.customer_id) {
+    throw new Response(JSON.stringify({ error: "Preencha todos os campos do Google Ads." }), { status: 400 });
+  }
+  return {
+    credentialsPayload: g as MetaCredentials | GoogleCredentials,
+    adAccountId: g.customer_id,
+    testResult: await testGoogleCredentials(g),
+  };
+}
+
+// Sempre cria uma conta nova (uma plataforma pode ter várias contas). Se a
+// mesma ad_account_id já existir pra essa plataforma+produto, o upsert
+// atualiza a credencial dela em vez de duplicar.
 export async function POST(request: Request) {
   const profile = await getSessionProfile();
   if (!profile || !hasRole(profile.role, "admin")) {
@@ -39,50 +68,43 @@ export async function POST(request: Request) {
   }
 
   const body: CredentialsBody = await request.json().catch(() => ({}));
-  const { product_id: productId, platform } = body;
+  const { product_id: productId, platform, label } = body;
 
   if (!productId || (platform !== "meta" && platform !== "google")) {
     return NextResponse.json({ error: "product_id e platform ('meta' ou 'google') são obrigatórios." }, { status: 400 });
   }
 
-  let credentialsPayload: MetaCredentials | GoogleCredentials;
-  let adAccountId: string;
-  let testResult: { valid: boolean; label?: string; error?: string };
-
-  if (platform === "meta") {
-    if (!body.meta?.access_token || !body.meta?.ad_account_id) {
-      return NextResponse.json({ error: "access_token e ad_account_id são obrigatórios." }, { status: 400 });
-    }
-    credentialsPayload = body.meta;
-    adAccountId = body.meta.ad_account_id;
-    testResult = await testMetaCredentials(body.meta);
-  } else {
-    const g = body.google;
-    if (!g?.developer_token || !g?.client_id || !g?.client_secret || !g?.refresh_token || !g?.customer_id) {
-      return NextResponse.json({ error: "Preencha todos os campos do Google Ads." }, { status: 400 });
-    }
-    credentialsPayload = g;
-    adAccountId = g.customer_id;
-    testResult = await testGoogleCredentials(g);
+  let built;
+  try {
+    built = await buildAndTest(body);
+  } catch (res) {
+    if (res instanceof Response) return res;
+    throw res;
   }
+  const { credentialsPayload, adAccountId, testResult } = built;
 
   const admin = createAdminClient();
-  const { error } = await admin.from("ad_platform_credentials").upsert(
-    {
-      product_id: productId,
-      platform,
-      encrypted_credentials: encryptSecret(JSON.stringify(credentialsPayload)),
-      ad_account_id: adAccountId,
-      is_valid: testResult.valid,
-      last_checked_at: new Date().toISOString(),
-      created_by: profile.userId,
-    },
-    { onConflict: "product_id,platform" }
-  );
+  const { data, error } = await admin
+    .from("ad_platform_credentials")
+    .upsert(
+      {
+        product_id: productId,
+        platform,
+        label: label || null,
+        encrypted_credentials: encryptSecret(JSON.stringify(credentialsPayload)),
+        ad_account_id: adAccountId,
+        is_valid: testResult.valid,
+        last_checked_at: new Date().toISOString(),
+        created_by: profile.userId,
+      },
+      { onConflict: "product_id,platform,ad_account_id" }
+    )
+    .select(SELECT_FIELDS)
+    .single();
 
-  if (error) {
+  if (error || !data) {
     return NextResponse.json({ error: "Falha ao salvar credenciais." }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, valid: testResult.valid, label: testResult.label, error: testResult.error });
+  return NextResponse.json({ account: data, testLabel: testResult.label, testError: testResult.error });
 }

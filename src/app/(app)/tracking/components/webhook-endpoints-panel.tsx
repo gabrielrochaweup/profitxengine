@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { CHECKOUT_PLATFORMS } from "@/lib/tracking/checkout-adapters";
 
 export interface WebhookEndpoint {
@@ -44,6 +45,7 @@ export function WebhookEndpointsPanel({
   initialEndpoints: WebhookEndpoint[];
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>(initialEndpoints);
   const [createOpen, setCreateOpen] = useState(false);
   const [revealedSecret, setRevealedSecret] = useState<{ endpoint: WebhookEndpoint; secret: string } | null>(null);
@@ -98,6 +100,24 @@ export function WebhookEndpointsPanel({
     toast.success("Copiado.");
   }
 
+  async function deleteEndpoint(endpoint: WebhookEndpoint) {
+    const ok = await confirm({
+      title: "Excluir endpoint",
+      description: `Excluir o endpoint de ${KIND_LABEL[endpoint.kind]}${endpoint.platform ? ` (${endpoint.platform})` : ""}? A URL para de funcionar imediatamente.`,
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
+
+    const res = await fetch(`/api/tracking/endpoints/${endpoint.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("Falha ao excluir.");
+      return;
+    }
+    setEndpoints((prev) => prev.filter((e) => e.id !== endpoint.id));
+    toast.success("Endpoint excluído.");
+  }
+
   return (
     <Card className="p-5">
       <div className="mb-3 flex items-center justify-between">
@@ -135,6 +155,9 @@ export function WebhookEndpointsPanel({
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => toggleActive(endpoint)}>
                   {endpoint.active ? "Desativar" : "Ativar"}
+                </Button>
+                <Button size="sm" variant="danger" onClick={() => deleteEndpoint(endpoint)}>
+                  Excluir
                 </Button>
               </div>
             </div>

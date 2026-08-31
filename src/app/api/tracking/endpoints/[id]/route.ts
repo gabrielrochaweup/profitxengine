@@ -41,3 +41,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
 }
+
+export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+  const profile = await getSessionProfile();
+  if (!profile || !hasRole(profile.role, "admin")) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("tracking_webhook_endpoints").delete().eq("id", params.id);
+  if (error) return NextResponse.json({ error: "Falha ao excluir." }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
+}

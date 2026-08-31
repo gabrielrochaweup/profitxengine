@@ -5,7 +5,7 @@ import { BarChart3, Webhook, Landmark, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnalyticsTab } from "./components/analytics-tab";
 import { WebhookEndpointsPanel, type WebhookEndpoint } from "./components/webhook-endpoints-panel";
-import { AdAccountsPanel, type AdCredentialStatus } from "./components/ad-accounts-panel";
+import { AdAccountsPanel, type AdAccount } from "./components/ad-accounts-panel";
 import { TrackingScriptPanel } from "./components/tracking-script-panel";
 import { UtmGuide } from "./components/utm-guide";
 
@@ -38,7 +38,7 @@ interface TrackingClientProps {
   initialReport: CampaignRow[];
   initialEvents: RecentEvent[];
   initialEndpoints: WebhookEndpoint[];
-  initialAdCredentials: AdCredentialStatus[];
+  initialAdCredentials: AdAccount[];
   isAdmin: boolean;
 }
 
