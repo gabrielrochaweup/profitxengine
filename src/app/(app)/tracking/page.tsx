@@ -57,6 +57,7 @@ export default async function TrackingPage() {
 
       <TrackingClient
         productId={activeProduct.id}
+        productSlug={activeProduct.slug}
         initialReport={report ?? []}
         initialEvents={events ?? []}
         initialEndpoints={endpoints ?? []}

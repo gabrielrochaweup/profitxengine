@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { SimpleBarChart } from "../analytics/components/charts";
 import { WebhookEndpointsPanel, type WebhookEndpoint } from "./components/webhook-endpoints-panel";
+import { TrackingScriptPanel } from "./components/tracking-script-panel";
 
 interface CampaignRow {
   utm_source: string;
@@ -31,6 +32,7 @@ interface RecentEvent {
 
 interface TrackingClientProps {
   productId: string;
+  productSlug: string;
   initialReport: CampaignRow[];
   initialEvents: RecentEvent[];
   initialEndpoints: WebhookEndpoint[];
@@ -62,7 +64,14 @@ function sumBy(rows: CampaignRow[], key: keyof CampaignRow): number {
   return rows.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
 }
 
-export function TrackingClient({ productId, initialReport, initialEvents, initialEndpoints, isAdmin }: TrackingClientProps) {
+export function TrackingClient({
+  productId,
+  productSlug,
+  initialReport,
+  initialEvents,
+  initialEndpoints,
+  isAdmin,
+}: TrackingClientProps) {
   const [period, setPeriod] = useState<Period>("90d");
   const [report, setReport] = useState<CampaignRow[]>(initialReport);
   const [loading, setLoading] = useState(false);
@@ -118,6 +127,8 @@ export function TrackingClient({ productId, initialReport, initialEvents, initia
 
   return (
     <div className="mt-4 space-y-4">
+      <TrackingScriptPanel productSlug={productSlug} />
+
       <div className="flex flex-wrap gap-1.5">
         {PERIOD_OPTIONS.map((opt) => (
           <button

@@ -1,26 +1,21 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Origens autorizadas a chamar esse endpoint público (a landing page, em
-// PT e no futuro qualquer outro domínio de landing do grupo). Sem sessão de
-// usuário — é chamado direto do navegador de quem só está visitando o site,
-// então a única defesa aqui é CORS + validação de payload, não autenticação.
-const ALLOWED_ORIGINS = new Set([
-  "https://escolaprofitx.com",
-  "https://www.escolaprofitx.com",
-]);
-
-function corsHeaders(origin: string | null): HeadersInit {
-  const allowOrigin = origin && ALLOWED_ORIGINS.has(origin) ? origin : "https://escolaprofitx.com";
+// Esse endpoint precisa aceitar qualquer origem de propósito: o script de
+// tracking (src/app/api/tracking/pixel.js) é feito pra ser colado em
+// QUALQUER site que gere tráfego pra um produto, não só um domínio fixo —
+// mesmo modelo do Google Analytics/Pixel da Meta. A validação de negócio é
+// o product_slug existir, não a origem da chamada.
+function corsHeaders(): HeadersInit {
   return {
-    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 }
 
-export async function OPTIONS(request: Request) {
-  return new NextResponse(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) });
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders() });
 }
 
 interface CollectPayload {
@@ -33,6 +28,8 @@ interface CollectPayload {
   utm_term?: string | null;
   fbclid?: string | null;
   gclid?: string | null;
+  meta_campaign_id?: string | null;
+  google_campaign_id?: string | null;
   fbp?: string | null;
   fbc?: string | null;
   landing_url?: string | null;
@@ -40,8 +37,7 @@ interface CollectPayload {
 }
 
 export async function POST(request: Request) {
-  const origin = request.headers.get("origin");
-  const headers = corsHeaders(origin);
+  const headers = corsHeaders();
 
   let body: CollectPayload;
   try {
@@ -65,30 +61,35 @@ export async function POST(request: Request) {
 
   // ignoreDuplicates: o primeiro clique é quem vale — se esse lead_id já
   // existe, não sobrescreve a origem original.
-  await admin
-    .from("tracking_leads")
-    .upsert(
-      {
-        id: leadId,
-        product_id: product.id,
-        utm_source: body.utm_source || null,
-        utm_medium: body.utm_medium || null,
-        utm_campaign: body.utm_campaign || null,
-        utm_content: body.utm_content || null,
-        utm_term: body.utm_term || null,
-        fbclid: body.fbclid || null,
-        gclid: body.gclid || null,
-        fbp: body.fbp || null,
-        fbc: body.fbc || null,
-        landing_url: body.landing_url || null,
-        referrer: body.referrer || null,
-      },
-      { onConflict: "id", ignoreDuplicates: true }
-    );
+  const { error: leadError } = await admin.from("tracking_leads").upsert(
+    {
+      id: leadId,
+      product_id: product.id,
+      utm_source: body.utm_source || null,
+      utm_medium: body.utm_medium || null,
+      utm_campaign: body.utm_campaign || null,
+      utm_content: body.utm_content || null,
+      utm_term: body.utm_term || null,
+      fbclid: body.fbclid || null,
+      gclid: body.gclid || null,
+      meta_campaign_id: body.meta_campaign_id || null,
+      google_campaign_id: body.google_campaign_id || null,
+      fbp: body.fbp || null,
+      fbc: body.fbc || null,
+      landing_url: body.landing_url || null,
+      referrer: body.referrer || null,
+    },
+    { onConflict: "id", ignoreDuplicates: true }
+  );
+
+  if (leadError) {
+    console.error("[tracking/collect] falha ao gravar lead:", leadError.message);
+    return NextResponse.json({ error: "Falha ao gravar lead." }, { status: 500, headers });
+  }
 
   // external_id fixo por lead reaproveita a constraint única de
   // tracking_events pra não duplicar o page_view se o beacon reenviar.
-  await admin.from("tracking_events").upsert(
+  const { error: eventError } = await admin.from("tracking_events").upsert(
     {
       product_id: product.id,
       lead_id: leadId,
@@ -99,6 +100,11 @@ export async function POST(request: Request) {
     },
     { onConflict: "source,external_id", ignoreDuplicates: true }
   );
+
+  if (eventError) {
+    console.error("[tracking/collect] falha ao gravar evento:", eventError.message);
+    return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
+  }
 
   return NextResponse.json({ ok: true }, { headers });
 }

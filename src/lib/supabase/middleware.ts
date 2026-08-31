@@ -1,7 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback"];
+// /api/tracking: chamado por navegadores de visitantes anônimos (pixel.js,
+// collect) e por sistemas externos sem sessão Supabase (webhooks da
+// corretora/área de membros/checkout) — cada rota faz sua própria checagem
+// (token de webhook, ou getSessionProfile+hasRole pra /endpoints), então não
+// pode ficar atrás do redirect pra /login do middleware.
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/api/tracking"];
 
 export async function updateSession(request: NextRequest) {
   // Repassa a rota atual como header pros Server Components conseguirem ler

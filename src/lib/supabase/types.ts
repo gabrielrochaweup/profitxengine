@@ -930,6 +930,8 @@ export interface Database {
           utm_term: string | null;
           fbclid: string | null;
           gclid: string | null;
+          meta_campaign_id: string | null;
+          google_campaign_id: string | null;
           fbp: string | null;
           fbc: string | null;
           landing_url: string | null;
@@ -947,6 +949,8 @@ export interface Database {
           | "utm_term"
           | "fbclid"
           | "gclid"
+          | "meta_campaign_id"
+          | "google_campaign_id"
           | "fbp"
           | "fbc"
           | "landing_url"
@@ -962,6 +966,8 @@ export interface Database {
           utm_term?: string | null;
           fbclid?: string | null;
           gclid?: string | null;
+          meta_campaign_id?: string | null;
+          google_campaign_id?: string | null;
           fbp?: string | null;
           fbc?: string | null;
           landing_url?: string | null;
