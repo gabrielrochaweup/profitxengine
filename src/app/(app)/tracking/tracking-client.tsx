@@ -9,6 +9,7 @@ import { AdAccountsPanel, type AdAccount } from "./components/ad-accounts-panel"
 import { TrackingScriptPanel } from "./components/tracking-script-panel";
 import { UtmGuide } from "./components/utm-guide";
 import { TrackingFlowGuide } from "./components/tracking-flow-guide";
+import { LinkBuilder } from "./components/link-builder";
 
 interface CampaignRow {
   utm_source: string;
@@ -99,6 +100,7 @@ export function TrackingClient({
       {tab === "utms" && (
         <div className="space-y-4">
           <TrackingFlowGuide />
+          <LinkBuilder productSlug={productSlug} />
           <TrackingScriptPanel productSlug={productSlug} />
           <UtmGuide />
         </div>
