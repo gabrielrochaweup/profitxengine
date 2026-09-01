@@ -42,7 +42,7 @@ export default async function TrackingPage() {
     isAdmin
       ? supabase
           .from("tracking_webhook_endpoints")
-          .select("id, product_id, kind, platform, endpoint_slug, active, created_at")
+          .select("id, product_id, kind, platform, label, endpoint_slug, active, created_at")
           .eq("product_id", activeProduct.id)
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [] }),

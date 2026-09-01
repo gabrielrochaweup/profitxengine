@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("tracking_webhook_endpoints")
-    .select("id, product_id, kind, platform, endpoint_slug, active, created_at")
+    .select("id, product_id, kind, platform, label, endpoint_slug, active, created_at")
     .eq("product_id", productId)
     .order("created_at", { ascending: false });
 
@@ -45,6 +45,7 @@ export async function POST(request: Request) {
   const productId: string | undefined = body?.product_id;
   const kind = body?.kind;
   const platform: string | null = body?.platform ?? null;
+  const label: string | null = typeof body?.label === "string" && body.label.trim() ? body.label.trim() : null;
 
   if (!productId || !VALID_KINDS.includes(kind)) {
     return NextResponse.json({ error: "product_id e kind válidos são obrigatórios." }, { status: 400 });
@@ -62,11 +63,12 @@ export async function POST(request: Request) {
       product_id: productId,
       kind,
       platform: kind === "checkout" ? platform : null,
+      label,
       endpoint_slug: generateSlug(),
       encrypted_secret: encryptSecret(token),
       created_by: profile.userId,
     })
-    .select("id, product_id, kind, platform, endpoint_slug, active, created_at")
+    .select("id, product_id, kind, platform, label, endpoint_slug, active, created_at")
     .single();
 
   if (error || !data) {

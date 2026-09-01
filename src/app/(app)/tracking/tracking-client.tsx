@@ -108,7 +108,7 @@ export function TrackingClient({
 
       {tab === "utms" && (
         <div className="space-y-4">
-          <TrackingFlowGuide productSlug={productSlug} />
+          <TrackingFlowGuide endpoints={endpoints} isAdmin={isAdmin} />
           <LinkBuilder productSlug={productSlug} />
           <TrackingScriptPanel productSlug={productSlug} />
           <UtmGuide />

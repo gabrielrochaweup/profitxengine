@@ -39,6 +39,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ ok: true });
   }
 
+  if (typeof body?.label === "string" || body?.label === null) {
+    const label = typeof body.label === "string" && body.label.trim() ? body.label.trim() : null;
+    const { error } = await admin.from("tracking_webhook_endpoints").update({ label }).eq("id", params.id);
+    if (error) return NextResponse.json({ error: "Falha ao renomear." }, { status: 500 });
+    return NextResponse.json({ ok: true, label });
+  }
+
   return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
 }
 

@@ -1017,6 +1017,7 @@ export interface Database {
           product_id: string;
           kind: "checkout" | "members_area" | "broker";
           platform: string | null;
+          label: string | null;
           endpoint_slug: string;
           encrypted_secret: string;
           active: boolean;
@@ -1025,10 +1026,11 @@ export interface Database {
         };
         Insert: Omit<
           Database["public"]["Tables"]["tracking_webhook_endpoints"]["Row"],
-          "id" | "platform" | "active" | "created_by" | "created_at"
+          "id" | "platform" | "label" | "active" | "created_by" | "created_at"
         > & {
           id?: string;
           platform?: string | null;
+          label?: string | null;
           active?: boolean;
           created_by?: string | null;
           created_at?: string;
