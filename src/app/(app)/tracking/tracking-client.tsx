@@ -23,6 +23,7 @@ interface CampaignRow {
   broker_signups: number;
   deposits: number;
   deposits_total_cents: number;
+  spend_cents: number;
 }
 
 interface RecentEvent {

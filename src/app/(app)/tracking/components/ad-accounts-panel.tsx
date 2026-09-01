@@ -152,6 +152,28 @@ function AccountRow({
   const [editingCreds, setEditingCreds] = useState(false);
   const [label, setLabel] = useState(account.label ?? "");
   const [savingLabel, setSavingLabel] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  async function syncAccount() {
+    setSyncing(true);
+    const res = await fetch("/api/ads/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential_id: account.id }),
+    });
+    const json = await res.json();
+    setSyncing(false);
+    if (!res.ok) {
+      toast.error(json.error ?? "Falha ao sincronizar.");
+      return;
+    }
+    onUpsert({ ...account, last_synced_at: new Date().toISOString() });
+    toast.success(
+      json.days > 0
+        ? `Sincronizado — ${json.days} linha(s), R$ ${(json.totalSpendCents / 100).toLocaleString("pt-BR")} de gasto nos últimos 30 dias.`
+        : "Sincronizado — nenhum gasto encontrado nos últimos 30 dias."
+    );
+  }
 
   async function saveLabel() {
     setSavingLabel(true);
@@ -218,6 +240,11 @@ function AccountRow({
             {account.last_checked_at && (
               <span> · testado em {new Date(account.last_checked_at).toLocaleString("pt-BR")}</span>
             )}
+            {account.last_synced_at ? (
+              <span> · gasto sincronizado em {new Date(account.last_synced_at).toLocaleString("pt-BR")}</span>
+            ) : (
+              <span> · gasto ainda não sincronizado</span>
+            )}
           </p>
         </div>
 
@@ -228,6 +255,15 @@ function AccountRow({
             </Button>
             <Button size="sm" variant="secondary" onClick={() => setEditingCreds((v) => !v)}>
               Alterar credenciais
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={syncAccount}
+              disabled={syncing || !account.is_valid}
+              title={account.is_valid ? undefined : "Conecte a credencial primeiro"}
+            >
+              {syncing ? "Sincronizando..." : "Sincronizar gasto"}
             </Button>
             <Button size="sm" variant="danger" onClick={deleteAccount}>
               Excluir

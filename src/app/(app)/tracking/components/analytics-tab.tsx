@@ -18,6 +18,7 @@ interface CampaignRow {
   broker_signups: number;
   deposits: number;
   deposits_total_cents: number;
+  spend_cents: number;
 }
 
 interface RecentEvent {
@@ -121,9 +122,16 @@ export function AnalyticsTab({
       brokerSignups: sumBy(filteredReport, "broker_signups"),
       deposits: sumBy(filteredReport, "deposits"),
       depositsTotal: sumBy(filteredReport, "deposits_total_cents"),
+      spend: sumBy(filteredReport, "spend_cents"),
     }),
     [filteredReport]
   );
+
+  const revenue = kpis.purchaseRevenue + kpis.depositsTotal;
+  const hasSpend = kpis.spend > 0;
+  const roas = hasSpend ? revenue / kpis.spend : null;
+  const profit = hasSpend ? revenue - kpis.spend : null;
+  const roi = hasSpend ? (revenue - kpis.spend) / kpis.spend : null;
 
   const bySource = useMemo(() => {
     const map = new Map<string, { leads: number; depositsTotal: number }>();
@@ -243,10 +251,26 @@ export function AnalyticsTab({
         </Card>
 
         <div className="grid grid-cols-2 gap-3">
-          <FinanceTile label="Gasto com anúncios" value="—" hint="Conecte Meta/Google Ads" />
-          <FinanceTile label="ROAS" value="—" hint="Conecte Meta/Google Ads" />
-          <FinanceTile label="ROI" value="—" hint="Conecte Meta/Google Ads" />
-          <FinanceTile label="Lucro" value="—" hint="Conecte Meta/Google Ads" />
+          <FinanceTile
+            label="Gasto com anúncios"
+            value={hasSpend ? fmtBRL(kpis.spend) : "—"}
+            hint={hasSpend ? "Curso + depósitos" : "Sincronize o gasto em Contas Meta/Google"}
+          />
+          <FinanceTile
+            label="ROAS"
+            value={roas !== null ? `${roas.toFixed(1)}x` : "—"}
+            hint={hasSpend ? "Receita ÷ gasto" : "Sincronize o gasto em Contas Meta/Google"}
+          />
+          <FinanceTile
+            label="ROI"
+            value={roi !== null ? `${roi >= 0 ? "+" : ""}${(roi * 100).toFixed(0)}%` : "—"}
+            hint={hasSpend ? "(Receita − gasto) ÷ gasto" : "Sincronize o gasto em Contas Meta/Google"}
+          />
+          <FinanceTile
+            label="Lucro"
+            value={profit !== null ? fmtBRL(profit) : "—"}
+            hint={hasSpend ? "Receita − gasto" : "Sincronize o gasto em Contas Meta/Google"}
+          />
         </div>
       </div>
 
@@ -358,28 +382,45 @@ export function AnalyticsTab({
                     <th className="py-2 pr-3 font-medium">Área de membros</th>
                     <th className="py-2 pr-3 font-medium">Corretora</th>
                     <th className="py-2 pr-3 font-medium">Depósitos</th>
-                    <th className="py-2 font-medium">Total depositado</th>
+                    <th className="py-2 pr-3 font-medium">Total depositado</th>
+                    <th className="py-2 pr-3 font-medium">Gasto</th>
+                    <th className="py-2 font-medium">ROI</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReport.map((r) => (
-                    <tr
-                      key={`${r.utm_source}-${r.utm_campaign}`}
-                      className="border-b border-border/50 text-text-secondary"
-                    >
-                      <td className="py-2 pr-3 whitespace-nowrap">{r.utm_source}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{r.utm_campaign}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{r.leads}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{r.purchases}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{fmtBRL(r.purchase_revenue_cents)}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{r.members_access}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{r.broker_signups}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{r.deposits}</td>
-                      <td className="py-2 whitespace-nowrap font-medium text-text-primary">
-                        {fmtBRL(r.deposits_total_cents)}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredReport.map((r) => {
+                    const rowRevenue = r.purchase_revenue_cents + r.deposits_total_cents;
+                    const rowRoi = r.spend_cents > 0 ? (rowRevenue - r.spend_cents) / r.spend_cents : null;
+                    return (
+                      <tr
+                        key={`${r.utm_source}-${r.utm_campaign}`}
+                        className="border-b border-border/50 text-text-secondary"
+                      >
+                        <td className="py-2 pr-3 whitespace-nowrap">{r.utm_source}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap">{r.utm_campaign}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap">{r.leads}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap">{r.purchases}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap">{fmtBRL(r.purchase_revenue_cents)}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap">{r.members_access}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap">{r.broker_signups}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap">{r.deposits}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap font-medium text-text-primary">
+                          {fmtBRL(r.deposits_total_cents)}
+                        </td>
+                        <td className="py-2 pr-3 whitespace-nowrap">{r.spend_cents > 0 ? fmtBRL(r.spend_cents) : "—"}</td>
+                        <td className="py-2 whitespace-nowrap">
+                          {rowRoi !== null ? (
+                            <span className={rowRoi >= 0 ? "text-success" : "text-danger"}>
+                              {rowRoi >= 0 ? "+" : ""}
+                              {(rowRoi * 100).toFixed(0)}%
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
