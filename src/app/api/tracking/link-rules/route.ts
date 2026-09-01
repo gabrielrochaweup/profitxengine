@@ -16,6 +16,28 @@ function normalizeMatchUrl(raw: string): string | null {
   }
 }
 
+export async function GET(request: Request) {
+  const profile = await getSessionProfile();
+  if (!profile || !hasRole(profile.role, "editor")) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
+  }
+
+  const productSlug = new URL(request.url).searchParams.get("product_slug");
+  if (!productSlug) return NextResponse.json({ error: "product_slug é obrigatório." }, { status: 400 });
+
+  const admin = createAdminClient();
+  const { data: product } = await admin.from("products").select("id").eq("slug", productSlug).maybeSingle();
+  if (!product) return NextResponse.json({ rules: [] });
+
+  const { data } = await admin
+    .from("tracking_link_rules")
+    .select("id, raw_url, param_name, fire_checkout, created_at")
+    .eq("product_id", product.id)
+    .order("created_at", { ascending: false });
+
+  return NextResponse.json({ rules: data ?? [] });
+}
+
 export async function POST(request: Request) {
   const profile = await getSessionProfile();
   if (!profile || !hasRole(profile.role, "editor")) {
@@ -46,6 +68,7 @@ export async function POST(request: Request) {
     {
       product_id: product.id,
       match_url: matchUrl,
+      raw_url: url.trim(),
       param_name: paramName,
       fire_checkout: fireCheckout,
       created_by: profile.userId,

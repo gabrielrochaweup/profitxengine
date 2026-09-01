@@ -12,6 +12,9 @@ create table tracking_link_rules (
   -- "https://pay.onprofit.com.br/0c1LryyT" cobre "?off=qjo4cq" e qualquer
   -- outra query que apareça no mesmo link.
   match_url text not null,
+  -- URL exata que a pessoa colou (com query string) — só pra exibir na
+  -- lista "Links registrados"; quem casa o clique é match_url.
+  raw_url text not null,
   param_name text not null default 'ref',
   fire_checkout boolean not null default false,
   created_by uuid references auth.users(id) on delete set null,

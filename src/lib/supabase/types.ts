@@ -1152,6 +1152,7 @@ export interface Database {
           id: string;
           product_id: string;
           match_url: string;
+          raw_url: string;
           param_name: string;
           fire_checkout: boolean;
           created_by: string | null;
