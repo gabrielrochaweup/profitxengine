@@ -12,6 +12,7 @@ interface CampaignRow {
   utm_source: string;
   utm_campaign: string;
   leads: number;
+  initiate_checkouts: number;
   purchases: number;
   purchase_revenue_cents: number;
   members_access: number;
@@ -47,6 +48,7 @@ const PERIOD_OPTIONS: { key: Period; label: string; days: number | null }[] = [
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   page_view: "Clique/landing",
+  initiate_checkout: "Iniciou checkout",
   purchase: "Compra do curso",
   members_access: "Acesso à área de membros",
   broker_signup: "Cadastro na corretora",
@@ -119,6 +121,7 @@ export function AnalyticsTab({
   const kpis = useMemo(
     () => ({
       leads: sumBy(filteredReport, "leads"),
+      initiateCheckouts: sumBy(filteredReport, "initiate_checkouts"),
       purchases: sumBy(filteredReport, "purchases"),
       purchaseRevenue: sumBy(filteredReport, "purchase_revenue_cents"),
       membersAccess: sumBy(filteredReport, "members_access"),
@@ -160,6 +163,7 @@ export function AnalyticsTab({
 
   const funnelStages = [
     { label: "Leads", value: kpis.leads },
+    { label: "Iniciou checkout", value: kpis.initiateCheckouts },
     { label: "Compra do curso", value: kpis.purchases },
     { label: "Área de membros", value: kpis.membersAccess },
     { label: "Cadastro na corretora", value: kpis.brokerSignups },
@@ -380,6 +384,7 @@ export function AnalyticsTab({
                     <th className="py-2 pr-3 font-medium">Origem</th>
                     <th className="py-2 pr-3 font-medium">Campanha</th>
                     <th className="py-2 pr-3 font-medium">Leads</th>
+                    <th className="py-2 pr-3 font-medium">Iniciou checkout</th>
                     <th className="py-2 pr-3 font-medium">Compras curso</th>
                     <th className="py-2 pr-3 font-medium">Receita curso</th>
                     <th className="py-2 pr-3 font-medium">Área de membros</th>
@@ -402,6 +407,7 @@ export function AnalyticsTab({
                         <td className="py-2 pr-3 whitespace-nowrap">{r.utm_source}</td>
                         <td className="py-2 pr-3 whitespace-nowrap">{r.utm_campaign}</td>
                         <td className="py-2 pr-3 whitespace-nowrap">{r.leads}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap">{r.initiate_checkouts}</td>
                         <td className="py-2 pr-3 whitespace-nowrap">{r.purchases}</td>
                         <td className="py-2 pr-3 whitespace-nowrap">{fmtBRL(r.purchase_revenue_cents)}</td>
                         <td className="py-2 pr-3 whitespace-nowrap">{r.members_access}</td>

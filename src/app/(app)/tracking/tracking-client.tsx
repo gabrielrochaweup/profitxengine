@@ -17,6 +17,7 @@ interface CampaignRow {
   utm_source: string;
   utm_campaign: string;
   leads: number;
+  initiate_checkouts: number;
   purchases: number;
   purchase_revenue_cents: number;
   members_access: number;

@@ -20,6 +20,7 @@ const PIXEL_SCRIPT = `
   if (!productSlug) return;
 
   var collectUrl = new URL("/api/tracking/collect", scriptTag.src).href;
+  var clientEventUrl = new URL("/api/tracking/client-event", scriptTag.src).href;
   var storageKey = "px_lead_id_" + productSlug;
 
   function getCookie(name) {
@@ -89,12 +90,23 @@ const PIXEL_SCRIPT = `
     // eventName é opcional — passar "checkout" dispara InitiateCheckout
     // (Meta) / begin_checkout (Google) antes de montar o link, se os pixels
     // já tiverem carregado (função best-effort, não bloqueia o clique se
-    // ainda não carregaram).
+    // ainda não carregaram), e também grava "Iniciou checkout" na nossa
+    // própria aba Análises via sendBeacon — usa beacon (não fetch normal)
+    // porque a página navega embora logo em seguida, e um fetch comum
+    // pode ser cancelado antes de sair do navegador.
     appendRef: function (url, paramName, eventName) {
       try {
         if (eventName === "checkout") {
           if (window.fbq) window.fbq("track", "InitiateCheckout");
           if (window.gtag) window.gtag("event", "begin_checkout");
+          try {
+            var beaconPayload = JSON.stringify({ lead_id: leadId, product_slug: productSlug, event_type: "initiate_checkout" });
+            if (navigator.sendBeacon) {
+              navigator.sendBeacon(clientEventUrl, new Blob([beaconPayload], { type: "application/json" }));
+            } else {
+              fetch(clientEventUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: beaconPayload, keepalive: true }).catch(function () {});
+            }
+          } catch (e) {}
         }
         var u = new URL(url, window.location.href);
         u.searchParams.set(paramName || "ref", leadId);

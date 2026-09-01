@@ -984,7 +984,7 @@ export interface Database {
           id: string;
           product_id: string;
           lead_id: string | null;
-          event_type: "page_view" | "purchase" | "members_access" | "broker_signup" | "broker_deposit";
+          event_type: "page_view" | "initiate_checkout" | "purchase" | "members_access" | "broker_signup" | "broker_deposit";
           source: string;
           email: string | null;
           amount_cents: number | null;
@@ -1167,6 +1167,7 @@ export interface Database {
           utm_source: string;
           utm_campaign: string;
           leads: number;
+          initiate_checkouts: number;
           purchases: number;
           purchase_revenue_cents: number;
           members_access: number;
