@@ -27,6 +27,7 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
     externalId: body.id !== undefined && body.id !== null ? String(body.id) : null,
     ref: typeof body.sck === "string" ? body.sck : typeof body.src === "string" ? body.src : null,
     occurredAt: parseBrDate(dateStr),
+    offerName: typeof body.offer_name === "string" ? body.offer_name : null,
   };
 };
 

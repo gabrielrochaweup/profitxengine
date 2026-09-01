@@ -8,6 +8,8 @@ export interface NormalizedCheckoutEvent {
   externalId: string | null;
   ref: string | null;
   occurredAt: string | null;
+  /** Nome do plano/oferta comprado, quando a plataforma manda isso (ex: "Método TRIAD - Starter"). */
+  offerName: string | null;
 }
 
 // Retorna null quando o payload não representa uma compra aprovada pra essa

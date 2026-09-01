@@ -32,6 +32,7 @@ interface RecentEvent {
   email: string | null;
   amount_cents: number | null;
   currency: string;
+  offer_name: string | null;
   lead_id: string | null;
   occurred_at: string;
 }

@@ -35,7 +35,7 @@ export default async function TrackingPage() {
     }),
     supabase
       .from("tracking_events")
-      .select("id, event_type, source, email, amount_cents, currency, lead_id, occurred_at")
+      .select("id, event_type, source, email, amount_cents, currency, offer_name, lead_id, occurred_at")
       .eq("product_id", activeProduct.id)
       .order("occurred_at", { ascending: false })
       .limit(50),

@@ -24,6 +24,7 @@ function buildTestPayload(kind: string, platform: string | null): unknown {
         event: "PURCHASE_APPROVED",
         data: {
           buyer: { email: "teste@profitx.com" },
+          product: { name: "Produto de teste" },
           purchase: {
             transaction: testId,
             price: { value: 1 },
@@ -39,6 +40,7 @@ function buildTestPayload(kind: string, platform: string | null): unknown {
         status: "PAID",
         id: testId,
         price: 1,
+        offer_name: "Oferta de teste",
         customer: { email: "teste@profitx.com" },
         sck: "test-lead-id",
         confirmation_purchase_date: now.toISOString().slice(0, 19).replace("T", " "),
@@ -50,6 +52,7 @@ function buildTestPayload(kind: string, platform: string | null): unknown {
       amount_cents: 100,
       external_id: testId,
       ref: "test-lead-id",
+      offer_name: "Oferta de teste",
       occurred_at: now.toISOString(),
     };
   }

@@ -58,6 +58,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     email: normalized.email,
     amount_cents: normalized.amountCents,
     external_id: normalized.externalId,
+    offer_name: normalized.offerName,
     occurred_at: normalized.occurredAt || new Date().toISOString(),
     raw_payload: raw as Record<string, unknown>,
   };

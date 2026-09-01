@@ -27,6 +27,7 @@ interface RecentEvent {
   email: string | null;
   amount_cents: number | null;
   currency: string;
+  offer_name: string | null;
   lead_id: string | null;
   occurred_at: string;
 }
@@ -399,6 +400,7 @@ export function AnalyticsTab({
                   <th className="py-2 pr-3 font-medium">Tipo</th>
                   <th className="py-2 pr-3 font-medium">Origem</th>
                   <th className="py-2 pr-3 font-medium">E-mail</th>
+                  <th className="py-2 pr-3 font-medium">Plano</th>
                   <th className="py-2 pr-3 font-medium">Valor</th>
                   <th className="py-2 font-medium">Lead</th>
                 </tr>
@@ -410,6 +412,7 @@ export function AnalyticsTab({
                     <td className="py-2 pr-3 whitespace-nowrap">{EVENT_TYPE_LABEL[e.event_type] ?? e.event_type}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">{e.source}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">{e.email ?? "—"}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{e.offer_name ?? "—"}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">
                       {e.amount_cents != null ? fmtBRL(e.amount_cents) : "—"}
                     </td>

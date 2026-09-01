@@ -990,13 +990,14 @@ export interface Database {
           amount_cents: number | null;
           currency: string;
           external_id: string | null;
+          offer_name: string | null;
           raw_payload: Record<string, unknown> | null;
           occurred_at: string;
           received_at: string;
         };
         Insert: Omit<
           Database["public"]["Tables"]["tracking_events"]["Row"],
-          "id" | "lead_id" | "email" | "amount_cents" | "currency" | "external_id" | "raw_payload" | "occurred_at" | "received_at"
+          "id" | "lead_id" | "email" | "amount_cents" | "currency" | "external_id" | "offer_name" | "raw_payload" | "occurred_at" | "received_at"
         > & {
           id?: string;
           lead_id?: string | null;
@@ -1004,6 +1005,7 @@ export interface Database {
           amount_cents?: number | null;
           currency?: string;
           external_id?: string | null;
+          offer_name?: string | null;
           raw_payload?: Record<string, unknown> | null;
           occurred_at?: string;
           received_at?: string;

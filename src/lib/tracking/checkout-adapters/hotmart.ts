@@ -20,6 +20,7 @@ export const hotmartAdapter: CheckoutAdapter = (raw) => {
   const purchase = data && isRecord(data.purchase) ? data.purchase : null;
   const price = purchase && isRecord(purchase.price) ? purchase.price : null;
   const origin = purchase && isRecord(purchase.origin) ? purchase.origin : null;
+  const product = data && isRecord(data.product) ? data.product : null;
 
   const priceValue = price && typeof price.value === "number" ? price.value : null;
 
@@ -32,6 +33,7 @@ export const hotmartAdapter: CheckoutAdapter = (raw) => {
       purchase && typeof purchase.approved_date === "number"
         ? new Date(purchase.approved_date).toISOString()
         : null,
+    offerName: product && typeof product.name === "string" ? product.name : null,
   };
 };
 

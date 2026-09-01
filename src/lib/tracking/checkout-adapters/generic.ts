@@ -6,7 +6,7 @@ import type { CheckoutAdapter } from "./types";
 //
 // { "event": "purchase", "email": "...", "amount_cents": 49700,
 //   "external_id": "<id do pedido>", "ref": "<lead_id ou null>",
-//   "occurred_at": "2026-08-26T12:00:00Z" }
+//   "occurred_at": "2026-08-26T12:00:00Z", "offer_name": "<plano, opcional>" }
 export const genericAdapter: CheckoutAdapter = (raw) => {
   if (typeof raw !== "object" || raw === null) return null;
   const body = raw as Record<string, unknown>;
@@ -19,5 +19,6 @@ export const genericAdapter: CheckoutAdapter = (raw) => {
     externalId: typeof body.external_id === "string" ? body.external_id : null,
     ref: typeof body.ref === "string" ? body.ref : null,
     occurredAt: typeof body.occurred_at === "string" ? body.occurred_at : null,
+    offerName: typeof body.offer_name === "string" ? body.offer_name : null,
   };
 };
