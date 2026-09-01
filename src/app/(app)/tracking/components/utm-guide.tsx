@@ -14,12 +14,7 @@ export function UtmGuide() {
   return (
     <Card className="p-5">
       <h3 className="mb-1 text-sm font-medium text-text-primary">Parâmetros que o script reconhece</h3>
-      <p className="mb-4 text-xs text-text-secondary">
-        Monte o link do anúncio com esses parâmetros na URL de destino. <code>utm_source</code>/<code>utm_campaign</code>{" "}
-        são o que aparece na aba Análises hoje; <code>mcid</code>/<code>gcid</code> são opcionais, mas recomendados —
-        são o que vai permitir cruzar com o gasto de anúncio assim que a conta Meta/Google estiver conectada, em vez
-        de depender só do nome digitado.
-      </p>
+      <p className="mb-4 text-xs text-text-secondary">Referência do que cada parâmetro significa (o gerador acima já monta o link pra você).</p>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
@@ -40,14 +35,6 @@ export function UtmGuide() {
             ))}
           </tbody>
         </table>
-      </div>
-
-      <div className="mt-4 rounded-xl bg-input p-3">
-        <p className="mb-1 text-[11px] font-medium text-text-muted">Exemplo de link completo pro Meta Ads</p>
-        <code className="block overflow-x-auto whitespace-nowrap text-xs text-text-secondary">
-          https://escolaprofitx.com/?utm_source=meta&amp;utm_medium=cpc&amp;utm_campaign=lancamento_setembro&amp;mcid={"{{"}
-          campaign.id{"}}"}
-        </code>
       </div>
     </Card>
   );
