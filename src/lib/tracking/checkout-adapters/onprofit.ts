@@ -8,6 +8,11 @@ import type { CheckoutAdapter } from "./types";
 // campo livre genérico pra "ref" custom — os únicos campos de rastreio que
 // ela devolve são "utm_*" e "src"/"sck", então o link do checkout carrega o
 // lead_id em "sck" (mesma convenção que a Hotmart usa) em vez de "?ref=".
+//
+// "price"/"offer_price" já vêm em CENTAVOS (confirmado: um teste com
+// offer_price 9700 era R$97,00, não R$9.700 — bateu multiplicando por 100
+// de novo). Nada de Math.round(price * 100) aqui, diferente da Hotmart
+// (que manda em reais).
 export const onprofitAdapter: CheckoutAdapter = (raw) => {
   if (typeof raw !== "object" || raw === null) return null;
   const body = raw as Record<string, unknown>;
@@ -23,7 +28,7 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
 
   return {
     email: customer && typeof customer.email === "string" ? customer.email : null,
-    amountCents: price !== null ? Math.round(price * 100) : null,
+    amountCents: price !== null ? Math.round(price) : null,
     externalId: body.id !== undefined && body.id !== null ? String(body.id) : null,
     ref: typeof body.sck === "string" ? body.sck : typeof body.src === "string" ? body.src : null,
     occurredAt: parseBrDate(dateStr),
