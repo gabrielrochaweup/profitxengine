@@ -5,6 +5,7 @@ import { matchLead } from "@/lib/tracking/match-lead";
 import { CHECKOUT_ADAPTERS } from "@/lib/tracking/checkout-adapters";
 import { sendMetaPurchaseEvent } from "@/lib/tracking/meta-capi";
 import { decryptSecret } from "@/lib/crypto";
+import { logWebhookCall } from "@/lib/tracking/webhook-log";
 
 export async function POST(request: Request, { params }: { params: { slug: string } }) {
   const resolved = await resolveWebhookEndpoint(params.slug, "checkout", request);
@@ -20,6 +21,9 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
+  const admin = createAdminClient();
+  const isTest = request.headers.get("x-profitx-test") === "1";
+
   const adapter = endpoint.platform ? CHECKOUT_ADAPTERS[endpoint.platform] : undefined;
   if (!adapter) {
     return NextResponse.json({ error: `Plataforma "${endpoint.platform}" sem adapter configurado.` }, { status: 500 });
@@ -29,16 +33,21 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   if (!normalized) {
     // Evento que a plataforma manda mas não é uma compra aprovada (teste,
     // reembolso, etc.) — não é erro, só não vira tracking_event.
+    if (!isTest) {
+      await logWebhookCall(admin, endpoint.id, raw, false, "Não reconhecido como compra aprovada por esse adapter — ignorado.");
+    }
     return NextResponse.json({ ok: true, ignored: true });
   }
 
   // Chamada do botão "Testar" (aba Webhooks) — confirma que o adapter
-  // entende o payload e o token bate, sem gravar um evento falso no banco.
-  if (request.headers.get("x-profitx-test") === "1") {
+  // entende o payload e o token bate, sem gravar um evento falso no banco
+  // nem poluir o log de chamadas reais.
+  if (isTest) {
     return NextResponse.json({ ok: true, tested: true, parsed: normalized });
   }
 
-  const admin = createAdminClient();
+  await logWebhookCall(admin, endpoint.id, raw, true);
+
   const leadId = await matchLead(admin, { productId: endpoint.product_id, ref: normalized.ref, email: normalized.email });
 
   const eventRow = {

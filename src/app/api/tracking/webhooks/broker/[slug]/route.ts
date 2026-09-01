@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveWebhookEndpoint } from "@/lib/tracking/webhook-auth";
 import { matchLead } from "@/lib/tracking/match-lead";
+import { logWebhookCall } from "@/lib/tracking/webhook-log";
 
 // Contrato combinado com o time de dev da corretora:
 // { "event": "account_created" | "deposit", "email": "...",
@@ -35,18 +36,27 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
+  const admin = createAdminClient();
+  const isTest = request.headers.get("x-profitx-test") === "1";
+  const rawBody = body as unknown as Record<string, unknown>;
+
   const eventType = body.event ? EVENT_MAP[body.event] : undefined;
   if (!eventType) {
+    if (!isTest) {
+      await logWebhookCall(admin, endpoint.id, rawBody, false, `Campo "event" recebido: "${body.event}" — esperávamos "account_created" ou "deposit".`);
+    }
     return NextResponse.json({ error: "event deve ser 'account_created' ou 'deposit'." }, { status: 400 });
   }
 
   // Chamada do botão "Testar" (aba Webhooks) — confirma que o formato e o
-  // token batem, sem gravar um evento falso no banco.
-  if (request.headers.get("x-profitx-test") === "1") {
+  // token batem, sem gravar um evento falso no banco nem poluir o log de
+  // chamadas reais.
+  if (isTest) {
     return NextResponse.json({ ok: true, tested: true });
   }
 
-  const admin = createAdminClient();
+  await logWebhookCall(admin, endpoint.id, rawBody, true);
+
   const leadId = await matchLead(admin, { productId: endpoint.product_id, ref: body.ref, email: body.email });
 
   const eventRow = {
@@ -58,7 +68,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     amount_cents: typeof body.amount_cents === "number" ? body.amount_cents : null,
     external_id: body.external_id || null,
     occurred_at: body.occurred_at || new Date().toISOString(),
-    raw_payload: body as unknown as Record<string, unknown>,
+    raw_payload: rawBody,
   };
 
   const { error } = body.external_id

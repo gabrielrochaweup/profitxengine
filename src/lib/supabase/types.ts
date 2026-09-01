@@ -1128,6 +1128,23 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["tracking_pixels"]["Insert"]>;
         Relationships: [];
       };
+      tracking_webhook_log: {
+        Row: {
+          id: string;
+          endpoint_id: string;
+          raw_payload: Record<string, unknown>;
+          accepted: boolean;
+          error: string | null;
+          received_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["tracking_webhook_log"]["Row"], "id" | "error" | "received_at"> & {
+          id?: string;
+          error?: string | null;
+          received_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tracking_webhook_log"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

@@ -45,6 +45,14 @@ function endpointSubtitle(endpoint: WebhookEndpoint): string {
   return `${KIND_LABEL[endpoint.kind]}${endpoint.platform ? ` · ${endpoint.platform}` : ""}`;
 }
 
+interface WebhookLogEntry {
+  id: string;
+  raw_payload: Record<string, unknown>;
+  accepted: boolean;
+  error: string | null;
+  received_at: string;
+}
+
 export function WebhookEndpointsPanel({
   productId,
   endpoints,
@@ -61,8 +69,33 @@ export function WebhookEndpointsPanel({
   const [labelDraft, setLabelDraft] = useState("");
   const [revealedSecret, setRevealedSecret] = useState<{ endpoint: WebhookEndpoint; secret: string } | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [logsOpenId, setLogsOpenId] = useState<string | null>(null);
+  const [logsById, setLogsById] = useState<Record<string, WebhookLogEntry[]>>({});
+  const [loadingLogsId, setLoadingLogsId] = useState<string | null>(null);
 
   const hasBroker = endpoints.some((e) => e.kind === "broker");
+
+  async function loadLogs(endpoint: WebhookEndpoint) {
+    setLoadingLogsId(endpoint.id);
+    try {
+      const res = await fetch(`/api/tracking/endpoints/${endpoint.id}/log`);
+      const json = await res.json();
+      setLogsById((prev) => ({ ...prev, [endpoint.id]: json.logs ?? [] }));
+    } catch {
+      toast.error("Falha ao carregar payloads recebidos.");
+    } finally {
+      setLoadingLogsId(null);
+    }
+  }
+
+  function toggleLogs(endpoint: WebhookEndpoint) {
+    if (logsOpenId === endpoint.id) {
+      setLogsOpenId(null);
+      return;
+    }
+    setLogsOpenId(endpoint.id);
+    loadLogs(endpoint);
+  }
 
   async function testEndpoint(endpoint: WebhookEndpoint) {
     setTestingId(endpoint.id);
@@ -247,12 +280,52 @@ export function WebhookEndpointsPanel({
                   <Button size="sm" variant="secondary" onClick={() => rotateSecret(endpoint)}>
                     Rotacionar token
                   </Button>
+                  <Button size="sm" variant="secondary" onClick={() => toggleLogs(endpoint)}>
+                    {logsOpenId === endpoint.id ? "Fechar payloads" : "Ver payloads"}
+                  </Button>
                   <Button size="sm" variant="ghost" onClick={() => toggleActive(endpoint)}>
                     {endpoint.active ? "Desativar" : "Ativar"}
                   </Button>
                   <Button size="sm" variant="danger" onClick={() => deleteEndpoint(endpoint)}>
                     Excluir
                   </Button>
+                </div>
+              )}
+
+              {logsOpenId === endpoint.id && (
+                <div className="mt-3 w-full border-t border-border pt-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-[11px] font-medium text-text-muted">
+                      Últimas chamadas reais recebidas (não inclui os cliques em &quot;Testar&quot;)
+                    </p>
+                    <Button size="sm" variant="ghost" onClick={() => loadLogs(endpoint)} disabled={loadingLogsId === endpoint.id}>
+                      {loadingLogsId === endpoint.id ? "Atualizando..." : "Atualizar"}
+                    </Button>
+                  </div>
+
+                  {loadingLogsId === endpoint.id && !logsById[endpoint.id] ? (
+                    <p className="text-xs text-text-muted">Carregando...</p>
+                  ) : (logsById[endpoint.id]?.length ?? 0) === 0 ? (
+                    <p className="text-xs text-text-muted">
+                      Nenhuma chamada real chegou ainda nesse endpoint. Assim que a plataforma externa disparar algo,
+                      aparece aqui — mesmo que seja rejeitado.
+                    </p>
+                  ) : (
+                    <div className="max-h-80 space-y-2 overflow-y-auto">
+                      {logsById[endpoint.id].map((log) => (
+                        <div key={log.id} className="rounded-input bg-card p-2.5">
+                          <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                            <Badge tone={log.accepted ? "success" : "danger"}>{log.accepted ? "Aceito" : "Rejeitado"}</Badge>
+                            <span className="text-[11px] text-text-muted">{new Date(log.received_at).toLocaleString("pt-BR")}</span>
+                          </div>
+                          {log.error && <p className="mb-1.5 text-[11px] text-danger">{log.error}</p>}
+                          <pre className="overflow-x-auto whitespace-pre rounded-input bg-input px-2.5 py-2 text-[11px] text-text-secondary">
+                            {JSON.stringify(log.raw_payload, null, 2)}
+                          </pre>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

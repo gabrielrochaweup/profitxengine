@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveWebhookEndpoint } from "@/lib/tracking/webhook-auth";
 import { matchLead } from "@/lib/tracking/match-lead";
+import { logWebhookCall } from "@/lib/tracking/webhook-log";
 
 // Contrato combinado com o time de dev da área de membros:
 // { "event": "first_login", "email": "...", "ref": "<lead_id ou null>",
@@ -29,17 +30,26 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
+  const admin = createAdminClient();
+  const isTest = request.headers.get("x-profitx-test") === "1";
+  const rawBody = body as unknown as Record<string, unknown>;
+
   if (body.event !== "first_login") {
+    if (!isTest) {
+      await logWebhookCall(admin, endpoint.id, rawBody, false, `Campo "event" recebido: "${body.event}" — esperávamos "first_login".`);
+    }
     return NextResponse.json({ error: "event deve ser 'first_login'." }, { status: 400 });
   }
 
   // Chamada do botão "Testar" (aba Webhooks) — confirma que o formato e o
-  // token batem, sem gravar um evento falso no banco.
-  if (request.headers.get("x-profitx-test") === "1") {
+  // token batem, sem gravar um evento falso no banco nem poluir o log de
+  // chamadas reais.
+  if (isTest) {
     return NextResponse.json({ ok: true, tested: true });
   }
 
-  const admin = createAdminClient();
+  await logWebhookCall(admin, endpoint.id, rawBody, true);
+
   const leadId = await matchLead(admin, { productId: endpoint.product_id, ref: body.ref, email: body.email });
 
   const eventRow = {
@@ -50,7 +60,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     email: body.email || null,
     external_id: body.external_id || null,
     occurred_at: body.occurred_at || new Date().toISOString(),
-    raw_payload: body as unknown as Record<string, unknown>,
+    raw_payload: rawBody,
   };
 
   const { error } = body.external_id
