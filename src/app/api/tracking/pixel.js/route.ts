@@ -110,6 +110,7 @@ const PIXEL_SCRIPT = `
         }
         var u = new URL(url, window.location.href);
         u.searchParams.set(paramName || "ref", leadId);
+        u.searchParams.delete("pxevt");
         return u.toString();
       } catch (e) {
         return url;
@@ -118,56 +119,24 @@ const PIXEL_SCRIPT = `
   };
 
   // Modo "sem código" — pra builders tipo Elementor/Wix, onde o botão só
-  // aceita colar uma URL pura, sem jeito de colar HTML/onclick/classe. O
-  // Gerador de link (aba UTMs) registra o link colado como "regra" no
-  // banco; aqui a gente busca essa lista (junto com o pixel-config) e
-  // reconhece sozinho qualquer clique num link cujo destino bata com uma
-  // regra salva — sem precisar marcar o botão de jeito nenhum. Casa
-  // ignorando a query string (origin+pathname) pra sobreviver a variações
-  // de parâmetro da própria oferta.
-  // "profitx-checkout"/"profitx-ref" como classe CSS continuam funcionando
-  // como atalho manual, pra quem preferir marcar o botão explicitamente.
-  var SCK_HOSTS = ["onprofit.com.br", "hotmart.com"];
-  function guessParamName(url) {
-    try {
-      var host = new URL(url, window.location.href).hostname;
-      for (var i = 0; i < SCK_HOSTS.length; i++) {
-        if (host === SCK_HOSTS[i] || host.slice(-(SCK_HOSTS[i].length + 1)) === "." + SCK_HOSTS[i]) return "sck";
-      }
-      return "ref";
-    } catch (e) {
-      return "ref";
-    }
-  }
-  function matchKey(url) {
-    try {
-      var u = new URL(url, window.location.href);
-      return u.origin + u.pathname;
-    } catch (e) {
-      return null;
-    }
-  }
-  var linkRules = [];
+  // aceita colar uma URL pura, sem jeito de colar HTML/onclick. Não depende
+  // de nada salvo no banco nem de marcar o botão: o próprio Gerador de link
+  // (aba UTMs) já entrega a URL com "ref=" ou "sck=" vazio (e "pxevt=checkout"
+  // quando for link de checkout) grudado nela. Aqui a gente só olha se o
+  // link clicado tem um desses parâmetros na própria URL — se tiver, é
+  // porque veio do Gerador, então preenche o valor vazio com o lead_id
+  // (via appendRef, que também remove o "pxevt" antes de navegar).
   document.addEventListener(
     "click",
     function (e) {
       var el = e.target && e.target.closest ? e.target.closest("a[href]") : null;
       if (!el) return;
-      var cssCheckout = el.classList.contains("profitx-checkout");
-      var cssRef = el.classList.contains("profitx-ref");
-      var rule = null;
-      if (!cssCheckout && !cssRef) {
-        var key = matchKey(el.href);
-        if (key) {
-          for (var i = 0; i < linkRules.length; i++) {
-            if (linkRules[i].match_url === key) { rule = linkRules[i]; break; }
-          }
-        }
-      }
-      if (!rule && !cssCheckout && !cssRef) return;
+      var u;
+      try { u = new URL(el.href, window.location.href); } catch (err) { return; }
+      var paramName = u.searchParams.has("sck") ? "sck" : u.searchParams.has("ref") ? "ref" : null;
+      if (!paramName) return;
       e.preventDefault();
-      var paramName = cssCheckout || cssRef ? el.getAttribute("data-profitx-param") || guessParamName(el.href) : rule.param_name;
-      var isCheckout = cssCheckout || (rule && rule.fire_checkout);
+      var isCheckout = u.searchParams.get("pxevt") === "checkout";
       window.location.href = window.ProfitXTracking[productSlug].appendRef(el.href, paramName, isCheckout ? "checkout" : undefined);
     },
     true
@@ -190,7 +159,6 @@ const PIXEL_SCRIPT = `
         loadGoogleGtag(cfg.google);
         if (isFirstTouch && window.gtag) window.gtag("event", "generate_lead");
       }
-      if (cfg.link_rules) linkRules = cfg.link_rules;
     })
     .catch(function () {});
 
