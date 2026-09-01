@@ -33,12 +33,16 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
   const [url, setUrl] = useState("");
   const [paramName, setParamName] = useState("ref");
   const [paramTouched, setParamTouched] = useState(false);
+  const [fireCheckoutEvent, setFireCheckoutEvent] = useState(false);
 
   function handleUrlChange(value: string) {
     setUrl(value);
     if (!paramTouched) {
       const guess = guessParamName(value);
-      if (guess) setParamName(guess);
+      if (guess) {
+        setParamName(guess);
+        setFireCheckoutEvent(true);
+      }
     }
   }
 
@@ -55,14 +59,15 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
 
   const snippet = useMemo(() => {
     if (!url.trim() || !preview) return null;
-    const appendCall =
-      paramName === "ref"
+    const appendCall = fireCheckoutEvent
+      ? `window.ProfitXTracking['${productSlug}'].appendRef(this.href, '${paramName}', 'checkout')`
+      : paramName === "ref"
         ? `window.ProfitXTracking['${productSlug}'].appendRef(this.href)`
         : `window.ProfitXTracking['${productSlug}'].appendRef(this.href, '${paramName}')`;
     return `<a href="${url.trim()}" onclick="event.preventDefault(); window.location.href = ${appendCall};">
   Continuar
 </a>`;
-  }, [url, preview, productSlug, paramName]);
+  }, [url, preview, productSlug, paramName, fireCheckoutEvent]);
 
   function copy(text: string) {
     navigator.clipboard.writeText(text);
@@ -103,6 +108,16 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
           </Select>
         </div>
       </div>
+
+      <label className="mt-3 flex w-fit items-center gap-2 text-xs text-text-secondary">
+        <input
+          type="checkbox"
+          checked={fireCheckoutEvent}
+          onChange={(e) => setFireCheckoutEvent(e.target.checked)}
+          className="h-3.5 w-3.5 accent-accent"
+        />
+        É um link de checkout — disparar InitiateCheckout (Meta/Google) no clique
+      </label>
 
       {url.trim() && !preview && (
         <p className="mt-2 text-xs text-danger">Isso não parece um link válido (precisa começar com https://).</p>

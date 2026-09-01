@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveWebhookEndpoint } from "@/lib/tracking/webhook-auth";
 import { matchLead } from "@/lib/tracking/match-lead";
 import { CHECKOUT_ADAPTERS } from "@/lib/tracking/checkout-adapters";
+import { sendMetaPurchaseEvent } from "@/lib/tracking/meta-capi";
+import { decryptSecret } from "@/lib/crypto";
 
 export async function POST(request: Request, { params }: { params: { slug: string } }) {
   const resolved = await resolveWebhookEndpoint(params.slug, "checkout", request.headers.get("authorization"));
@@ -57,6 +59,33 @@ export async function POST(request: Request, { params }: { params: { slug: strin
 
   if (error) {
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500 });
+  }
+
+  // Dispara Purchase pra API de Conversões da Meta — best-effort, nunca
+  // falha o webhook se isso der errado (a compra já foi gravada acima).
+  const { data: metaPixels } = await admin
+    .from("tracking_pixels")
+    .select("pixel_id, encrypted_capi_token")
+    .eq("product_id", endpoint.product_id)
+    .eq("platform", "meta")
+    .eq("active", true)
+    .not("encrypted_capi_token", "is", null);
+
+  for (const pixel of metaPixels ?? []) {
+    if (!pixel.encrypted_capi_token) continue;
+    try {
+      await sendMetaPurchaseEvent({
+        pixelId: pixel.pixel_id,
+        accessToken: decryptSecret(pixel.encrypted_capi_token),
+        email: normalized.email,
+        amountCents: normalized.amountCents,
+        currency: "BRL",
+        externalId: normalized.externalId,
+        occurredAt: eventRow.occurred_at,
+      });
+    } catch {
+      // best-effort — não interrompe a resposta do webhook
+    }
   }
 
   return NextResponse.json({ ok: true, matched: leadId !== null });

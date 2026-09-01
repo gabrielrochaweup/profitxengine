@@ -1102,6 +1102,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["ad_campaign_spend"]["Insert"]>;
         Relationships: [];
       };
+      tracking_pixels: {
+        Row: {
+          id: string;
+          product_id: string;
+          platform: "meta" | "google";
+          pixel_id: string;
+          label: string | null;
+          encrypted_capi_token: string | null;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["tracking_pixels"]["Row"],
+          "id" | "label" | "encrypted_capi_token" | "active" | "created_by" | "created_at"
+        > & {
+          id?: string;
+          label?: string | null;
+          encrypted_capi_token?: string | null;
+          active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tracking_pixels"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

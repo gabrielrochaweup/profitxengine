@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { AnalyticsTab } from "./components/analytics-tab";
 import { WebhookEndpointsPanel, type WebhookEndpoint } from "./components/webhook-endpoints-panel";
 import { AdAccountsPanel, type AdAccount } from "./components/ad-accounts-panel";
+import { PixelsPanel } from "./components/pixels-panel";
 import { TrackingScriptPanel } from "./components/tracking-script-panel";
 import { UtmGuide } from "./components/utm-guide";
 import { UtmBuilder } from "./components/utm-builder";
@@ -107,7 +108,10 @@ export function TrackingClient({
       )}
 
       {tab === "contas" && isAdmin && (
-        <AdAccountsPanel productId={productId} accounts={adCredentials} setAccounts={setAdCredentials} />
+        <div className="space-y-4">
+          <AdAccountsPanel productId={productId} accounts={adCredentials} setAccounts={setAdCredentials} />
+          <PixelsPanel productId={productId} productSlug={productSlug} />
+        </div>
       )}
 
       {tab === "utms" && (

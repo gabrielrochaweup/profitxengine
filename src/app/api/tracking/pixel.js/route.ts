@@ -40,6 +40,36 @@ const PIXEL_SCRIPT = `
     });
   }
 
+  function loadMetaPixel(ids) {
+    if (window.fbq) {
+      ids.forEach(function (id) { window.fbq("init", id); });
+      return;
+    }
+    !function (f, b, e, v, n, t, s) {
+      if (f.fbq) return; n = f.fbq = function () {
+        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+      };
+      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = true; n.version = "2.0"; n.queue = [];
+      t = b.createElement(e); t.async = true; t.src = v;
+      s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+    }(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+    ids.forEach(function (id) { window.fbq("init", id); });
+    window.fbq("track", "PageView");
+  }
+
+  function loadGoogleGtag(ids) {
+    if (!window.dataLayer) {
+      window.dataLayer = [];
+      window.gtag = function () { window.dataLayer.push(arguments); };
+      window.gtag("js", new Date());
+      var s = document.createElement("script");
+      s.async = true;
+      s.src = "https://www.googletagmanager.com/gtag/js?id=" + ids[0];
+      document.head.appendChild(s);
+    }
+    ids.forEach(function (id) { window.gtag("config", id); });
+  }
+
   var leadId = null;
   try { leadId = localStorage.getItem(storageKey); } catch (e) {}
   if (!leadId) leadId = getCookie(storageKey);
@@ -56,8 +86,16 @@ const PIXEL_SCRIPT = `
     // não aceitam um parâmetro de rastreio arbitrário, só um nome fixo que
     // elas já reconhecem (ex: a Onprofit só devolve "sck"/"src" no webhook,
     // então o link do checkout precisa usar appendRef(url, "sck")).
-    appendRef: function (url, paramName) {
+    // eventName é opcional — passar "checkout" dispara InitiateCheckout
+    // (Meta) / begin_checkout (Google) antes de montar o link, se os pixels
+    // já tiverem carregado (função best-effort, não bloqueia o clique se
+    // ainda não carregaram).
+    appendRef: function (url, paramName, eventName) {
       try {
+        if (eventName === "checkout") {
+          if (window.fbq) window.fbq("track", "InitiateCheckout");
+          if (window.gtag) window.gtag("event", "begin_checkout");
+        }
         var u = new URL(url, window.location.href);
         u.searchParams.set(paramName || "ref", leadId);
         return u.toString();
@@ -66,6 +104,26 @@ const PIXEL_SCRIPT = `
       }
     },
   };
+
+  // Pixels de Meta/Google (Pixel ID cadastrado na aba "Contas Meta/Google")
+  // — carrega o pixel de verdade e dispara PageView (sempre) + Lead (só no
+  // primeiro toque). Purchase não dá pra disparar por aqui (a compra
+  // acontece na página do checkout, fora desse domínio) — isso é feito do
+  // lado do servidor, na API de Conversões, quando o webhook de compra chega.
+  var pixelConfigUrl = new URL("/api/tracking/pixel-config", scriptTag.src).href + "?product=" + encodeURIComponent(productSlug);
+  fetch(pixelConfigUrl)
+    .then(function (r) { return r.json(); })
+    .then(function (cfg) {
+      if (cfg.meta && cfg.meta.length) {
+        loadMetaPixel(cfg.meta);
+        if (isFirstTouch && window.fbq) window.fbq("track", "Lead");
+      }
+      if (cfg.google && cfg.google.length) {
+        loadGoogleGtag(cfg.google);
+        if (isFirstTouch && window.gtag) window.gtag("event", "generate_lead");
+      }
+    })
+    .catch(function () {});
 
   if (!isFirstTouch) return;
 
