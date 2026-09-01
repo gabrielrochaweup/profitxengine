@@ -118,29 +118,58 @@ const PIXEL_SCRIPT = `
     },
   };
 
-  // Modo "sem código" — pra builders tipo Elementor/Wix, onde o botão só
-  // aceita colar uma URL pura, sem jeito de colar HTML/onclick. Não depende
-  // de nada salvo no banco nem de marcar o botão: o próprio Gerador de link
-  // (aba UTMs) já entrega a URL com "ref=" ou "sck=" vazio (e "pxevt=checkout"
-  // quando for link de checkout) grudado nela. Aqui a gente só olha se o
-  // link clicado tem um desses parâmetros na própria URL — se tiver, é
-  // porque veio do Gerador, então preenche o valor vazio com o lead_id
-  // (via appendRef, que também remove o "pxevt" antes de navegar).
+  // Modo "sem código" — pra builders tipo Elementor/Wix/Inlead, onde o botão
+  // só aceita colar uma URL pura, sem jeito de colar HTML/onclick. Não
+  // depende de nada salvo no banco nem de marcar o botão: o próprio Gerador
+  // de link (aba UTMs) já entrega a URL com "ref=" ou "sck=" vazio (e
+  // "pxevt=checkout" quando for link de checkout) grudado nela. Aqui a
+  // gente só olha se a URL que vai navegar tem um desses parâmetros — se
+  // tiver, é porque veio do Gerador, então preenche o valor vazio com o
+  // lead_id (via appendRef, que também remove o "pxevt" antes de navegar).
+  function rewriteTrackedUrl(url) {
+    if (typeof url !== "string") return url;
+    var u;
+    try { u = new URL(url, window.location.href); } catch (err) { return url; }
+    var paramName = u.searchParams.has("sck") ? "sck" : u.searchParams.has("ref") ? "ref" : null;
+    if (!paramName) return url;
+    var isCheckout = u.searchParams.get("pxevt") === "checkout";
+    return window.ProfitXTracking[productSlug].appendRef(url, paramName, isCheckout ? "checkout" : undefined);
+  }
+
+  // Cobre botão renderizado como <a href> de verdade (Elementor, Wix, HTML
+  // direto).
   document.addEventListener(
     "click",
     function (e) {
       var el = e.target && e.target.closest ? e.target.closest("a[href]") : null;
       if (!el) return;
-      var u;
-      try { u = new URL(el.href, window.location.href); } catch (err) { return; }
-      var paramName = u.searchParams.has("sck") ? "sck" : u.searchParams.has("ref") ? "ref" : null;
-      if (!paramName) return;
+      var rewritten = rewriteTrackedUrl(el.href);
+      if (rewritten === el.href) return;
       e.preventDefault();
-      var isCheckout = u.searchParams.get("pxevt") === "checkout";
-      window.location.href = window.ProfitXTracking[productSlug].appendRef(el.href, paramName, isCheckout ? "checkout" : undefined);
+      window.location.href = rewritten;
     },
     true
   );
+
+  // Cobre construtores de quiz/funil (ex: Inlead) que não usam <a href> —
+  // o botão dispara a navegação via JS chamando window.open(...) ou
+  // location.assign()/replace() com a URL guardada internamente. Como esses
+  // são funções globais normais (diferente de "location.href = ...", que o
+  // navegador não deixa interceptar), dá pra embrulhar e reescrever a URL
+  // antes de navegar de verdade, do mesmo jeito, só que sem depender de um
+  // clique num <a>.
+  var nativeOpen = window.open;
+  window.open = function (url, target, features) {
+    return nativeOpen.call(window, rewriteTrackedUrl(url), target, features);
+  };
+  try {
+    var nativeAssign = window.location.assign.bind(window.location);
+    window.location.assign = function (url) { return nativeAssign(rewriteTrackedUrl(url)); };
+  } catch (e) {}
+  try {
+    var nativeReplace = window.location.replace.bind(window.location);
+    window.location.replace = function (url) { return nativeReplace(rewriteTrackedUrl(url)); };
+  } catch (e) {}
 
   // Pixels de Meta/Google (Pixel ID cadastrado na aba "Contas Meta/Google")
   // — carrega o pixel de verdade e dispara PageView (sempre) + Lead (só no
