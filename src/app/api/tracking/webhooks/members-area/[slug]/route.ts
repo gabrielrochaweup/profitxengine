@@ -2,19 +2,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveWebhookEndpoint } from "@/lib/tracking/webhook-auth";
 import { matchLead } from "@/lib/tracking/match-lead";
+import { MEMBERS_AREA_ADAPTERS } from "@/lib/tracking/members-area-adapters";
 import { logWebhookCall } from "@/lib/tracking/webhook-log";
-
-// Contrato combinado com o time de dev da área de membros:
-// { "event": "first_login", "email": "...", "ref": "<lead_id ou null>",
-//   "external_id": "<id do aluno na área de membros>",
-//   "occurred_at": "2026-08-26T12:00:00Z" }
-interface MembersAreaPayload {
-  event?: string;
-  email?: string | null;
-  ref?: string | null;
-  external_id?: string | null;
-  occurred_at?: string | null;
-}
 
 export async function POST(request: Request, { params }: { params: { slug: string } }) {
   const resolved = await resolveWebhookEndpoint(params.slug, "members_area", request);
@@ -23,47 +12,52 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   }
   const { endpoint } = resolved;
 
-  let body: MembersAreaPayload;
+  let raw: unknown;
   try {
-    body = await request.json();
+    raw = await request.json();
   } catch {
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
   const admin = createAdminClient();
   const isTest = request.headers.get("x-profitx-test") === "1";
-  const rawBody = body as unknown as Record<string, unknown>;
+  const rawBody = raw as Record<string, unknown>;
 
-  if (body.event !== "first_login") {
+  const adapter = MEMBERS_AREA_ADAPTERS[endpoint.platform ?? "generic"] ?? MEMBERS_AREA_ADAPTERS.generic;
+  const normalized = adapter(raw);
+
+  if (!normalized) {
+    // Evento que a plataforma manda mas não é "aluno ganhou acesso" (outro
+    // tipo de evento, teste, etc.) — não é erro, só não vira tracking_event.
     if (!isTest) {
-      await logWebhookCall(admin, endpoint.id, rawBody, false, `Campo "event" recebido: "${body.event}" — esperávamos "first_login".`);
+      await logWebhookCall(admin, endpoint.id, rawBody, false, "Não reconhecido como acesso de aluno por esse adapter — ignorado.");
     }
-    return NextResponse.json({ error: "event deve ser 'first_login'." }, { status: 400 });
+    return NextResponse.json({ ok: true, ignored: true });
   }
 
-  // Chamada do botão "Testar" (aba Webhooks) — confirma que o formato e o
-  // token batem, sem gravar um evento falso no banco nem poluir o log de
-  // chamadas reais.
+  // Chamada do botão "Testar" (aba Webhooks) — confirma que o adapter
+  // entende o payload e o token bate, sem gravar um evento falso no banco
+  // nem poluir o log de chamadas reais.
   if (isTest) {
-    return NextResponse.json({ ok: true, tested: true });
+    return NextResponse.json({ ok: true, tested: true, parsed: normalized });
   }
 
   await logWebhookCall(admin, endpoint.id, rawBody, true);
 
-  const leadId = await matchLead(admin, { productId: endpoint.product_id, ref: body.ref, email: body.email });
+  const leadId = await matchLead(admin, { productId: endpoint.product_id, ref: normalized.ref, email: normalized.email });
 
   const eventRow = {
     product_id: endpoint.product_id,
     lead_id: leadId,
     event_type: "members_access" as const,
-    source: "members_area",
-    email: body.email || null,
-    external_id: body.external_id || null,
-    occurred_at: body.occurred_at || new Date().toISOString(),
+    source: endpoint.platform ?? "members_area",
+    email: normalized.email,
+    external_id: normalized.externalId,
+    occurred_at: normalized.occurredAt || new Date().toISOString(),
     raw_payload: rawBody,
   };
 
-  const { error } = body.external_id
+  const { error } = normalized.externalId
     ? await admin.from("tracking_events").upsert(eventRow, { onConflict: "source,external_id", ignoreDuplicates: true })
     : await admin.from("tracking_events").insert(eventRow);
 

@@ -55,6 +55,20 @@ function buildTestPayload(kind: string, platform: string | null): unknown {
   }
 
   if (kind === "members_area") {
+    if (platform === "cademi") {
+      return {
+        event_id: testId,
+        event_type: "usuario.criado",
+        event: {
+          usuario: {
+            id: 999999,
+            nome: "Teste ProfitX",
+            email: "teste@profitx.com",
+            criado_em: now.toISOString(),
+          },
+        },
+      };
+    }
     return {
       event: "first_login",
       email: "teste@profitx.com",
@@ -122,7 +136,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     ok = res.ok && json?.ok === true && json?.tested === true;
     if (!ok) {
       detail = json?.ignored
-        ? "O endpoint respondeu, mas não reconheceu o payload de teste como uma compra aprovada — confira a plataforma selecionada."
+        ? "O endpoint respondeu, mas não reconheceu o payload de teste no formato esperado — confira a plataforma selecionada."
         : (json?.error ?? `Resposta inesperada do endpoint (status ${res.status}).`);
     }
   } catch (err) {

@@ -50,8 +50,8 @@ export async function POST(request: Request) {
   if (!productId || !VALID_KINDS.includes(kind)) {
     return NextResponse.json({ error: "product_id e kind válidos são obrigatórios." }, { status: 400 });
   }
-  if (kind === "checkout" && !platform) {
-    return NextResponse.json({ error: "platform é obrigatório para kind='checkout'." }, { status: 400 });
+  if ((kind === "checkout" || kind === "members_area") && !platform) {
+    return NextResponse.json({ error: "platform é obrigatório para kind='checkout'/'members_area'." }, { status: 400 });
   }
 
   const token = generateToken();
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     .insert({
       product_id: productId,
       kind,
-      platform: kind === "checkout" ? platform : null,
+      platform: kind === "checkout" || kind === "members_area" ? platform : null,
       label,
       endpoint_slug: generateSlug(),
       encrypted_secret: encryptSecret(token),

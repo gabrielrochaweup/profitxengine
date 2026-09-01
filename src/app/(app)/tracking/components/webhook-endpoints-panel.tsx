@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { CHECKOUT_PLATFORMS } from "@/lib/tracking/checkout-adapters";
+import { MEMBERS_AREA_PLATFORMS } from "@/lib/tracking/members-area-adapters";
 
 export interface WebhookEndpoint {
   id: string;
@@ -407,6 +408,14 @@ function CreateEndpointModal({
   const [platform, setPlatform] = useState(CHECKOUT_PLATFORMS[0] ?? "generic");
   const [label, setLabel] = useState("");
 
+  const platformOptions = kind === "checkout" ? CHECKOUT_PLATFORMS : kind === "members_area" ? MEMBERS_AREA_PLATFORMS : [];
+
+  function changeKind(nextKind: WebhookEndpoint["kind"]) {
+    setKind(nextKind);
+    if (nextKind === "checkout") setPlatform(CHECKOUT_PLATFORMS[0] ?? "generic");
+    else if (nextKind === "members_area") setPlatform(MEMBERS_AREA_PLATFORMS[0] ?? "generic");
+  }
+
   function reset() {
     setKind("checkout");
     setPlatform(CHECKOUT_PLATFORMS[0] ?? "generic");
@@ -425,7 +434,7 @@ function CreateEndpointModal({
       <div className="space-y-4">
         <div>
           <label className="mb-1 block text-xs font-medium text-text-muted">Origem</label>
-          <Select value={kind} onChange={(e) => setKind(e.target.value as WebhookEndpoint["kind"])}>
+          <Select value={kind} onChange={(e) => changeKind(e.target.value as WebhookEndpoint["kind"])}>
             <option value="checkout">Checkout</option>
             <option value="members_area">Área de membros</option>
             <option value="broker">Corretora</option>
@@ -438,11 +447,11 @@ function CreateEndpointModal({
           )}
         </div>
 
-        {kind === "checkout" && (
+        {platformOptions.length > 0 && (
           <div>
             <label className="mb-1 block text-xs font-medium text-text-muted">Plataforma</label>
             <Select value={platform} onChange={(e) => setPlatform(e.target.value)}>
-              {CHECKOUT_PLATFORMS.map((p) => (
+              {platformOptions.map((p) => (
                 <option key={p} value={p}>
                   {p}
                 </option>
@@ -464,7 +473,7 @@ function CreateEndpointModal({
           </Button>
           <Button
             onClick={() => {
-              onCreate(kind, kind === "checkout" ? platform : null, label.trim() || null);
+              onCreate(kind, platformOptions.length > 0 ? platform : null, label.trim() || null);
               reset();
             }}
           >
