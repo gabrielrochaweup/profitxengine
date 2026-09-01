@@ -30,6 +30,9 @@ interface RecentEvent {
   currency: string;
   offer_name: string | null;
   lead_id: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
   occurred_at: string;
 }
 
@@ -443,6 +446,7 @@ export function AnalyticsTab({
                   <th className="py-2 pr-3 font-medium">E-mail</th>
                   <th className="py-2 pr-3 font-medium">Plano</th>
                   <th className="py-2 pr-3 font-medium">Valor</th>
+                  <th className="py-2 pr-3 font-medium">Campanha</th>
                   <th className="py-2 font-medium">Lead</th>
                 </tr>
               </thead>
@@ -456,6 +460,9 @@ export function AnalyticsTab({
                     <td className="py-2 pr-3 whitespace-nowrap">{e.offer_name ?? "—"}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">
                       {e.amount_cents != null ? fmtBRL(e.amount_cents) : "—"}
+                    </td>
+                    <td className="py-2 pr-3 whitespace-nowrap">
+                      {e.utm_source ? `${e.utm_source} · ${e.utm_campaign ?? "(sem campanha)"}` : "—"}
                     </td>
                     <td className="py-2 whitespace-nowrap">
                       {e.lead_id ? "Atribuído" : <span className="text-warning">Não atribuído</span>}

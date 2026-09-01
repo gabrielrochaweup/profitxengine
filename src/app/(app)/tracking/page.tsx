@@ -27,7 +27,7 @@ export default async function TrackingPage() {
   const from = new Date(now);
   from.setDate(from.getDate() - 90);
 
-  const [{ data: report }, { data: events }, { data: endpoints }, { data: adCredentials }] = await Promise.all([
+  const [{ data: report }, { data: rawEvents }, { data: endpoints }, { data: adCredentials }] = await Promise.all([
     supabase.rpc("tracking_campaign_report", {
       p_product_id: activeProduct.id,
       p_from: from.toISOString(),
@@ -53,6 +53,21 @@ export default async function TrackingPage() {
           .eq("product_id", activeProduct.id)
       : Promise.resolve({ data: [] }),
   ]);
+
+  // Junta a UTM/campanha do lead em cada evento — a tabela de eventos
+  // recentes precisa mostrar de onde o cliente veio, não só o que ele fez.
+  const leadIds = Array.from(new Set((rawEvents ?? []).map((e) => e.lead_id).filter((id): id is string => !!id)));
+  const { data: eventLeads } =
+    leadIds.length > 0
+      ? await supabase.from("tracking_leads").select("id, utm_source, utm_medium, utm_campaign").in("id", leadIds)
+      : { data: [] };
+  const leadById = new Map((eventLeads ?? []).map((l) => [l.id, l]));
+  const events = (rawEvents ?? []).map((e) => ({
+    ...e,
+    utm_source: e.lead_id ? (leadById.get(e.lead_id)?.utm_source ?? null) : null,
+    utm_medium: e.lead_id ? (leadById.get(e.lead_id)?.utm_medium ?? null) : null,
+    utm_campaign: e.lead_id ? (leadById.get(e.lead_id)?.utm_campaign ?? null) : null,
+  }));
 
   return (
     <div>
