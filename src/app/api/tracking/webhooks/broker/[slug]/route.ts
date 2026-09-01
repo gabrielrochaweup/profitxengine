@@ -40,6 +40,12 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ error: "event deve ser 'account_created' ou 'deposit'." }, { status: 400 });
   }
 
+  // Chamada do botão "Testar" (aba Webhooks) — confirma que o formato e o
+  // token batem, sem gravar um evento falso no banco.
+  if (request.headers.get("x-profitx-test") === "1") {
+    return NextResponse.json({ ok: true, tested: true });
+  }
+
   const admin = createAdminClient();
   const leadId = await matchLead(admin, { productId: endpoint.product_id, ref: body.ref, email: body.email });
 

@@ -30,6 +30,12 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ ok: true, ignored: true });
   }
 
+  // Chamada do botão "Testar" (aba Webhooks) — confirma que o adapter
+  // entende o payload e o token bate, sem gravar um evento falso no banco.
+  if (request.headers.get("x-profitx-test") === "1") {
+    return NextResponse.json({ ok: true, tested: true, parsed: normalized });
+  }
+
   const admin = createAdminClient();
   const leadId = await matchLead(admin, { productId: endpoint.product_id, ref: normalized.ref, email: normalized.email });
 

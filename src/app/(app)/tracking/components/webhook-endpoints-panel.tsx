@@ -19,6 +19,8 @@ export interface WebhookEndpoint {
   label: string | null;
   endpoint_slug: string;
   active: boolean;
+  last_test_at: string | null;
+  last_test_ok: boolean | null;
   created_at: string;
 }
 
@@ -58,8 +60,30 @@ export function WebhookEndpointsPanel({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [labelDraft, setLabelDraft] = useState("");
   const [revealedSecret, setRevealedSecret] = useState<{ endpoint: WebhookEndpoint; secret: string } | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
 
   const hasBroker = endpoints.some((e) => e.kind === "broker");
+
+  async function testEndpoint(endpoint: WebhookEndpoint) {
+    setTestingId(endpoint.id);
+    try {
+      const res = await fetch(`/api/tracking/endpoints/${endpoint.id}/test`, { method: "POST" });
+      const json = await res.json();
+      const now = new Date().toISOString();
+      setEndpoints((prev) =>
+        prev.map((e) => (e.id === endpoint.id ? { ...e, last_test_at: now, last_test_ok: !!json.ok } : e))
+      );
+      if (json.ok) {
+        toast.success("Teste ok — o endpoint recebeu e entendeu o payload corretamente.");
+      } else {
+        toast.error(json.error ?? "O teste falhou.");
+      }
+    } catch {
+      toast.error("Falha ao chamar o endpoint de teste.");
+    } finally {
+      setTestingId(null);
+    }
+  }
 
   async function createEndpoint(kind: WebhookEndpoint["kind"], platform: string | null, label: string | null) {
     const res = await fetch("/api/tracking/endpoints", {
@@ -187,9 +211,14 @@ export function WebhookEndpointsPanel({
                     </span>
                     {endpoint.label && <span className="text-[11px] text-text-muted">· {endpointSubtitle(endpoint)}</span>}
                     <Badge tone={endpoint.active ? "success" : "neutral"}>{endpoint.active ? "Ativo" : "Inativo"}</Badge>
+                    {endpoint.last_test_ok === true && <Badge tone="success">Testado ✓</Badge>}
+                    {endpoint.last_test_ok === false && <Badge tone="danger">Teste falhou</Badge>}
                   </div>
                 )}
                 <p className="mt-1 truncate text-xs text-text-muted">{endpointUrl(endpoint)}</p>
+                {endpoint.last_test_ok === null && (
+                  <p className="mt-0.5 text-[11px] text-text-muted">Ainda não testado — clique em &quot;Testar&quot;.</p>
+                )}
               </div>
               {renamingId !== endpoint.id && (
                 <div className="flex shrink-0 flex-wrap gap-2">
@@ -205,6 +234,14 @@ export function WebhookEndpointsPanel({
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => copy(endpointUrl(endpoint))}>
                     Copiar URL
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => testEndpoint(endpoint)}
+                    disabled={testingId === endpoint.id}
+                  >
+                    {testingId === endpoint.id ? "Testando..." : "Testar"}
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => rotateSecret(endpoint)}>
                     Rotacionar token

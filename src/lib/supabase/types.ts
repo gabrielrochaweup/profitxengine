@@ -1021,17 +1021,21 @@ export interface Database {
           endpoint_slug: string;
           encrypted_secret: string;
           active: boolean;
+          last_test_at: string | null;
+          last_test_ok: boolean | null;
           created_by: string | null;
           created_at: string;
         };
         Insert: Omit<
           Database["public"]["Tables"]["tracking_webhook_endpoints"]["Row"],
-          "id" | "platform" | "label" | "active" | "created_by" | "created_at"
+          "id" | "platform" | "label" | "active" | "last_test_at" | "last_test_ok" | "created_by" | "created_at"
         > & {
           id?: string;
           platform?: string | null;
           label?: string | null;
           active?: boolean;
+          last_test_at?: string | null;
+          last_test_ok?: boolean | null;
           created_by?: string | null;
           created_at?: string;
         };

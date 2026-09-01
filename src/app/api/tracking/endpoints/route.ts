@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("tracking_webhook_endpoints")
-    .select("id, product_id, kind, platform, label, endpoint_slug, active, created_at")
+    .select("id, product_id, kind, platform, label, endpoint_slug, active, last_test_at, last_test_ok, created_at")
     .eq("product_id", productId)
     .order("created_at", { ascending: false });
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       encrypted_secret: encryptSecret(token),
       created_by: profile.userId,
     })
-    .select("id, product_id, kind, platform, label, endpoint_slug, active, created_at")
+    .select("id, product_id, kind, platform, label, endpoint_slug, active, last_test_at, last_test_ok, created_at")
     .single();
 
   if (error || !data) {
