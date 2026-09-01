@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { CHECKOUT_PLATFORMS } from "@/lib/tracking/checkout-adapters";
 import { MEMBERS_AREA_PLATFORMS } from "@/lib/tracking/members-area-adapters";
+import { BROKER_PLATFORMS } from "@/lib/tracking/broker-adapters";
 
 export interface WebhookEndpoint {
   id: string;
@@ -46,6 +47,12 @@ function endpointSubtitle(endpoint: WebhookEndpoint): string {
   return `${KIND_LABEL[endpoint.kind]}${endpoint.platform ? ` · ${endpoint.platform}` : ""}`;
 }
 
+function platformsFor(kind: WebhookEndpoint["kind"]): string[] {
+  if (kind === "checkout") return CHECKOUT_PLATFORMS;
+  if (kind === "members_area") return MEMBERS_AREA_PLATFORMS;
+  return BROKER_PLATFORMS;
+}
+
 interface WebhookLogEntry {
   id: string;
   raw_payload: Record<string, unknown>;
@@ -68,6 +75,8 @@ export function WebhookEndpointsPanel({
   const [createOpen, setCreateOpen] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [labelDraft, setLabelDraft] = useState("");
+  const [editingPlatformId, setEditingPlatformId] = useState<string | null>(null);
+  const [platformDraft, setPlatformDraft] = useState("");
   const [revealedSecret, setRevealedSecret] = useState<{ endpoint: WebhookEndpoint; secret: string } | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [logsOpenId, setLogsOpenId] = useState<string | null>(null);
@@ -148,6 +157,21 @@ export function WebhookEndpointsPanel({
     }
     setEndpoints((prev) => prev.map((e) => (e.id === endpoint.id ? { ...e, label: nextLabel } : e)));
     setRenamingId(null);
+  }
+
+  async function savePlatform(endpoint: WebhookEndpoint) {
+    const res = await fetch(`/api/tracking/endpoints/${endpoint.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ platform: platformDraft }),
+    });
+    if (!res.ok) {
+      toast.error("Falha ao trocar a plataforma.");
+      return;
+    }
+    setEndpoints((prev) => prev.map((e) => (e.id === endpoint.id ? { ...e, platform: platformDraft } : e)));
+    setEditingPlatformId(null);
+    toast.success("Plataforma atualizada.");
   }
 
   async function rotateSecret(endpoint: WebhookEndpoint) {
@@ -239,6 +263,22 @@ export function WebhookEndpointsPanel({
                       Cancelar
                     </Button>
                   </div>
+                ) : editingPlatformId === endpoint.id ? (
+                  <div className="flex items-center gap-2">
+                    <Select value={platformDraft} onChange={(e) => setPlatformDraft(e.target.value)} className="h-8 w-48 text-xs">
+                      {platformsFor(endpoint.kind).map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </Select>
+                    <Button size="sm" onClick={() => savePlatform(endpoint)}>
+                      Salvar
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingPlatformId(null)}>
+                      Cancelar
+                    </Button>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-text-primary">
@@ -255,7 +295,7 @@ export function WebhookEndpointsPanel({
                   <p className="mt-0.5 text-[11px] text-text-muted">Ainda não testado — clique em &quot;Testar&quot;.</p>
                 )}
               </div>
-              {renamingId !== endpoint.id && (
+              {renamingId !== endpoint.id && editingPlatformId !== endpoint.id && (
                 <div className="flex shrink-0 flex-wrap gap-2">
                   <Button
                     size="sm"
@@ -266,6 +306,16 @@ export function WebhookEndpointsPanel({
                     }}
                   >
                     Renomear
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setPlatformDraft(endpoint.platform ?? platformsFor(endpoint.kind)[0] ?? "generic");
+                      setEditingPlatformId(endpoint.id);
+                    }}
+                  >
+                    Trocar plataforma
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => copy(endpointUrl(endpoint))}>
                     Copiar URL
@@ -408,12 +458,14 @@ function CreateEndpointModal({
   const [platform, setPlatform] = useState(CHECKOUT_PLATFORMS[0] ?? "generic");
   const [label, setLabel] = useState("");
 
-  const platformOptions = kind === "checkout" ? CHECKOUT_PLATFORMS : kind === "members_area" ? MEMBERS_AREA_PLATFORMS : [];
+  const platformOptions =
+    kind === "checkout" ? CHECKOUT_PLATFORMS : kind === "members_area" ? MEMBERS_AREA_PLATFORMS : BROKER_PLATFORMS;
 
   function changeKind(nextKind: WebhookEndpoint["kind"]) {
     setKind(nextKind);
     if (nextKind === "checkout") setPlatform(CHECKOUT_PLATFORMS[0] ?? "generic");
     else if (nextKind === "members_area") setPlatform(MEMBERS_AREA_PLATFORMS[0] ?? "generic");
+    else setPlatform(BROKER_PLATFORMS[0] ?? "generic");
   }
 
   function reset() {

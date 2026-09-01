@@ -82,6 +82,20 @@ function buildTestPayload(kind: string, platform: string | null): unknown {
   }
 
   // broker
+  if (platform === "memextrade") {
+    return {
+      method: "REGISTER",
+      data: {
+        email: "teste@profitx.com",
+        userId: testId,
+        registeredAt: now.toISOString(),
+        utm: { referralCode: "test-lead-id" },
+      },
+      attempt: 1,
+      timestamp: now.toISOString(),
+      webhookId: "profitx-self-test",
+    };
+  }
   return {
     event: "account_created",
     email: "teste@profitx.com",

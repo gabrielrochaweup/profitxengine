@@ -4,11 +4,18 @@ import { resolveWebhookEndpoint } from "@/lib/tracking/webhook-auth";
 import { matchLead } from "@/lib/tracking/match-lead";
 import { MEMBERS_AREA_ADAPTERS } from "@/lib/tracking/members-area-adapters";
 import { logWebhookCall } from "@/lib/tracking/webhook-log";
+import { webhookCorsHeaders } from "@/lib/tracking/cors";
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: webhookCorsHeaders() });
+}
 
 export async function POST(request: Request, { params }: { params: { slug: string } }) {
+  const headers = webhookCorsHeaders();
+
   const resolved = await resolveWebhookEndpoint(params.slug, "members_area", request);
   if ("error" in resolved) {
-    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+    return NextResponse.json({ error: resolved.error }, { status: resolved.status, headers });
   }
   const { endpoint } = resolved;
 
@@ -16,7 +23,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   try {
     raw = await request.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
+    return NextResponse.json({ error: "JSON inválido." }, { status: 400, headers });
   }
 
   const admin = createAdminClient();
@@ -32,14 +39,14 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     if (!isTest) {
       await logWebhookCall(admin, endpoint.id, rawBody, false, "Não reconhecido como acesso de aluno por esse adapter — ignorado.");
     }
-    return NextResponse.json({ ok: true, ignored: true });
+    return NextResponse.json({ ok: true, ignored: true }, { headers });
   }
 
   // Chamada do botão "Testar" (aba Webhooks) — confirma que o adapter
   // entende o payload e o token bate, sem gravar um evento falso no banco
   // nem poluir o log de chamadas reais.
   if (isTest) {
-    return NextResponse.json({ ok: true, tested: true, parsed: normalized });
+    return NextResponse.json({ ok: true, tested: true, parsed: normalized }, { headers });
   }
 
   await logWebhookCall(admin, endpoint.id, rawBody, true);
@@ -62,8 +69,8 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     : await admin.from("tracking_events").insert(eventRow);
 
   if (error) {
-    return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500 });
+    return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
   }
 
-  return NextResponse.json({ ok: true, matched: leadId !== null });
+  return NextResponse.json({ ok: true, matched: leadId !== null }, { headers });
 }

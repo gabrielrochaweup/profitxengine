@@ -46,6 +46,15 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ ok: true, label });
   }
 
+  if (typeof body?.platform === "string" && body.platform.trim()) {
+    const { error } = await admin
+      .from("tracking_webhook_endpoints")
+      .update({ platform: body.platform.trim() })
+      .eq("id", params.id);
+    if (error) return NextResponse.json({ error: "Falha ao trocar a plataforma." }, { status: 500 });
+    return NextResponse.json({ ok: true, platform: body.platform.trim() });
+  }
+
   return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
 }
 
