@@ -127,20 +127,6 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
         <div className="mt-4 space-y-4">
           <div>
             <p className="mb-1 text-[11px] font-medium text-text-muted">
-              Como fica pra cada visitante (exemplo com um lead_id de mentira, só pra mostrar o formato)
-            </p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-3 py-2 text-xs">
-                {preview}
-              </code>
-              <Button size="sm" variant="secondary" onClick={() => copy(preview)}>
-                Copiar
-              </Button>
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-1 text-[11px] font-medium text-text-muted">
               Código pronto pra colar no site — funciona sozinho, pega o lead_id certo de cada visitante na hora do
               clique
             </p>
