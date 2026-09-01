@@ -19,6 +19,19 @@ import type { BrokerAdapter } from "./types";
 // bonusAmount, que pode não ser dinheiro de verdade entrando. A moeda vem
 // dinâmica do payload (o teste veio em "USD", não fixo em BRL como as
 // outras integrações).
+//
+// ATENÇÃO — unidade de "amount" ainda não confirmada: multiplica por 100
+// assumindo reais/dólares, igual a Hotmart, mas o único teste visto foi um
+// valor redondo (100) que não distingue "R$1,00 em centavos" de
+// "R$100,00 em unidade cheia" (foi exatamente esse erro que aconteceu com
+// a Onprofit — lá "price" já vinha em centavos). Conferir contra um
+// depósito real de valor não-redondo antes de confiar 100% nesse número.
+//
+// "isTest" vem true nos testes de conectividade do painel da própria
+// Memex Trade (diferente do nosso botão "Testar", que usa um header
+// próprio) — sem esse filtro, cada clique deles vira um tracking_event de
+// verdade (foi o que aconteceu: um depósito de teste de admin@memextrade.com
+// ficou gravado como depósito real até ser limpo manualmente).
 const METHOD_MAP: Record<string, "broker_signup" | "broker_deposit"> = {
   REGISTER: "broker_signup",
   DEPOSIT_PAYED: "broker_deposit",
@@ -32,6 +45,8 @@ export const memextradeAdapter: BrokerAdapter = (raw) => {
   if (!eventType) return null;
 
   const data = isRecord(body.data) ? body.data : null;
+  if (data?.isTest === true) return null;
+
   const utm = data && isRecord(data.utm) ? data.utm : null;
 
   const amount =
