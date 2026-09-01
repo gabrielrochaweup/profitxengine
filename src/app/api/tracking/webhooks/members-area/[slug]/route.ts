@@ -16,7 +16,7 @@ interface MembersAreaPayload {
 }
 
 export async function POST(request: Request, { params }: { params: { slug: string } }) {
-  const resolved = await resolveWebhookEndpoint(params.slug, "members_area", request.headers.get("authorization"));
+  const resolved = await resolveWebhookEndpoint(params.slug, "members_area", request);
   if ("error" in resolved) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }

@@ -7,7 +7,7 @@ import { sendMetaPurchaseEvent } from "@/lib/tracking/meta-capi";
 import { decryptSecret } from "@/lib/crypto";
 
 export async function POST(request: Request, { params }: { params: { slug: string } }) {
-  const resolved = await resolveWebhookEndpoint(params.slug, "checkout", request.headers.get("authorization"));
+  const resolved = await resolveWebhookEndpoint(params.slug, "checkout", request);
   if ("error" in resolved) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }

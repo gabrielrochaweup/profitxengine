@@ -295,6 +295,23 @@ export function WebhookEndpointsPanel({
                 </Button>
               </div>
             </div>
+            <div>
+              <p className="mb-1 text-xs font-medium text-text-muted">
+                URL com token embutido <span className="text-text-muted/70">(use essa se a plataforma não tiver campo pra header customizado — cola direto no lugar da URL, sozinha)</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 truncate rounded-input bg-input px-3 py-2 text-xs">
+                  {`${endpointUrl(revealedSecret.endpoint)}?token=${revealedSecret.secret}`}
+                </code>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => copy(`${endpointUrl(revealedSecret.endpoint)}?token=${revealedSecret.secret}`)}
+                >
+                  Copiar
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </Modal>
