@@ -115,7 +115,7 @@ export function PromptPicker({ preferredSlug, onSelect, trigger }: PromptPickerP
                   className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
                     activeCategoryId === cat.id
                       ? "bg-accent text-white"
-                      : "border border-border-strong text-text-secondary hover:bg-card-hover"
+                      : "text-text-secondary hover:bg-card-hover"
                   }`}
                 >
                   {cat.name}
@@ -129,7 +129,7 @@ export function PromptPicker({ preferredSlug, onSelect, trigger }: PromptPickerP
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar prompt..."
-                className="h-9 w-full rounded-input border border-border bg-input pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
+                className="h-9 w-full rounded-input bg-input pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--accent)]"
               />
             </div>
 

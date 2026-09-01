@@ -23,7 +23,7 @@ export function LocaleCarousel({ active, onChange }: LocaleCarouselProps) {
         type="button"
         onClick={() => go(-1)}
         title="Idioma anterior"
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border-strong text-text-secondary hover:bg-card-hover"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-text-secondary hover:bg-card-hover"
       >
         <ChevronLeft size={13} />
       </button>
@@ -36,7 +36,7 @@ export function LocaleCarousel({ active, onChange }: LocaleCarouselProps) {
             onClick={() => onChange(loc)}
             title={CLIENT_LOCALE_LABELS[loc]}
             className={`rounded-button px-1.5 py-1 text-[10px] font-medium transition-colors ${
-              loc === active ? "bg-accent text-white" : "border border-border-strong text-text-secondary hover:bg-card-hover"
+              loc === active ? "bg-accent text-white" : "text-text-secondary hover:bg-card-hover"
             }`}
           >
             {CLIENT_LOCALE_SHORT_LABELS[loc]}
@@ -48,7 +48,7 @@ export function LocaleCarousel({ active, onChange }: LocaleCarouselProps) {
         type="button"
         onClick={() => go(1)}
         title="Próximo idioma"
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border-strong text-text-secondary hover:bg-card-hover"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-text-secondary hover:bg-card-hover"
       >
         <ChevronRight size={13} />
       </button>

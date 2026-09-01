@@ -273,7 +273,7 @@ function CredentialCard({
       {isAdmin && (
         <div className="mt-4 space-y-3">
           {!editing && status ? (
-            <div className="flex items-center justify-between gap-2 rounded-input border border-border bg-input px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2 rounded-input bg-input px-3 py-2.5">
               <span className="text-sm text-text-secondary">•••••••••••••••• (chave registrada)</span>
               <button
                 type="button"

@@ -200,7 +200,7 @@ export function LivreGenerator({ dateKey, messages, currentUserId, onSaved, onDe
       </Card>
 
       {form.newsReference && (
-        <p className="rounded-lg border border-border bg-card-hover px-2.5 py-1.5 text-xs text-text-secondary">
+        <p className="rounded-lg bg-card-hover px-2.5 py-1.5 text-xs text-text-secondary">
           Gancho selecionado: {form.newsReference}
         </p>
       )}

@@ -75,7 +75,7 @@ export function DinamicasClient({ initialDynamics, slotCounts, initialSnapshots,
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {dynamics.map((dynamic) => (
             <Link key={dynamic.id} href={`/dinamicas-do-dia/gerenciar/${dynamic.id}`}>
-              <Card className="h-full p-5 transition-colors hover:border-accent">
+              <Card className="h-full p-5 transition-shadow hover:shadow-[0_0_0_2px_var(--accent)]">
                 <div className="flex items-start justify-between">
                   <span className="text-2xl">{dynamic.icon || "✨"}</span>
                   {!dynamic.active && <Badge tone="neutral">Inativa</Badge>}
@@ -98,7 +98,7 @@ export function DinamicasClient({ initialDynamics, slotCounts, initialSnapshots,
                 {items.map((snapshot) => (
                   <Card
                     key={snapshot.id}
-                    className="h-full cursor-pointer p-5 text-left transition-colors hover:border-accent"
+                    className="h-full cursor-pointer p-5 text-left transition-shadow hover:shadow-[0_0_0_2px_var(--accent)]"
                     onClick={() => setOpenSnapshot(snapshot)}
                   >
                     <span className="text-2xl">{snapshot.dynamic_icon || "✨"}</span>

@@ -125,7 +125,7 @@ export function HeaderEditor({
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             title="Enviar arquivo"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input border border-border-strong text-text-secondary hover:bg-card-hover disabled:opacity-50"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input text-text-secondary hover:bg-card-hover disabled:opacity-50"
           >
             <Upload size={16} />
           </button>
@@ -134,7 +134,7 @@ export function HeaderEditor({
             onClick={handleDrawAvatar}
             disabled={drawing}
             title="Sortear avatar do banco de fotos"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input border border-border-strong text-text-secondary hover:bg-card-hover disabled:opacity-50"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input text-text-secondary hover:bg-card-hover disabled:opacity-50"
           >
             <Dices size={16} />
           </button>
@@ -178,7 +178,7 @@ export function HeaderEditor({
                 onClick={() => assigneeFileInputRef.current?.click()}
                 disabled={uploadingAssignee}
                 title="Enviar avatar do responsável"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input border border-border-strong text-text-secondary hover:bg-card-hover disabled:opacity-50"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input text-text-secondary hover:bg-card-hover disabled:opacity-50"
               >
                 <Upload size={16} />
               </button>

@@ -46,7 +46,7 @@ export function HistoryPanel({ conversations, onSelect, onDelete }: HistoryPanel
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por título, contato ou tema..."
-            className="h-9 w-full rounded-input border border-border bg-input pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
+            className="h-9 w-full rounded-input bg-input pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--accent)]"
           />
         </div>
 

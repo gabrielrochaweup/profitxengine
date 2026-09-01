@@ -27,9 +27,9 @@ const TONE_ICON: Record<ToastTone, typeof CheckCircle2> = {
 };
 
 const TONE_CLASSES: Record<ToastTone, string> = {
-  success: "border-success/40 bg-card text-success",
-  error: "border-danger/40 bg-card text-danger",
-  info: "border-border-strong bg-card text-text-secondary",
+  success: "bg-card text-success",
+  error: "bg-card text-danger",
+  info: "bg-card text-text-secondary",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -65,7 +65,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <div
               key={t.id}
               className={cn(
-                "pointer-events-auto flex items-start gap-2.5 rounded-card border px-4 py-3 text-sm shadow-lg",
+                "pointer-events-auto flex items-start gap-2.5 rounded-card px-4 py-3 text-sm shadow-popover",
                 TONE_CLASSES[t.tone]
               )}
             >

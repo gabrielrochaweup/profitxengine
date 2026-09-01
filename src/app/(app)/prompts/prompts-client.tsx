@@ -384,7 +384,7 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por título, conteúdo ou tag..."
-            className="h-10 w-full rounded-input border border-border bg-input pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
+            className="h-10 w-full rounded-input bg-input pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--accent)]"
           />
         </div>
 

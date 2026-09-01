@@ -25,7 +25,7 @@ export function ImagePreviewModal({ image, onClose, onSelect }: ImagePreviewModa
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-panel border border-border bg-card shadow-popover">
+      <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-panel bg-card shadow-popover">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h3 className="text-sm font-semibold text-text-primary">Imagem gerada</h3>
           <button

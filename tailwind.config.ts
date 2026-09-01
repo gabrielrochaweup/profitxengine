@@ -32,6 +32,10 @@ const config: Config = {
         success: "var(--success)",
         warning: "var(--warning)",
         danger: "var(--danger)",
+        "success-soft": "var(--success-soft)",
+        "warning-soft": "var(--warning-soft)",
+        "danger-soft": "var(--danger-soft)",
+        "accent-soft": "var(--accent-soft)",
       },
       borderRadius: {
         card: "20px",
@@ -43,7 +47,9 @@ const config: Config = {
         sans: ["var(--font-geist-sans)", "sans-serif"],
       },
       boxShadow: {
-        popover: "0 8px 30px rgba(0, 0, 0, 0.4)",
+        popover: "var(--shadow-popover)",
+        card: "var(--shadow-card)",
+        "card-sm": "var(--shadow-card-sm)",
       },
     },
   },

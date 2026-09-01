@@ -295,7 +295,7 @@ export function TaskDetailModal({
                       "rounded-button px-2 py-1 text-[11px] font-medium transition-colors",
                       activeVariantId === null
                         ? "bg-accent text-white"
-                        : "border border-border-strong text-text-secondary hover:bg-card-hover"
+                        : "text-text-secondary hover:bg-card-hover"
                     )}
                   >
                     Todos
@@ -323,7 +323,7 @@ export function TaskDetailModal({
                             "rounded-button px-2 py-1 text-[11px] font-medium transition-colors",
                             activeVariantId === variant.id
                               ? "bg-accent text-white"
-                              : "border border-border-strong text-text-secondary hover:bg-card-hover"
+                              : "text-text-secondary hover:bg-card-hover"
                           )}
                         >
                           {variant.name}

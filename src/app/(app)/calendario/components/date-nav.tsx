@@ -27,11 +27,11 @@ export function DateNav({ dateKey, onChange }: DateNavProps) {
       <button
         type="button"
         onClick={() => shiftDay(-1)}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border-strong text-text-secondary hover:bg-card-hover"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-secondary hover:bg-card-hover"
       >
         <ChevronLeft size={16} />
       </button>
-      <div className="flex min-w-0 items-center gap-2 rounded-input border border-border bg-input px-3 py-2">
+      <div className="flex min-w-0 items-center gap-2 rounded-input bg-input px-3 py-2">
         <input
           type="date"
           value={dateKey}
@@ -43,7 +43,7 @@ export function DateNav({ dateKey, onChange }: DateNavProps) {
       <button
         type="button"
         onClick={() => shiftDay(1)}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border-strong text-text-secondary hover:bg-card-hover"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-secondary hover:bg-card-hover"
       >
         <ChevronRight size={16} />
       </button>

@@ -66,7 +66,7 @@ export function TrackingFlowGuide() {
             </div>
             <p className="mt-2 text-xs leading-relaxed text-text-secondary">{step.description}</p>
             {step.contract && (
-              <code className="mt-2 block overflow-x-auto whitespace-pre rounded-input border border-border bg-input px-3 py-2 text-[11px] text-text-muted">
+              <code className="mt-2 block overflow-x-auto whitespace-pre rounded-input bg-input px-3 py-2 text-[11px] text-text-muted">
                 {step.contract}
               </code>
             )}

@@ -39,7 +39,7 @@ export function ProductTabs({ initialProducts, isAdmin }: ProductTabsProps) {
   const [creating, setCreating] = useState(false);
 
   return (
-    <div className="flex items-center gap-1.5 rounded-panel border border-border bg-sidebar p-1.5">
+    <div className="flex items-center gap-1.5 rounded-panel bg-sidebar shadow-card p-1.5">
       {products.map((p) => (
         <button
           key={p.id}

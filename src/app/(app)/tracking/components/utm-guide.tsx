@@ -42,7 +42,7 @@ export function UtmGuide() {
         </table>
       </div>
 
-      <div className="mt-4 rounded-xl border border-border bg-input p-3">
+      <div className="mt-4 rounded-xl bg-input p-3">
         <p className="mb-1 text-[11px] font-medium text-text-muted">Exemplo de link completo pro Meta Ads</p>
         <code className="block overflow-x-auto whitespace-nowrap text-xs text-text-secondary">
           https://escolaprofitx.com/?utm_source=meta&amp;utm_medium=cpc&amp;utm_campaign=lancamento_setembro&amp;mcid={"{{"}

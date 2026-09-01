@@ -63,7 +63,7 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
               Como fica pra cada visitante (exemplo com um lead_id de mentira, só pra mostrar o formato)
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input border border-border bg-input px-3 py-2 text-xs">
+              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-3 py-2 text-xs">
                 {preview}
               </code>
               <Button size="sm" variant="secondary" onClick={() => copy(preview)}>
@@ -78,7 +78,7 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
               clique
             </p>
             <div className="flex items-start gap-2">
-              <pre className="flex-1 overflow-x-auto whitespace-pre rounded-input border border-border bg-input px-3 py-2 text-xs">
+              <pre className="flex-1 overflow-x-auto whitespace-pre rounded-input bg-input px-3 py-2 text-xs">
                 {snippet}
               </pre>
               <Button size="sm" variant="secondary" onClick={() => snippet && copy(snippet)}>

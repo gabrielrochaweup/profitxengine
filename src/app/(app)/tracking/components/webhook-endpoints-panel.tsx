@@ -176,7 +176,7 @@ export function WebhookEndpointsPanel({
             <div>
               <p className="mb-1 text-xs font-medium text-text-muted">URL</p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 truncate rounded-input border border-border bg-input px-3 py-2 text-xs">
+                <code className="flex-1 truncate rounded-input bg-input px-3 py-2 text-xs">
                   {endpointUrl(revealedSecret.endpoint)}
                 </code>
                 <Button size="sm" variant="secondary" onClick={() => copy(endpointUrl(revealedSecret.endpoint))}>
@@ -187,7 +187,7 @@ export function WebhookEndpointsPanel({
             <div>
               <p className="mb-1 text-xs font-medium text-text-muted">Token (Authorization: Bearer ...)</p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 truncate rounded-input border border-border bg-input px-3 py-2 text-xs">
+                <code className="flex-1 truncate rounded-input bg-input px-3 py-2 text-xs">
                   {revealedSecret.secret}
                 </code>
                 <Button size="sm" variant="secondary" onClick={() => copy(revealedSecret.secret)}>

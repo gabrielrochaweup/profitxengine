@@ -95,7 +95,7 @@ export default async function DashboardPage() {
           <Link
             key={shortcut.href}
             href={shortcut.href}
-            className="flex flex-col items-center gap-2 rounded-card border border-border bg-card p-3 text-center transition-colors hover:border-accent hover:bg-card-hover sm:gap-3 sm:p-5"
+            className="flex flex-col items-center gap-2 rounded-card bg-card p-3 text-center shadow-card transition-shadow hover:shadow-[0_0_0_2px_var(--accent)] sm:gap-3 sm:p-5"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent sm:h-12 sm:w-12">
               <shortcut.icon size={20} />

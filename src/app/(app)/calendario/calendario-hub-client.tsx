@@ -95,7 +95,7 @@ export function CalendarioHubClient({
 
   return (
     <div className="mt-4">
-      <div className="w-full rounded-card border border-border bg-card p-5">
+      <div className="w-full rounded-card bg-card shadow-card p-5">
         <CalendarGrid
           year={year}
           month={month}

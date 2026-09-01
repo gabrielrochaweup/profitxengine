@@ -79,7 +79,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
           bottom usa env(safe-area-inset-bottom) pra não ficar colado na faixa
           do home indicator em iPhones sem botão físico. */}
       <div
-        className="fixed inset-x-2 z-30 flex items-center justify-around rounded-panel border border-border bg-sidebar px-1 py-1.5 md:hidden"
+        className="fixed inset-x-2 z-30 flex items-center justify-around rounded-panel bg-sidebar shadow-card px-1 py-1.5 md:hidden"
         style={{ bottom: "max(0.5rem, calc(env(safe-area-inset-bottom) + 0.25rem))" }}
       >
         <button
@@ -115,7 +115,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
       {mobileOpen && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={() => setMobileOpen(false)} />
-          <div className="fixed inset-y-3 left-3 z-50 flex w-[85vw] max-w-[300px] flex-col rounded-panel border border-border bg-sidebar p-4 md:hidden">
+          <div className="fixed inset-y-3 left-3 z-50 flex w-[85vw] max-w-[300px] flex-col rounded-panel bg-sidebar shadow-popover p-4 md:hidden">
             <div className="flex items-center justify-between px-1 py-2">
               <div className="flex items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -161,7 +161,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-text-primary">{displayName}</p>
-                  <span className="inline-block rounded-button border border-border-strong px-1.5 py-0.5 text-[10px] text-text-secondary">
+                  <span className="inline-block rounded-button bg-card-hover px-1.5 py-0.5 text-[10px] text-text-secondary">
                     {ROLE_LABEL[role] ?? role}
                   </span>
                 </div>
@@ -198,7 +198,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
       {/* Sidebar desktop — híbrida: só ícones ou ícones+labels, via toggle. */}
       <aside
         className={cn(
-          "hidden h-full shrink-0 flex-col rounded-panel border border-border bg-sidebar p-2 transition-[width] duration-200 md:flex",
+          "hidden h-full shrink-0 flex-col rounded-panel bg-sidebar shadow-card p-2 transition-[width] duration-200 md:flex",
           collapsed ? "w-[64px]" : "w-56"
         )}
       >
@@ -281,11 +281,11 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
-              <div className="absolute bottom-full left-0 z-30 mb-2 w-64 rounded-panel border border-border bg-card p-2 shadow-popover">
+              <div className="absolute bottom-full left-0 z-30 mb-2 w-64 rounded-panel bg-card p-2 shadow-popover">
                 <div className="border-b border-border px-3 py-3">
                   <p className="text-sm font-medium text-text-primary">{displayName}</p>
                   {email && <p className="text-xs text-text-muted">{email}</p>}
-                  <span className="mt-2 inline-block rounded-button border border-border-strong px-2 py-0.5 text-[11px] text-text-secondary">
+                  <span className="mt-2 inline-block rounded-button bg-card-hover px-2 py-0.5 text-[11px] text-text-secondary">
                     {ROLE_LABEL[role] ?? role}
                   </span>
                 </div>

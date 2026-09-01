@@ -154,7 +154,7 @@ function ModeButton({
       type="button"
       onClick={onClick}
       className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
-        active ? "bg-accent text-white" : "border border-border-strong text-text-secondary hover:bg-card-hover"
+        active ? "bg-accent text-white" : "text-text-secondary hover:bg-card-hover"
       }`}
     >
       {children}

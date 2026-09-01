@@ -125,7 +125,7 @@ export function AnalyticsPanel({ messages }: AnalyticsPanelProps) {
               })}
             </svg>
             {hoveredBar && (
-              <div className="pointer-events-none absolute left-2 top-0 rounded-lg border border-border bg-card px-2 py-1 text-xs text-text-primary shadow-popover">
+              <div className="pointer-events-none absolute left-2 top-0 rounded-lg bg-card px-2 py-1 text-xs text-text-primary shadow-popover">
                 {hoveredBar.split(":")[1]} mensagem(ns) — {formatDay(hoveredBar.split(":")[0])}
               </div>
             )}

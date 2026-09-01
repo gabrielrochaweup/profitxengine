@@ -298,7 +298,7 @@ function KanbanColumn({
   }
 
   return (
-    <div className="w-72 shrink-0 rounded-xl border border-border bg-card p-3">
+    <div className="w-72 shrink-0 rounded-xl bg-card shadow-card-sm p-3">
       <div className="mb-3 flex items-center justify-between gap-2">
         {editingName ? (
           <Input

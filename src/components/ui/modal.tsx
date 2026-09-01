@@ -20,7 +20,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div
         className={cn(
-          "relative z-50 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-panel border border-border bg-card p-3 shadow-popover sm:p-6",
+          "relative z-50 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-panel bg-card p-3 shadow-popover sm:p-6",
           className
         )}
       >

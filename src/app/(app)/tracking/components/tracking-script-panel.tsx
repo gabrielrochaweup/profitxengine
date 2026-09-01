@@ -27,7 +27,7 @@ export function TrackingScriptPanel({ productSlug }: { productSlug: string }) {
         funciona em quantos sites você quiser, sem precisar mudar nada aqui.
       </p>
       <div className="flex items-center gap-2">
-        <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input border border-border bg-input px-3 py-2 text-xs">
+        <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-3 py-2 text-xs">
           {snippet}
         </code>
         <Button size="sm" variant="secondary" onClick={copy}>

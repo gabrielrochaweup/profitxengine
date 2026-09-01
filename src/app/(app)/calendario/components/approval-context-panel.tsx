@@ -40,7 +40,7 @@ export function ApprovalContextPanel({ scope }: { scope: "grupo" | "direct" }) {
   if (!context || context.geral.total === 0) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card-hover p-3">
+    <div className="rounded-xl bg-card-hover p-3">
       <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-text-secondary">
         <TrendingUp size={13} />
         Performance de aprovação (funcionou vs. não funcionou)

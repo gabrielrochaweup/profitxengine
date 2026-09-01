@@ -54,7 +54,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             email={user.email ?? null}
             role={profile?.role ?? "editor"}
           />
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-card md:rounded-panel md:border md:border-border">
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-card md:rounded-panel md:shadow-card">
             <main className="flex-1 overflow-y-auto px-3 pt-3 pb-[max(6rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:px-8 sm:pt-6 sm:pb-6">
               {children}
             </main>

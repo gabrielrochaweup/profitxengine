@@ -156,7 +156,7 @@ export function AnalyticsClient({ initialResults, dynamics }: AnalyticsClientPro
             className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
               period === opt.key
                 ? "bg-accent text-white"
-                : "border border-border-strong text-text-secondary hover:bg-card-hover"
+                : "text-text-secondary hover:bg-card-hover"
             }`}
           >
             {opt.label}

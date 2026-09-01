@@ -336,7 +336,7 @@ export function ImageGenerationPanel({
           className="w-full text-xs"
         />
       ) : (
-        <div className="space-y-2 rounded-lg border border-border bg-card-hover/50 p-2.5">
+        <div className="space-y-2 rounded-lg bg-card-hover/50 p-2.5">
           {visibleTemplates.length === 0 ? (
             <p className="text-[11px] text-text-muted">
               Nenhum template cadastrado ainda — cadastre em Biblioteca de Imagens → Modelos de prompt.
@@ -613,7 +613,7 @@ function PromptModeTab({
       type="button"
       onClick={onClick}
       className={`rounded-button px-2.5 py-1 text-[11px] font-medium transition-colors ${
-        active ? "bg-accent text-white" : "border border-border-strong text-text-secondary hover:bg-card-hover"
+        active ? "bg-accent text-white" : "text-text-secondary hover:bg-card-hover"
       }`}
     >
       {children}
