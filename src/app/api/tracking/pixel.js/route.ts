@@ -118,12 +118,15 @@ const PIXEL_SCRIPT = `
   };
 
   // Modo "sem código" — pra builders tipo Elementor/Wix, onde o botão só
-  // aceita colar uma URL pura, sem jeito de colar HTML/onclick. Em vez de
-  // exigir código, o próprio script escuta clique em qualquer link marcado
-  // com uma dessas classes CSS (campo nativo de "Classes CSS" do builder,
-  // sem precisar de código) e faz o append do jeito certo sozinho:
-  // "profitx-checkout" = link de checkout (append + dispara InitiateCheckout)
-  // "profitx-ref"       = qualquer outro link (corretora, área de membros...), só append
+  // aceita colar uma URL pura, sem jeito de colar HTML/onclick/classe. O
+  // Gerador de link (aba UTMs) registra o link colado como "regra" no
+  // banco; aqui a gente busca essa lista (junto com o pixel-config) e
+  // reconhece sozinho qualquer clique num link cujo destino bata com uma
+  // regra salva — sem precisar marcar o botão de jeito nenhum. Casa
+  // ignorando a query string (origin+pathname) pra sobreviver a variações
+  // de parâmetro da própria oferta.
+  // "profitx-checkout"/"profitx-ref" como classe CSS continuam funcionando
+  // como atalho manual, pra quem preferir marcar o botão explicitamente.
   var SCK_HOSTS = ["onprofit.com.br", "hotmart.com"];
   function guessParamName(url) {
     try {
@@ -136,14 +139,35 @@ const PIXEL_SCRIPT = `
       return "ref";
     }
   }
+  function matchKey(url) {
+    try {
+      var u = new URL(url, window.location.href);
+      return u.origin + u.pathname;
+    } catch (e) {
+      return null;
+    }
+  }
+  var linkRules = [];
   document.addEventListener(
     "click",
     function (e) {
-      var el = e.target && e.target.closest ? e.target.closest("a.profitx-checkout, a.profitx-ref") : null;
-      if (!el || !el.href) return;
+      var el = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+      if (!el) return;
+      var cssCheckout = el.classList.contains("profitx-checkout");
+      var cssRef = el.classList.contains("profitx-ref");
+      var rule = null;
+      if (!cssCheckout && !cssRef) {
+        var key = matchKey(el.href);
+        if (key) {
+          for (var i = 0; i < linkRules.length; i++) {
+            if (linkRules[i].match_url === key) { rule = linkRules[i]; break; }
+          }
+        }
+      }
+      if (!rule && !cssCheckout && !cssRef) return;
       e.preventDefault();
-      var isCheckout = el.classList.contains("profitx-checkout");
-      var paramName = el.getAttribute("data-profitx-param") || guessParamName(el.href);
+      var paramName = cssCheckout || cssRef ? el.getAttribute("data-profitx-param") || guessParamName(el.href) : rule.param_name;
+      var isCheckout = cssCheckout || (rule && rule.fire_checkout);
       window.location.href = window.ProfitXTracking[productSlug].appendRef(el.href, paramName, isCheckout ? "checkout" : undefined);
     },
     true
@@ -166,6 +190,7 @@ const PIXEL_SCRIPT = `
         loadGoogleGtag(cfg.google);
         if (isFirstTouch && window.gtag) window.gtag("event", "generate_lead");
       }
+      if (cfg.link_rules) linkRules = cfg.link_rules;
     })
     .catch(function () {});
 

@@ -1147,6 +1147,29 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["tracking_webhook_log"]["Insert"]>;
         Relationships: [];
       };
+      tracking_link_rules: {
+        Row: {
+          id: string;
+          product_id: string;
+          match_url: string;
+          param_name: string;
+          fire_checkout: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["tracking_link_rules"]["Row"],
+          "id" | "param_name" | "fire_checkout" | "created_by" | "created_at"
+        > & {
+          id?: string;
+          param_name?: string;
+          fire_checkout?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tracking_link_rules"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

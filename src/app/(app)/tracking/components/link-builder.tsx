@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -28,12 +28,15 @@ function guessParamName(url: string): "ref" | "sck" | null {
   }
 }
 
+type SaveState = "idle" | "saving" | "saved" | "error";
+
 export function LinkBuilder({ productSlug }: { productSlug: string }) {
   const toast = useToast();
   const [url, setUrl] = useState("");
   const [paramName, setParamName] = useState("ref");
   const [paramTouched, setParamTouched] = useState(false);
   const [fireCheckoutEvent, setFireCheckoutEvent] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
 
   function handleUrlChange(value: string) {
     setUrl(value);
@@ -69,6 +72,33 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
 </a>`;
   }, [url, preview, productSlug, paramName, fireCheckoutEvent]);
 
+  // Registra o link puro como "regra" no banco — é isso que permite colar
+  // só a URL, sem código nem classe CSS, em qualquer botão de qualquer
+  // builder: o pixel.js já instalado no site busca essa lista e reconhece
+  // o clique sozinho (ver /api/tracking/pixel-config e /api/tracking/pixel.js).
+  useEffect(() => {
+    if (!preview) {
+      setSaveState("idle");
+      return;
+    }
+    setSaveState("saving");
+    const timeout = setTimeout(() => {
+      fetch("/api/tracking/link-rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_slug: productSlug,
+          url: url.trim(),
+          param_name: paramName,
+          fire_checkout: fireCheckoutEvent,
+        }),
+      })
+        .then((r) => (r.ok ? setSaveState("saved") : setSaveState("error")))
+        .catch(() => setSaveState("error"));
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [url, preview, productSlug, paramName, fireCheckoutEvent]);
+
   function copy(text: string) {
     navigator.clipboard.writeText(text);
     toast.success("Copiado.");
@@ -78,11 +108,11 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
     <Card className="p-5">
       <h3 className="mb-1 text-sm font-medium text-text-primary">Gerador de link com identificador</h3>
       <p className="mb-4 text-xs text-text-secondary">
-        Cole o link de destino (checkout, área de membros, cadastro na corretora...) e receba pronto o botão que leva o
-        identificador do visitante junto — sem precisar montar isso na mão. O <strong>nome do parâmetro muda por
+        Cole o link de destino (checkout, área de membros, cadastro na corretora...) e receba pronto o link que já leva
+        o identificador do visitante junto — sem precisar montar isso na mão. O <strong>nome do parâmetro muda por
         plataforma</strong>: corretora, área de membros e checkout genérico usam <code>ref</code>; Onprofit e Hotmart só
         devolvem <code>sck</code> no webhook, então esses precisam do parâmetro diferente. Colando um link da Onprofit
-        ou Hotmart, o seletor abaixo já muda sozinho pra <code>sck</code> — mas confira antes de copiar.
+        ou Hotmart, o seletor abaixo já muda sozinho pra <code>sck</code> — mas confira antes de usar.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
@@ -127,10 +157,30 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
         <div className="mt-4 space-y-4">
           <div>
             <p className="mb-1 text-[11px] font-medium text-text-muted">
-              Código pronto pra colar no site — funciona sozinho, pega o lead_id certo de cada visitante na hora do
-              clique
+              Link pra usar — cola exatamente esse, sem mudar nada, em qualquer botão do site (Elementor, Wix, HTML
+              puro, tanto faz)
             </p>
-            <div className="flex items-start gap-2">
+            <div className="flex items-center gap-2">
+              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-3 py-2 text-xs">
+                {url.trim()}
+              </code>
+              <Button size="sm" variant="secondary" onClick={() => copy(url.trim())}>
+                Copiar
+              </Button>
+            </div>
+            <p className="mt-1 text-[11px] text-text-muted">
+              {saveState === "saving" && "Registrando esse link..."}
+              {saveState === "saved" &&
+                "Registrado ✓ — o site (com o script de rastreamento instalado) já reconhece esse link sozinho no clique e cuida do resto."}
+              {saveState === "error" && "Não consegui registrar agora — tenta de novo em alguns segundos."}
+            </p>
+          </div>
+
+          <details className="text-xs text-text-secondary">
+            <summary className="cursor-pointer text-[11px] font-medium text-text-muted">
+              Alternativa: colar como código (se preferir não depender do reconhecimento automático)
+            </summary>
+            <div className="mt-2 flex items-start gap-2">
               <pre className="flex-1 overflow-x-auto whitespace-pre rounded-input bg-input px-3 py-2 text-xs">
                 {snippet}
               </pre>
@@ -138,43 +188,7 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
                 Copiar
               </Button>
             </div>
-            <p className="mt-1 text-[11px] text-text-muted">
-              Só funciona numa página que já carrega o script de rastreamento (o mesmo da seção abaixo) — se for colar
-              na área de membros, o script precisa estar instalado lá também.
-            </p>
-          </div>
-
-          <div className="rounded-panel bg-input/60 p-3">
-            <p className="mb-2 text-[11px] font-medium text-text-muted">
-              Sem código (Elementor, Wix e outros builders que só aceitam colar uma URL no botão)
-            </p>
-            <div className="space-y-2 text-xs text-text-secondary">
-              <div className="flex items-center gap-2">
-                <span className="shrink-0 text-text-muted">1. Cola esse link puro no campo de link do botão:</span>
-                <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-2 py-1.5 text-xs">
-                  {url.trim()}
-                </code>
-                <Button size="sm" variant="secondary" onClick={() => copy(url.trim())}>
-                  Copiar
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="shrink-0 text-text-muted">
-                  2. Nas opções avançadas do botão, adiciona essa Classe CSS:
-                </span>
-                <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-2 py-1.5 text-xs">
-                  {fireCheckoutEvent ? "profitx-checkout" : "profitx-ref"}
-                </code>
-                <Button size="sm" variant="secondary" onClick={() => copy(fireCheckoutEvent ? "profitx-checkout" : "profitx-ref")}>
-                  Copiar
-                </Button>
-              </div>
-              <p className="text-[11px] text-text-muted">
-                Pronto — o script já reconhece qualquer botão com essa classe e faz tudo sozinho no clique (identificador +
-                {fireCheckoutEvent ? " InitiateCheckout" : " sem disparar checkout"}), sem precisar mexer no link nem colar código nenhum.
-              </p>
-            </div>
-          </div>
+          </details>
         </div>
       )}
     </Card>
