@@ -10,14 +10,37 @@ import { useToast } from "@/components/ui/toast";
 const EXAMPLE_LEAD_ID = "3f2a9c10-7b4e-4a1d-9c3f-a1b2c3d4e5f6";
 
 const PARAM_OPTIONS = [
-  { value: "ref", label: "ref (padrão — área de membros, corretora, checkout genérico)" },
-  { value: "sck", label: "sck (Onprofit, Hotmart)" },
+  { value: "ref", label: "ref — corretora, área de membros, checkout genérico" },
+  { value: "sck", label: "sck — Onprofit, Hotmart" },
 ];
+
+// Domínios de checkout que só devolvem "sck" no webhook (não um "ref"
+// custom) — ver src/lib/tracking/checkout-adapters/onprofit.ts e hotmart.ts.
+// Detecta pelo link colado e já pré-seleciona o parâmetro certo.
+const SCK_HOSTS = ["onprofit.com.br", "hotmart.com"];
+
+function guessParamName(url: string): "ref" | "sck" | null {
+  try {
+    const host = new URL(url).hostname;
+    return SCK_HOSTS.some((h) => host.endsWith(h)) ? "sck" : null;
+  } catch {
+    return null;
+  }
+}
 
 export function LinkBuilder({ productSlug }: { productSlug: string }) {
   const toast = useToast();
   const [url, setUrl] = useState("");
   const [paramName, setParamName] = useState("ref");
+  const [paramTouched, setParamTouched] = useState(false);
+
+  function handleUrlChange(value: string) {
+    setUrl(value);
+    if (!paramTouched) {
+      const guess = guessParamName(value);
+      if (guess) setParamName(guess);
+    }
+  }
 
   const preview = useMemo(() => {
     if (!url.trim()) return null;
@@ -48,24 +71,30 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
 
   return (
     <Card className="p-5">
-      <h3 className="mb-1 text-sm font-medium text-text-primary">Gerador de link com ref</h3>
+      <h3 className="mb-1 text-sm font-medium text-text-primary">Gerador de link com identificador</h3>
       <p className="mb-4 text-xs text-text-secondary">
         Cole o link de destino (checkout, área de membros, cadastro na corretora...) e receba pronto o botão que leva o
-        identificador do visitante junto — sem precisar montar isso na mão.
+        identificador do visitante junto — sem precisar montar isso na mão. O <strong>nome do parâmetro muda por
+        plataforma</strong>: corretora, área de membros e checkout genérico usam <code>ref</code>; Onprofit e Hotmart só
+        devolvem <code>sck</code> no webhook, então esses precisam do parâmetro diferente. Colando um link da Onprofit
+        ou Hotmart, o seletor abaixo já muda sozinho pra <code>sck</code> — mas confira antes de copiar.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
         <div>
           <label className="mb-1 block text-[11px] font-medium text-text-muted">Link de destino</label>
-          <Input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://corretora.com/cadastro"
-          />
+          <Input value={url} onChange={(e) => handleUrlChange(e.target.value)} placeholder="https://corretora.com/cadastro" />
         </div>
         <div>
           <label className="mb-1 block text-[11px] font-medium text-text-muted">Parâmetro</label>
-          <Select value={paramName} onChange={(e) => setParamName(e.target.value)} className="sm:w-64">
+          <Select
+            value={paramName}
+            onChange={(e) => {
+              setParamTouched(true);
+              setParamName(e.target.value);
+            }}
+            className="sm:w-64"
+          >
             {PARAM_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
