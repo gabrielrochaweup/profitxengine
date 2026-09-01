@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -39,14 +39,15 @@ function endpointUrl(endpoint: WebhookEndpoint): string {
 
 export function WebhookEndpointsPanel({
   productId,
-  initialEndpoints,
+  endpoints,
+  setEndpoints,
 }: {
   productId: string;
-  initialEndpoints: WebhookEndpoint[];
+  endpoints: WebhookEndpoint[];
+  setEndpoints: Dispatch<SetStateAction<WebhookEndpoint[]>>;
 }) {
   const toast = useToast();
   const confirm = useConfirm();
-  const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>(initialEndpoints);
   const [createOpen, setCreateOpen] = useState(false);
   const [revealedSecret, setRevealedSecret] = useState<{ endpoint: WebhookEndpoint; secret: string } | null>(null);
 

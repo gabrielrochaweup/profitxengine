@@ -63,6 +63,13 @@ export function TrackingClient({
   isAdmin,
 }: TrackingClientProps) {
   const [tab, setTab] = useState<TabKey>("analises");
+  // Ficam aqui (não dentro de cada painel) porque as abas desmontam o
+  // conteúdo ao trocar — um useState dentro do painel reiniciaria a partir
+  // do initialEndpoints/initialAdCredentials (props da carga inicial da
+  // página) sempre que o usuário voltasse pra essa aba, fazendo item
+  // excluído "voltar" até um refresh de página.
+  const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>(initialEndpoints);
+  const [adCredentials, setAdCredentials] = useState<AdAccount[]>(initialAdCredentials);
   const visibleTabs = TABS.filter((t) => !t.adminOnly || isAdmin);
 
   return (
@@ -92,10 +99,12 @@ export function TrackingClient({
       {tab === "analises" && <AnalyticsTab productId={productId} initialReport={initialReport} initialEvents={initialEvents} />}
 
       {tab === "webhooks" && isAdmin && (
-        <WebhookEndpointsPanel productId={productId} initialEndpoints={initialEndpoints} />
+        <WebhookEndpointsPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
       )}
 
-      {tab === "contas" && isAdmin && <AdAccountsPanel productId={productId} initialCredentials={initialAdCredentials} />}
+      {tab === "contas" && isAdmin && (
+        <AdAccountsPanel productId={productId} accounts={adCredentials} setAccounts={setAdCredentials} />
+      )}
 
       {tab === "utms" && (
         <div className="space-y-4">

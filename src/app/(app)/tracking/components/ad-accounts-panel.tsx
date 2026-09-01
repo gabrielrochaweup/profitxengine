@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,13 +45,13 @@ const EMPTY_GOOGLE: GoogleFieldsValue = {
 
 export function AdAccountsPanel({
   productId,
-  initialCredentials,
+  accounts,
+  setAccounts,
 }: {
   productId: string;
-  initialCredentials: AdAccount[];
+  accounts: AdAccount[];
+  setAccounts: Dispatch<SetStateAction<AdAccount[]>>;
 }) {
-  const [accounts, setAccounts] = useState<AdAccount[]>(initialCredentials);
-
   function upsert(account: AdAccount) {
     setAccounts((prev) => {
       const exists = prev.some((a) => a.id === account.id);
