@@ -171,6 +171,31 @@ const PIXEL_SCRIPT = `
     window.location.replace = function (url) { return nativeReplace(rewriteTrackedUrl(url)); };
   } catch (e) {}
 
+  // Cobre o padrão "cria um <a> fora da página só pra clicar nele via
+  // código" (document.createElement('a') + a.click()) — muito comum em SPA
+  // pra navegação externa. Como o elemento nunca chega a entrar na árvore
+  // do documento, o clique nem passa pelo listener de cima (que depende do
+  // evento borbulhar até o document). Aqui a gente intercepta direto o
+  // método .click() de qualquer <a>, dentro ou fora da página.
+  try {
+    var nativeAnchorClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {
+      var rewritten = rewriteTrackedUrl(this.href);
+      if (rewritten !== this.href) this.href = rewritten;
+      return nativeAnchorClick.call(this);
+    };
+  } catch (e) {}
+
+  // Cobre redirecionamento via <form method="get" action="...">.submit().
+  try {
+    var nativeFormSubmit = HTMLFormElement.prototype.submit;
+    HTMLFormElement.prototype.submit = function () {
+      var rewritten = rewriteTrackedUrl(this.action);
+      if (rewritten !== this.action) this.action = rewritten;
+      return nativeFormSubmit.call(this);
+    };
+  } catch (e) {}
+
   // Pixels de Meta/Google (Pixel ID cadastrado na aba "Contas Meta/Google")
   // — carrega o pixel de verdade e dispara PageView (sempre) + Lead (só no
   // primeiro toque). Purchase não dá pra disparar por aqui (a compra
