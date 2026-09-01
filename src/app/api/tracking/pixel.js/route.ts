@@ -224,7 +224,11 @@ export async function GET() {
   return new NextResponse(PIXEL_SCRIPT, {
     headers: {
       "Content-Type": "application/javascript; charset=utf-8",
-      "Cache-Control": "public, max-age=300",
+      // "no-cache" (não "no-store"): ainda cacheia, mas obriga revalidar
+      // (ETag) antes de servir do cache — com "public, max-age=300" o CDN
+      // ficou servindo versão antiga por bem mais que 5min depois de um
+      // deploy novo, atrasando qualquer correção nesse script em produção.
+      "Cache-Control": "no-cache",
     },
   });
 }
