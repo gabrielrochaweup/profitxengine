@@ -20,6 +20,8 @@ interface MessageRowProps {
   overrideText?: string;
   blocked: boolean;
   needsRealtimeUpdate: boolean;
+  /** Alterna o fundo do card com o vizinho na mesma coluna, pra separar horários sem precisar de borda. */
+  alt: boolean;
   fonte: TradingWindow;
   onFonteChange: (fonte: TradingWindow) => void;
   onUseVariant: (text: string) => void;
@@ -59,6 +61,7 @@ export function MessageRow({
   overrideText,
   blocked,
   needsRealtimeUpdate,
+  alt,
   fonte,
   onFonteChange,
   onUseVariant,
@@ -115,13 +118,16 @@ export function MessageRow({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`w-full rounded-xl border p-3 text-left transition-colors hover:border-accent ${
+        className={cn(
+          "w-full rounded-xl p-3 text-left shadow-card-sm transition-shadow hover:shadow-[0_0_0_2px_var(--accent)]",
           blocked
-            ? "border-danger bg-danger/10"
+            ? "bg-danger/10"
             : needsRealtimeUpdate
-              ? "border-warning bg-warning/10"
-              : "border-border"
-        }`}
+              ? "bg-warning/10"
+              : alt
+                ? "bg-card-hover"
+                : "bg-card"
+        )}
       >
         {needsRealtimeUpdate && (
           <p className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold text-warning">

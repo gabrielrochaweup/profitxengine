@@ -133,7 +133,7 @@ export function DynamicMessagesBoard({
             <div key={group.key} className="space-y-2">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{group.label}</h3>
               <div className="space-y-2">
-                {periodSlots.map((slot) => {
+                {periodSlots.map((slot, index) => {
                   // Prioridade: escolha manual do admin pra essa msg > melhor
                   // cenário calculado em tempo real (Pepe+Live+Copy juntos,
                   // não só Pepe) > default estático da msg (herdado de quando
@@ -172,6 +172,7 @@ export function DynamicMessagesBoard({
                       overrideText={override}
                       blocked={blocked}
                       needsRealtimeUpdate={slot.needs_realtime_update}
+                      alt={index % 2 === 1}
                       fonte={fonte}
                       onFonteChange={(f) => onFonteChange(slot.msg_key, f)}
                       onUseVariant={(variantText) => onUseVariant(slot.msg_key, variantText)}

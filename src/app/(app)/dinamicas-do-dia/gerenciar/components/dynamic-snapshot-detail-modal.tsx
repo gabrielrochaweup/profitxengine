@@ -42,7 +42,7 @@ export function DynamicSnapshotDetailModal({ snapshot, onClose }: DynamicSnapsho
             <Section title="Bancos rotativos de texto">
               <div className="space-y-3">
                 {Object.entries(snapshot.rotating_banks).map(([name, items]) => (
-                  <div key={name} className="rounded-xl border border-border p-3">
+                  <div key={name} className="rounded-xl bg-card-hover p-3">
                     <p className="mb-1.5 text-xs font-medium text-text-primary">{name}</p>
                     <ul className="space-y-1 text-xs text-text-muted">
                       {(items as string[]).map((item, i) => (
@@ -76,7 +76,7 @@ export function DynamicSnapshotDetailModal({ snapshot, onClose }: DynamicSnapsho
                 .slice()
                 .sort((a, b) => a.position - b.position)
                 .map((slot) => (
-                  <div key={slot.msgKey} className="rounded-xl border border-border p-3">
+                  <div key={slot.msgKey} className="rounded-xl bg-card-hover p-3">
                     <p className="mb-1.5 text-xs font-medium text-text-primary">
                       {slot.timeLabel ?? slot.msgKey}
                     </p>
