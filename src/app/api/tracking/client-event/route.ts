@@ -7,16 +7,27 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // instalado. Só aceita "initiate_checkout" por enquanto — cada novo tipo
 // de evento client-side precisa ser adicionado aqui de propósito, não é
 // um endpoint genérico de "grava qualquer coisa".
-function corsHeaders(): HeadersInit {
+//
+// IMPORTANTE: diferente de /collect (fetch comum), sendBeacon() manda
+// cookies (credentials: include) em chamada entre origens diferentes —
+// e a Fetch/CORS spec proíbe "Access-Control-Allow-Origin: *" quando tem
+// credenciais (o navegador bloqueia a resposta inteira). Por isso aqui o
+// header ecoa a origem exata que chamou, em vez de usar "*" fixo, e soma
+// "Access-Control-Allow-Credentials: true" — não reduz segurança porque
+// esse endpoint não usa cookie/sessão pra nada, só responde igual pra
+// qualquer origem.
+function corsHeaders(request: Request): HeadersInit {
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": request.headers.get("origin") ?? "*",
+    "Access-Control-Allow-Credentials": "true",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
   };
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: corsHeaders() });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 204, headers: corsHeaders(request) });
 }
 
 interface ClientEventPayload {
@@ -26,7 +37,7 @@ interface ClientEventPayload {
 }
 
 export async function POST(request: Request) {
-  const headers = corsHeaders();
+  const headers = corsHeaders(request);
 
   let body: ClientEventPayload;
   try {
