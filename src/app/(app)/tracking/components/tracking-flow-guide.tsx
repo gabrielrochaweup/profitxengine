@@ -52,9 +52,9 @@ const STEPS: Step[] = [
     title: "Corretora",
     repeatable: false,
     description:
-      "Ao abrir a conta, a corretora lê o ref/email que veio na URL de cadastro e devolve isso no webhook — é aqui que a gente sabe que ESSE lead específico virou conta na corretora. O mesmo webhook, disparado de novo no primeiro depósito, é o que fecha o funil. Diferente do checkout e da área de membros, a corretora é sempre a mesma — só existe UM endpoint dela, compartilhado por todas as páginas de venda.",
+      "Ao abrir a conta, a corretora lê o ref/email/click_id que veio na URL de cadastro e devolve isso no webhook — é aqui que a gente sabe que ESSE lead específico virou conta na corretora. O mesmo webhook, disparado de novo no primeiro depósito, é o que fecha o funil. Diferente do checkout e da área de membros, a corretora é normalmente uma só — mas o endpoint dela pode ser criado, trocado ou recriado quando precisar, igual qualquer outro.",
     contract:
-      '{ "event": "account_created" | "deposit", "email": "...", "ref": "<lead_id ou null>", "external_id": "...", "amount_cents": 45000, "occurred_at": "..." }',
+      '{ "event": "REGISTER" | "DEPOSIT_PAYED" | ..., "email": "...", "ref"/"click_id": "<lead_id ou null>", "external_id": "...", "amount_cents": 45000, "occurred_at": "..." } — formato final confirmado assim que virmos um payload real da corretora',
   },
 ];
 
@@ -125,8 +125,9 @@ export function TrackingFlowGuide({ endpoints, isAdmin }: { endpoints: WebhookEn
       </div>
       <p className="mb-3 text-xs text-text-secondary">
         Passo a passo guiado — clique numa etapa pra ver o que fazer. Checkout e Área de membros são repetíveis: cada
-        página de vendas nova ganha seu próprio endpoint. A Corretora é a única etapa que não se repete — é
-        compartilhada por tudo. Criar o endpoint não é o suficiente: uma etapa só fica verde depois que o endpoint é
+        página de vendas nova ganha seu próprio endpoint. A Corretora normalmente é compartilhada por tudo (não
+        precisa de mais de uma), mas o endpoint dela pode ser criado, editado ou trocado a qualquer momento na aba
+        Webhooks, sem restrição. Criar o endpoint não é o suficiente: uma etapa só fica verde depois que o endpoint é
         testado com sucesso (botão &quot;Testar&quot;, na aba Webhooks) — só isso prova que a URL, o token e o formato do
         payload estão certos.
       </p>

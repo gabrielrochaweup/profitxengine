@@ -178,7 +178,8 @@ export function WebhookEndpointsPanel({
       </div>
       <p className="mb-3 text-xs text-text-secondary">
         Dá pra ter vários endpoints de Checkout e de Área de membros — um pra cada página de vendas/plataforma. A
-        Corretora é a exceção: só existe um endpoint dela por produto, compartilhado por todas as páginas.
+        Corretora normalmente é uma só, compartilhada por todas as páginas, mas você pode criar, renomear ou trocar o
+        endpoint dela a qualquer momento — nada aqui é travado.
       </p>
 
       {endpoints.length === 0 ? (
@@ -337,14 +338,12 @@ function CreateEndpointModal({
           <Select value={kind} onChange={(e) => setKind(e.target.value as WebhookEndpoint["kind"])}>
             <option value="checkout">Checkout</option>
             <option value="members_area">Área de membros</option>
-            <option value="broker" disabled={hasBroker}>
-              Corretora{hasBroker ? " (já existe um endpoint)" : ""}
-            </option>
+            <option value="broker">Corretora</option>
           </Select>
           {kind === "broker" && hasBroker && (
-            <p className="mt-1 text-[11px] text-warning">
-              Já existe um endpoint de Corretora pra esse produto — só pode ter um, já que a corretora é a mesma pra
-              todas as páginas de venda. Exclua o atual antes de criar outro.
+            <p className="mt-1 text-[11px] text-text-muted">
+              Você já tem um endpoint de Corretora — normalmente só precisa de um, mas criar outro não tem problema
+              (por exemplo, pra trocar de corretora ou testar uma configuração nova antes de excluir a antiga).
             </p>
           )}
         </div>
@@ -374,7 +373,6 @@ function CreateEndpointModal({
             Cancelar
           </Button>
           <Button
-            disabled={kind === "broker" && hasBroker}
             onClick={() => {
               onCreate(kind, kind === "checkout" ? platform : null, label.trim() || null);
               reset();
