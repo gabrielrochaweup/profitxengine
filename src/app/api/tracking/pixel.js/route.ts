@@ -117,6 +117,38 @@ const PIXEL_SCRIPT = `
     },
   };
 
+  // Modo "sem código" — pra builders tipo Elementor/Wix, onde o botão só
+  // aceita colar uma URL pura, sem jeito de colar HTML/onclick. Em vez de
+  // exigir código, o próprio script escuta clique em qualquer link marcado
+  // com uma dessas classes CSS (campo nativo de "Classes CSS" do builder,
+  // sem precisar de código) e faz o append do jeito certo sozinho:
+  // "profitx-checkout" = link de checkout (append + dispara InitiateCheckout)
+  // "profitx-ref"       = qualquer outro link (corretora, área de membros...), só append
+  var SCK_HOSTS = ["onprofit.com.br", "hotmart.com"];
+  function guessParamName(url) {
+    try {
+      var host = new URL(url, window.location.href).hostname;
+      for (var i = 0; i < SCK_HOSTS.length; i++) {
+        if (host === SCK_HOSTS[i] || host.slice(-(SCK_HOSTS[i].length + 1)) === "." + SCK_HOSTS[i]) return "sck";
+      }
+      return "ref";
+    } catch (e) {
+      return "ref";
+    }
+  }
+  document.addEventListener(
+    "click",
+    function (e) {
+      var el = e.target && e.target.closest ? e.target.closest("a.profitx-checkout, a.profitx-ref") : null;
+      if (!el || !el.href) return;
+      e.preventDefault();
+      var isCheckout = el.classList.contains("profitx-checkout");
+      var paramName = el.getAttribute("data-profitx-param") || guessParamName(el.href);
+      window.location.href = window.ProfitXTracking[productSlug].appendRef(el.href, paramName, isCheckout ? "checkout" : undefined);
+    },
+    true
+  );
+
   // Pixels de Meta/Google (Pixel ID cadastrado na aba "Contas Meta/Google")
   // — carrega o pixel de verdade e dispara PageView (sempre) + Lead (só no
   // primeiro toque). Purchase não dá pra disparar por aqui (a compra

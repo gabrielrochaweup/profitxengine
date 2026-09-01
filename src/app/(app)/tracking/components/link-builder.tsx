@@ -143,6 +143,38 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
               na área de membros, o script precisa estar instalado lá também.
             </p>
           </div>
+
+          <div className="rounded-panel bg-input/60 p-3">
+            <p className="mb-2 text-[11px] font-medium text-text-muted">
+              Sem código (Elementor, Wix e outros builders que só aceitam colar uma URL no botão)
+            </p>
+            <div className="space-y-2 text-xs text-text-secondary">
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-text-muted">1. Cola esse link puro no campo de link do botão:</span>
+                <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-2 py-1.5 text-xs">
+                  {url.trim()}
+                </code>
+                <Button size="sm" variant="secondary" onClick={() => copy(url.trim())}>
+                  Copiar
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-text-muted">
+                  2. Nas opções avançadas do botão, adiciona essa Classe CSS:
+                </span>
+                <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-2 py-1.5 text-xs">
+                  {fireCheckoutEvent ? "profitx-checkout" : "profitx-ref"}
+                </code>
+                <Button size="sm" variant="secondary" onClick={() => copy(fireCheckoutEvent ? "profitx-checkout" : "profitx-ref")}>
+                  Copiar
+                </Button>
+              </div>
+              <p className="text-[11px] text-text-muted">
+                Pronto — o script já reconhece qualquer botão com essa classe e faz tudo sozinho no clique (identificador +
+                {fireCheckoutEvent ? " InitiateCheckout" : " sem disparar checkout"}), sem precisar mexer no link nem colar código nenhum.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </Card>
