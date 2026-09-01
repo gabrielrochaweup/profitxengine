@@ -3,32 +3,43 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
 const EXAMPLE_LEAD_ID = "3f2a9c10-7b4e-4a1d-9c3f-a1b2c3d4e5f6";
 
+const PARAM_OPTIONS = [
+  { value: "ref", label: "ref (padrão — área de membros, corretora, checkout genérico)" },
+  { value: "sck", label: "sck (Onprofit, Hotmart)" },
+];
+
 export function LinkBuilder({ productSlug }: { productSlug: string }) {
   const toast = useToast();
   const [url, setUrl] = useState("");
+  const [paramName, setParamName] = useState("ref");
 
   const preview = useMemo(() => {
     if (!url.trim()) return null;
     try {
       const u = new URL(url.trim());
-      u.searchParams.set("ref", EXAMPLE_LEAD_ID);
+      u.searchParams.set(paramName, EXAMPLE_LEAD_ID);
       return u.toString();
     } catch {
       return null;
     }
-  }, [url]);
+  }, [url, paramName]);
 
   const snippet = useMemo(() => {
     if (!url.trim() || !preview) return null;
-    return `<a href="${url.trim()}" onclick="event.preventDefault(); window.location.href = window.ProfitXTracking['${productSlug}'].appendRef(this.href);">
+    const appendCall =
+      paramName === "ref"
+        ? `window.ProfitXTracking['${productSlug}'].appendRef(this.href)`
+        : `window.ProfitXTracking['${productSlug}'].appendRef(this.href, '${paramName}')`;
+    return `<a href="${url.trim()}" onclick="event.preventDefault(); window.location.href = ${appendCall};">
   Continuar
 </a>`;
-  }, [url, preview, productSlug]);
+  }, [url, preview, productSlug, paramName]);
 
   function copy(text: string) {
     navigator.clipboard.writeText(text);
@@ -43,13 +54,25 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
         identificador do visitante junto — sem precisar montar isso na mão.
       </p>
 
-      <div>
-        <label className="mb-1 block text-[11px] font-medium text-text-muted">Link de destino</label>
-        <Input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://corretora.com/cadastro"
-        />
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-text-muted">Link de destino</label>
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://corretora.com/cadastro"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-text-muted">Parâmetro</label>
+          <Select value={paramName} onChange={(e) => setParamName(e.target.value)} className="sm:w-64">
+            {PARAM_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       {url.trim() && !preview && (

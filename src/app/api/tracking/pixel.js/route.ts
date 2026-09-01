@@ -52,10 +52,14 @@ const PIXEL_SCRIPT = `
   window.ProfitXTracking = window.ProfitXTracking || {};
   window.ProfitXTracking[productSlug] = {
     getLeadId: function () { return leadId; },
-    appendRef: function (url) {
+    // paramName é opcional (default "ref") — algumas plataformas de checkout
+    // não aceitam um parâmetro de rastreio arbitrário, só um nome fixo que
+    // elas já reconhecem (ex: a Onprofit só devolve "sck"/"src" no webhook,
+    // então o link do checkout precisa usar appendRef(url, "sck")).
+    appendRef: function (url, paramName) {
       try {
         var u = new URL(url, window.location.href);
-        u.searchParams.set("ref", leadId);
+        u.searchParams.set(paramName || "ref", leadId);
         return u.toString();
       } catch (e) {
         return url;
