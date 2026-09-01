@@ -11,9 +11,11 @@ function sha256(value: string): string {
   return createHash("sha256").update(value.trim().toLowerCase()).digest("hex");
 }
 
-export interface MetaPurchaseEvent {
+export interface MetaConversionEvent {
   pixelId: string;
   accessToken: string;
+  /** "Purchase" (padrão da Meta) ou um nome customizado como "Deposit" — a Meta aceita qualquer string aqui. */
+  eventName: string;
   email: string | null;
   amountCents: number | null;
   currency: string;
@@ -22,15 +24,15 @@ export interface MetaPurchaseEvent {
 }
 
 // Best-effort — chamado depois de já ter gravado o tracking_event, nunca
-// deve derrubar o webhook que originou a compra se a Meta rejeitar ou
+// deve derrubar o webhook que originou o evento se a Meta rejeitar ou
 // estiver fora do ar.
-export async function sendMetaPurchaseEvent(event: MetaPurchaseEvent): Promise<{ ok: boolean; error?: string }> {
+export async function sendMetaConversionEvent(event: MetaConversionEvent): Promise<{ ok: boolean; error?: string }> {
   const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${event.pixelId}/events?access_token=${encodeURIComponent(event.accessToken)}`;
 
   const payload = {
     data: [
       {
-        event_name: "Purchase",
+        event_name: event.eventName,
         event_time: Math.floor(new Date(event.occurredAt).getTime() / 1000),
         event_id: event.externalId ?? undefined,
         action_source: "system_generated",

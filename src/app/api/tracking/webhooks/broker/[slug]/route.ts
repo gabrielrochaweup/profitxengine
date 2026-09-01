@@ -5,6 +5,7 @@ import { matchLead } from "@/lib/tracking/match-lead";
 import { BROKER_ADAPTERS } from "@/lib/tracking/broker-adapters";
 import { logWebhookCall } from "@/lib/tracking/webhook-log";
 import { webhookCorsHeaders } from "@/lib/tracking/cors";
+import { fireMetaEventForProduct } from "@/lib/tracking/fire-meta-event";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: webhookCorsHeaders() });
@@ -72,6 +73,21 @@ export async function POST(request: Request, { params }: { params: { slug: strin
 
   if (error) {
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
+  }
+
+  // Depósito é o evento que mais importa pro negócio (mais do que a compra
+  // do curso) — manda pra API de Conversões da Meta como um evento
+  // customizado "Deposit", pro algoritmo de anúncio otimizar pra isso, não
+  // só pra quem compra o curso. Best-effort, nunca falha o webhook.
+  if (normalized.eventType === "broker_deposit") {
+    await fireMetaEventForProduct(admin, endpoint.product_id, {
+      eventName: "Deposit",
+      email: normalized.email,
+      amountCents: normalized.amountCents,
+      currency: normalized.currency ?? "BRL",
+      externalId: normalized.externalId,
+      occurredAt: eventRow.occurred_at,
+    });
   }
 
   return NextResponse.json({ ok: true, matched: leadId !== null }, { headers });
