@@ -23,6 +23,7 @@ export const genericAdapter: BrokerAdapter = (raw) => {
     ref: typeof body.ref === "string" ? body.ref : null,
     externalId: typeof body.external_id === "string" ? body.external_id : null,
     amountCents: typeof body.amount_cents === "number" ? body.amount_cents : null,
+    currency: typeof body.currency === "string" ? body.currency : null,
     occurredAt: typeof body.occurred_at === "string" ? body.occurred_at : null,
   };
 };

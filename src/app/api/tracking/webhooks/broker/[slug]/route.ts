@@ -63,6 +63,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     external_id: normalized.externalId,
     occurred_at: normalized.occurredAt || new Date().toISOString(),
     raw_payload: rawBody,
+    ...(normalized.currency ? { currency: normalized.currency } : {}),
   };
 
   const { error } = normalized.externalId

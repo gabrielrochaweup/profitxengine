@@ -1,21 +1,27 @@
 import type { BrokerAdapter } from "./types";
 
-// Baseado no payload real do evento "REGISTER" mandado pela Memex Trade:
+// Baseado nos payloads reais dos eventos "REGISTER" e "DEPOSIT_PAYED"
+// mandados pela Memex Trade:
 // { "method": "REGISTER", "data": { "email", "userId", "registeredAt",
-//   "utm": { "referralCode", "source", "medium", "campaign", "term",
-//   "content", "gclid", "fbclid" } }, "timestamp", "webhookId" }
+//   "utm": { "referralCode", ... } }, "timestamp" }
+// { "method": "DEPOSIT_PAYED", "data": { "email", "userId", "depositId",
+//   "amount", "totalAmount", "bonusAmount", "currency", "paidAt",
+//   "utm": { "referralCode", ... } }, "timestamp" }
 //
 // "referralCode" dentro de "utm" é o campo que carrega o identificador do
-// lead — a confirmar contra um cadastro real usando ?referralCode=<lead_id>
-// na URL de cadastro (ainda não testado, só vimos o teste de conectividade
-// do painel, que manda tudo null).
+// lead — presente na mesma forma nos dois eventos, então o casamento por
+// ref funciona igual pro depósito (assumindo que a Memex Trade guarda o
+// referralCode do cadastro e devolve ele de novo em eventos futuros do
+// mesmo usuário — ainda não confirmado com um referralCode de verdade, só
+// vimos os testes de conectividade com tudo null).
 //
-// DEPOSIT_PAYED ainda não foi confirmado — nenhum payload real visto ainda,
-// então esse "method" não é reconhecido por enquanto (cai como "ignorado",
-// aparece em Ver payloads pra gente ajustar assim que um depósito de teste
-// passar por aqui).
+// Valor do depósito usa "amount" (antes de bônus) — "totalAmount" inclui
+// bonusAmount, que pode não ser dinheiro de verdade entrando. A moeda vem
+// dinâmica do payload (o teste veio em "USD", não fixo em BRL como as
+// outras integrações).
 const METHOD_MAP: Record<string, "broker_signup" | "broker_deposit"> = {
   REGISTER: "broker_signup",
+  DEPOSIT_PAYED: "broker_deposit",
 };
 
 export const memextradeAdapter: BrokerAdapter = (raw) => {
@@ -28,15 +34,35 @@ export const memextradeAdapter: BrokerAdapter = (raw) => {
   const data = isRecord(body.data) ? body.data : null;
   const utm = data && isRecord(data.utm) ? data.utm : null;
 
+  const amount =
+    data && typeof data.amount === "number"
+      ? data.amount
+      : data && typeof data.totalAmount === "number"
+        ? data.totalAmount
+        : null;
+
+  const occurredAt =
+    (data && typeof data.paidAt === "string" ? data.paidAt : null) ??
+    (data && typeof data.registeredAt === "string" ? data.registeredAt : null) ??
+    (typeof body.timestamp === "string" ? body.timestamp : null);
+
+  const externalId =
+    eventType === "broker_deposit"
+      ? data && typeof data.depositId === "string"
+        ? data.depositId
+        : null
+      : data && typeof data.userId === "string"
+        ? data.userId
+        : null;
+
   return {
     eventType,
     email: data && typeof data.email === "string" ? data.email : null,
     ref: utm && typeof utm.referralCode === "string" ? utm.referralCode : null,
-    externalId: data && typeof data.userId === "string" ? data.userId : null,
-    amountCents: null,
-    occurredAt:
-      (data && typeof data.registeredAt === "string" ? data.registeredAt : null) ??
-      (typeof body.timestamp === "string" ? body.timestamp : null),
+    externalId,
+    amountCents: eventType === "broker_deposit" && amount !== null ? Math.round(amount * 100) : null,
+    currency: data && typeof data.currency === "string" ? data.currency : null,
+    occurredAt,
   };
 };
 

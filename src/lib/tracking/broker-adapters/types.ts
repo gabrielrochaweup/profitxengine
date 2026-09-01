@@ -9,6 +9,8 @@ export interface NormalizedBrokerEvent {
   ref: string | null;
   externalId: string | null;
   amountCents: number | null;
+  /** null = usa o padrão da plataforma (BRL) — só preenche quando a corretora manda a moeda. */
+  currency: string | null;
   occurredAt: string | null;
 }
 
