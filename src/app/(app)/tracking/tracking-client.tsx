@@ -74,7 +74,7 @@ export function TrackingClient({
 
   return (
     <div className="mt-4">
-      <div className="mb-4 flex flex-wrap gap-1.5 rounded-panel border border-border bg-sidebar p-1.5">
+      <div className="mb-4 flex flex-wrap gap-1.5 rounded-panel bg-sidebar shadow-card p-1.5">
         {visibleTabs.map((t) => {
           const Icon = t.icon;
           return (
@@ -99,7 +99,10 @@ export function TrackingClient({
       {tab === "analises" && <AnalyticsTab productId={productId} initialReport={initialReport} initialEvents={initialEvents} />}
 
       {tab === "webhooks" && isAdmin && (
-        <WebhookEndpointsPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
+        <div className="space-y-4">
+          <TrackingFlowGuide endpoints={endpoints} isAdmin={isAdmin} />
+          <WebhookEndpointsPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
+        </div>
       )}
 
       {tab === "contas" && isAdmin && (
@@ -108,7 +111,6 @@ export function TrackingClient({
 
       {tab === "utms" && (
         <div className="space-y-4">
-          <TrackingFlowGuide endpoints={endpoints} isAdmin={isAdmin} />
           <LinkBuilder productSlug={productSlug} />
           <TrackingScriptPanel productSlug={productSlug} />
           <UtmGuide />
