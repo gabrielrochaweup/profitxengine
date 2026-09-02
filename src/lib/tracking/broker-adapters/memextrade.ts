@@ -5,11 +5,14 @@ import type { BrokerAdapter } from "./types";
 // { "method": "REGISTER", "data": { "email", "userId", "registeredAt",
 //   "utm": { "referralCode", ... } }, "timestamp" }
 // { "method": "DEPOSIT_PAYED", "data": { "email", "phone", "userId",
-//   "depositId", "amount", "totalAmount", "bonusAmount", "currency",
-//   "paidAt", "method" (forma de pagamento, ex: "PIX"), "status" (ex:
-//   "COMPLETED"), "utm": { "referralCode", ... } }, "timestamp" }
-// "data.phone" confirmado no payload (veio null no teste visto, mas o
-// campo existe) — não precisa mais de chute de nome.
+//   "firstName", "lastName", "depositId", "amount", "totalAmount",
+//   "bonusAmount", "currency", "paidAt", "method" (forma de pagamento, ex:
+//   "PIX"), "status" (ex: "COMPLETED"),
+//   "lead": { "email", "phone", "userId", "firstName", "lastName" } (os
+//   mesmos dados duplicados dentro de um sub-objeto — ainda não confirmado
+//   qual dos dois a Memex Trade realmente preenche num depósito de
+//   verdade, então checa os dois lugares pro telefone),
+//   "utm": { "referralCode", ... } }, "timestamp" }
 //
 // "referralCode" dentro de "utm" é o campo que carrega o identificador do
 // lead — presente na mesma forma nos dois eventos, então o casamento por
@@ -73,11 +76,14 @@ export const memextradeAdapter: BrokerAdapter = (raw) => {
         ? data.userId
         : null;
 
-  const phone = data && typeof data.phone === "string" ? data.phone : null;
+  const lead = data && isRecord(data.lead) ? data.lead : null;
+
+  const email = (data && typeof data.email === "string" ? data.email : null) ?? (lead && typeof lead.email === "string" ? lead.email : null);
+  const phone = (data && typeof data.phone === "string" ? data.phone : null) ?? (lead && typeof lead.phone === "string" ? lead.phone : null);
 
   return {
     eventType,
-    email: data && typeof data.email === "string" ? data.email : null,
+    email,
     phone,
     ref: utm && typeof utm.referralCode === "string" ? utm.referralCode : null,
     externalId,
