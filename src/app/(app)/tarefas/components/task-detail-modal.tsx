@@ -175,100 +175,111 @@ export function TaskDetailModal({
   const label = task ? urgencyLabel(task.due_at, task.completed) : null;
 
   return (
-    <Modal open={task !== null} onClose={onClose} title="Detalhes da tarefa" className="max-w-6xl">
+    <Modal open={task !== null} onClose={onClose} title="Detalhes da tarefa" className="max-w-3xl">
       {task && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {/* Coluna 1 — título e descrição */}
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="flex h-4 items-center text-xs font-medium text-text-secondary">Título</label>
-                <Input
-                  value={title}
-                  disabled={!canEdit}
-                  onChange={(e) => setTitle(e.target.value)}
-                  onBlur={() => title.trim() && title !== task.title && onUpdate({ title: title.trim() })}
-                />
-              </div>
+        <div className="space-y-6">
+          {/* Cabeçalho — checkbox circular (marca conclusão) + título grande */}
+          <div className="flex items-start gap-3">
+            <button
+              type="button"
+              onClick={() => canEdit && onUpdate({ completed: !task.completed })}
+              disabled={!canEdit}
+              title={task.completed ? "Marcar como não concluída" : "Marcar como concluída"}
+              className={cn(
+                "mt-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                task.completed
+                  ? "border-success bg-success text-white"
+                  : "border-border-strong text-transparent hover:border-accent",
+                !canEdit && "cursor-not-allowed opacity-60"
+              )}
+            >
+              <Check size={14} />
+            </button>
+            <Input
+              value={title}
+              disabled={!canEdit}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => title.trim() && title !== task.title && onUpdate({ title: title.trim() })}
+              className={cn(
+                "h-auto flex-1 rounded-input border-0 bg-transparent px-2 py-1 text-xl font-semibold text-text-primary shadow-none transition-colors hover:bg-card-hover focus:bg-input focus:shadow-[0_0_0_2px_var(--accent)]",
+                task.completed && "text-text-muted line-through"
+              )}
+            />
+          </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-text-secondary">Descrição</label>
-                <Textarea
-                  value={description}
-                  disabled={!canEdit}
-                  rows={9}
-                  placeholder="Detalhes da tarefa..."
-                  onChange={(e) => setDescription(e.target.value)}
-                  onBlur={() => description !== (task.description ?? "") && onUpdate({ description: description || null })}
-                />
-              </div>
-            </div>
+          {/* Descrição */}
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+              <FileText size={13} />
+              Descrição
+            </label>
+            <Textarea
+              value={description}
+              disabled={!canEdit}
+              rows={5}
+              placeholder="Detalhes da tarefa..."
+              onChange={(e) => setDescription(e.target.value)}
+              onBlur={() => description !== (task.description ?? "") && onUpdate({ description: description || null })}
+            />
+          </div>
 
-            {/* Coluna 2 — prazo (integrado ao calendário) + urgência */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="flex h-4 items-center gap-1.5 text-xs font-medium text-text-secondary">
-                    <CalendarClock size={13} />
-                    Data
-                  </label>
-                  <Input
-                    type="date"
-                    value={dueDate}
-                    disabled={!canEdit}
-                    onChange={(e) => {
-                      setDueDate(e.target.value);
-                      commitDueAt(e.target.value, dueTime);
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="flex h-4 items-center text-xs font-medium text-text-secondary">Horário</label>
-                  <Input
-                    type="time"
-                    value={dueTime}
-                    disabled={!canEdit || !dueDate}
-                    onChange={(e) => {
-                      setDueTime(e.target.value);
-                      commitDueAt(dueDate, e.target.value);
-                    }}
-                  />
-                </div>
-              </div>
-
-              {dueDate && (
-                <>
-                  {label && (
-                    <p className={cn("flex items-center gap-1.5 text-xs font-medium", URGENCY_TEXT_CLASS[urgency])}>
-                      <Circle size={8} className="shrink-0 fill-current" />
-                      {label}
-                    </p>
-                  )}
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDueDate("");
-                        setDueTime("");
-                        onUpdate({ due_at: null });
-                      }}
-                      className="text-xs text-text-muted hover:text-danger hover:underline"
-                    >
-                      Remover prazo
-                    </button>
-                  )}
-                </>
+          {/* Prazo */}
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+              <CalendarClock size={13} />
+              Prazo
+            </label>
+            <div className="flex flex-wrap items-center gap-3">
+              <Input
+                type="date"
+                value={dueDate}
+                disabled={!canEdit}
+                onChange={(e) => {
+                  setDueDate(e.target.value);
+                  commitDueAt(e.target.value, dueTime);
+                }}
+                className="w-auto"
+              />
+              <Input
+                type="time"
+                value={dueTime}
+                disabled={!canEdit || !dueDate}
+                onChange={(e) => {
+                  setDueTime(e.target.value);
+                  commitDueAt(dueDate, e.target.value);
+                }}
+                className="w-auto"
+              />
+              {dueDate && label && (
+                <p className={cn("flex items-center gap-1.5 text-xs font-medium", URGENCY_TEXT_CLASS[urgency])}>
+                  <Circle size={8} className="shrink-0 fill-current" />
+                  {label}
+                </p>
+              )}
+              {dueDate && canEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDueDate("");
+                    setDueTime("");
+                    onUpdate({ due_at: null });
+                  }}
+                  className="text-xs text-text-muted hover:text-danger hover:underline"
+                >
+                  Remover prazo
+                </button>
               )}
             </div>
+          </div>
 
-            {/* Coluna 3 — anexos, com arrastar-e-soltar múltiplos arquivos */}
-            <div className="flex min-h-0 flex-col space-y-2">
-              <div className="flex h-4 items-center justify-between">
-                <label className="text-xs font-medium text-text-secondary">
-                  Anexos {attachments.length > 0 && `(${attachments.length})`}
-                </label>
-                {visibleAttachments.length > 0 && (
+          {/* Anexos — arrastar-e-soltar múltiplos arquivos */}
+          <div className="flex min-h-0 flex-col space-y-2">
+            <div className="flex h-4 items-center justify-between">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                <Paperclip size={13} />
+                Anexos {attachments.length > 0 && `(${attachments.length})`}
+              </label>
+              {visibleAttachments.length > 0 && (
                   <button
                     type="button"
                     onClick={async () => {
@@ -441,7 +452,7 @@ export function TaskDetailModal({
                       strategy={rectSortingStrategy}
                       disabled={!canEdit || !canReorder}
                     >
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                         {visibleAttachments.map((attachment, index) => {
                           const attachmentVariant =
                             activeVariantId === null && attachment.variant_id
@@ -466,18 +477,11 @@ export function TaskDetailModal({
                 )}
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center justify-between border-t border-border pt-3">
-            <label className="flex items-center gap-2 text-sm text-text-secondary">
-              <input
-                type="checkbox"
-                checked={task.completed}
-                disabled={!canEdit}
-                onChange={(e) => onUpdate({ completed: e.target.checked })}
-              />
-              Tarefa concluída
-            </label>
+          <div className="flex items-center justify-between border-t border-border pt-4">
+            <span className="text-xs text-text-muted">
+              {task.completed ? "Marcada como concluída" : ""}
+            </span>
             {canEdit && (
               <Button type="button" variant="danger" size="sm" onClick={onDelete}>
                 <Trash2 size={14} />
