@@ -97,7 +97,7 @@ export function MessageEditor({ platform, messages, onChange }: MessageEditorPro
       )}
 
       {messages.map((message, index) => (
-        <div key={index} className="rounded-xl border border-border p-3">
+        <div key={index} className="rounded-xl bg-card-hover shadow-card-sm p-3">
           <div className="flex items-center justify-between gap-2">
             <Select
               value={message.sender}
@@ -150,7 +150,7 @@ export function MessageEditor({ platform, messages, onChange }: MessageEditorPro
                 <button
                   type="button"
                   onClick={() => openImagePicker(index)}
-                  className="flex items-center gap-1.5 rounded-button border border-border-strong px-2 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
+                  className="flex items-center gap-1.5 rounded-button bg-card px-2 py-1 text-[11px] text-text-secondary shadow-card-sm hover:brightness-95"
                 >
                   <Upload size={11} />
                   Trocar
@@ -158,7 +158,7 @@ export function MessageEditor({ platform, messages, onChange }: MessageEditorPro
                 <button
                   type="button"
                   onClick={() => updateMessage(index, { image_url: null })}
-                  className="flex items-center gap-1.5 rounded-button border border-border-strong px-2 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
+                  className="flex items-center gap-1.5 rounded-button bg-card px-2 py-1 text-[11px] text-text-secondary shadow-card-sm hover:brightness-95"
                 >
                   <X size={11} />
                   Remover

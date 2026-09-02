@@ -274,7 +274,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-text-primary">Gerar com IA</h3>
+        <h3 className="text-base font-semibold text-text-primary">Gerar com IA</h3>
         {promptMode === "livre" && (
           <PromptPicker
             preferredSlug="conversa"
@@ -386,7 +386,12 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
                     {copiedPredefinido ? "Copiado!" : "Copiar prompt"}
                   </button>
                 </div>
-                <Textarea value={assembledPrompt} readOnly rows={6} className="w-full font-mono text-[10px]" />
+                <Textarea
+                  value={assembledPrompt}
+                  readOnly
+                  rows={6}
+                  className="w-full bg-accent-soft font-mono text-[10px]"
+                />
               </div>
             </>
           )}

@@ -249,10 +249,10 @@ export function EmailsClient({ initialCampaigns, currentUserId }: EmailsClientPr
               key={c.id}
               type="button"
               onClick={() => loadIntoForm(c)}
-              className={`rounded-button border px-2.5 py-1 text-xs ${
+              className={`rounded-button px-2.5 py-1 text-xs transition-shadow ${
                 form.id === c.id
-                  ? "border-accent bg-accent/15 text-text-primary"
-                  : "border-border-strong text-text-secondary hover:bg-card-hover"
+                  ? "bg-accent-soft text-text-primary shadow-[0_0_0_1px_var(--accent)]"
+                  : "bg-card-hover text-text-secondary shadow-card-sm hover:brightness-95"
               }`}
             >
               {c.subject || c.tema || "Sem assunto"}
@@ -412,10 +412,10 @@ export function EmailsClient({ initialCampaigns, currentUserId }: EmailsClientPr
                     key={c.id}
                     type="button"
                     onClick={() => jumpToCampaign(c)}
-                    className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs transition-shadow ${
                       c.id === form.id
-                        ? "border-accent bg-accent/10"
-                        : "border-border hover:border-accent hover:bg-card-hover"
+                        ? "bg-accent-soft shadow-[0_0_0_1px_var(--accent)]"
+                        : "bg-card-hover shadow-card-sm hover:shadow-[0_0_0_1px_var(--accent)]"
                     }`}
                   >
                     <span className="min-w-0">

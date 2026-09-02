@@ -7,6 +7,7 @@ import { pickAvatar } from "@/lib/avatar-library";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubTabs } from "@/components/ui/sub-tabs";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { PhonePreview } from "./components/phone-preview";
@@ -261,7 +262,7 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
               onClick={() => setHeaderOpen((v) => !v)}
               className="flex w-full items-center justify-between"
             >
-              <h3 className="text-sm font-medium text-text-primary">Cabeçalho</h3>
+              <h3 className="text-base font-semibold text-text-primary">Cabeçalho</h3>
               {headerOpen ? <ChevronUp size={16} className="text-text-muted" /> : <ChevronDown size={16} className="text-text-muted" />}
             </button>
             {headerOpen && (
@@ -333,7 +334,7 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
             </Card>
 
             <Card className="h-fit p-4">
-              <h3 className="mb-3 text-sm font-medium text-text-primary">Mensagens</h3>
+              <h3 className="mb-3 text-base font-semibold text-text-primary">Mensagens</h3>
               <MessageEditor
                 platform={platform}
                 messages={active.messages}
@@ -376,27 +377,12 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
   );
 }
 
-const PLATFORM_LABELS: Record<Platform, string> = {
-  whatsapp: "WhatsApp",
-  instagram: "Instagram",
-  crm: "CRM/Atendimento",
-};
+const PLATFORM_TABS = [
+  { key: "whatsapp", label: "WhatsApp" },
+  { key: "instagram", label: "Instagram" },
+  { key: "crm", label: "CRM/Atendimento" },
+] as const;
 
 function PlatformToggle({ platform, onChange }: { platform: Platform; onChange: (p: Platform) => void }) {
-  return (
-    <div className="flex rounded-button border border-border-strong p-0.5">
-      {(["whatsapp", "instagram", "crm"] as Platform[]).map((p) => (
-        <button
-          key={p}
-          type="button"
-          onClick={() => onChange(p)}
-          className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
-            platform === p ? "bg-accent text-white" : "text-text-secondary hover:bg-card-hover"
-          }`}
-        >
-          {PLATFORM_LABELS[p]}
-        </button>
-      ))}
-    </div>
-  );
+  return <SubTabs tabs={PLATFORM_TABS} active={platform} onChange={onChange} />;
 }

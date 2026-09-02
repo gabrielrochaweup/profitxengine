@@ -237,7 +237,7 @@ export function ProductMetricsClient({
     <div className="mt-4 space-y-4">
       <Card className="p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-medium text-text-primary">Preencher resultado do dia</h3>
+          <h3 className="text-base font-semibold text-text-primary">Preencher resultado do dia</h3>
           {isAdmin && (
             <button
               type="button"
@@ -251,7 +251,7 @@ export function ProductMetricsClient({
         </div>
 
         {managingFields && (
-          <div className="mb-4 space-y-1.5 rounded-lg border border-border-strong bg-card-hover/50 p-2.5">
+          <div className="mb-4 space-y-1.5 rounded-lg bg-card-hover/50 p-2.5 shadow-card-sm">
             {fields.length === 0 && <p className="text-xs text-text-muted">Nenhum campo criado ainda.</p>}
             {fields.map((f, index) => (
               <div key={f.id} className="flex items-center gap-1.5 rounded-lg px-1 py-1">
@@ -397,7 +397,7 @@ export function ProductMetricsClient({
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {kpis.map(({ field, total }) => (
-              <div key={field.id} className="rounded-xl border border-border p-3">
+              <div key={field.id} className="rounded-xl bg-card-hover p-3">
                 <p className="text-[11px] text-text-muted">{field.label}</p>
                 <p className="mt-1 text-sm font-semibold text-text-primary">{fmtValue(total, field.unit)}</p>
               </div>
@@ -407,7 +407,7 @@ export function ProductMetricsClient({
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {chartSeriesByField.map(({ field, data }, i) => (
               <Card key={field.id} className="p-5">
-                <h3 className="mb-3 text-sm font-medium text-text-primary">{field.label} por dia</h3>
+                <h3 className="mb-3 text-base font-semibold text-text-primary">{field.label} por dia</h3>
                 <SimpleBarChart
                   data={data}
                   valueLabel={field.label}
@@ -419,7 +419,7 @@ export function ProductMetricsClient({
           </div>
 
           <Card className="p-5">
-            <h3 className="mb-3 text-sm font-medium text-text-primary">
+            <h3 className="mb-3 text-base font-semibold text-text-primary">
               Dias preenchidos no período ({filteredEntryDates.length})
             </h3>
             {filteredEntryDates.length === 0 ? (

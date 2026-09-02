@@ -179,10 +179,10 @@ export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }:
               key={m.id}
               type="button"
               onClick={() => loadIntoForm(m)}
-              className={`rounded-button border px-2.5 py-1 text-xs ${
+              className={`rounded-button px-2.5 py-1 text-xs transition-shadow ${
                 form.id === m.id
-                  ? "border-accent bg-accent/15 text-text-primary"
-                  : "border-border-strong text-text-secondary hover:bg-card-hover"
+                  ? "bg-accent-soft text-text-primary shadow-[0_0_0_1px_var(--accent)]"
+                  : "bg-card-hover text-text-secondary shadow-card-sm hover:brightness-95"
               }`}
             >
               {SEGMENT_LABEL[(m.student_segment as StudentSegment) ?? "iniciante"]} ·{" "}
@@ -295,10 +295,10 @@ export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }:
             <button
               type="button"
               onClick={() => setForm((prev) => ({ ...prev, result: prev.result === "funcionou" ? null : "funcionou" }))}
-              className={`flex h-10 flex-1 items-center justify-center rounded-input border ${
+              className={`flex h-10 flex-1 items-center justify-center rounded-input transition-shadow ${
                 form.result === "funcionou"
-                  ? "border-success bg-success/15 text-success"
-                  : "border-border-strong text-text-secondary hover:bg-card-hover"
+                  ? "bg-success/15 text-success shadow-[0_0_0_1px_var(--success)]"
+                  : "bg-card-hover text-text-secondary shadow-card-sm hover:brightness-95"
               }`}
             >
               <ThumbsUp size={15} />
@@ -308,10 +308,10 @@ export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }:
               onClick={() =>
                 setForm((prev) => ({ ...prev, result: prev.result === "nao_funcionou" ? null : "nao_funcionou" }))
               }
-              className={`flex h-10 flex-1 items-center justify-center rounded-input border ${
+              className={`flex h-10 flex-1 items-center justify-center rounded-input transition-shadow ${
                 form.result === "nao_funcionou"
-                  ? "border-danger bg-danger/15 text-danger"
-                  : "border-border-strong text-text-secondary hover:bg-card-hover"
+                  ? "bg-danger/15 text-danger shadow-[0_0_0_1px_var(--danger)]"
+                  : "bg-card-hover text-text-secondary shadow-card-sm hover:brightness-95"
               }`}
             >
               <ThumbsDown size={15} />

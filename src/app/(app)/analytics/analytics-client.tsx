@@ -174,28 +174,28 @@ export function AnalyticsClient({ initialResults, dynamics }: AnalyticsClientPro
       </div>
 
       <Card className="p-5">
-        <h3 className="mb-3 text-sm font-medium text-text-primary">Faturamento por dia</h3>
+        <h3 className="mb-3 text-base font-semibold text-text-primary">Faturamento por dia</h3>
         <RevenueLineChart data={revenueByDay} />
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="p-5">
-          <h3 className="mb-3 text-sm font-medium text-text-primary">Faturamento líquido por dia da semana</h3>
+          <h3 className="mb-3 text-base font-semibold text-text-primary">Faturamento líquido por dia da semana</h3>
           <SimpleBarChart data={revenueByWeekday} valueLabel="Faturamento líquido" isCurrency color="var(--success)" />
         </Card>
         <Card className="p-5">
-          <h3 className="mb-3 text-sm font-medium text-text-primary">Pessoas na Live por dia da semana</h3>
+          <h3 className="mb-3 text-base font-semibold text-text-primary">Pessoas na Live por dia da semana</h3>
           <SimpleBarChart data={livePeopleByWeekday} valueLabel="Pessoas" color="var(--accent-pink)" />
         </Card>
       </div>
 
       <Card className="p-5">
-        <h3 className="mb-3 text-sm font-medium text-text-primary">Faturamento líquido por dinâmica</h3>
+        <h3 className="mb-3 text-base font-semibold text-text-primary">Faturamento líquido por dinâmica</h3>
         <DynamicPieChart data={revenueByDynamic} />
       </Card>
 
       <Card className="p-5">
-        <h3 className="mb-3 text-sm font-medium text-text-primary">Dias concluídos no período ({filtered.length})</h3>
+        <h3 className="mb-3 text-base font-semibold text-text-primary">Dias concluídos no período ({filtered.length})</h3>
         {filtered.length === 0 ? (
           <p className="text-xs text-text-muted">Nenhum dia concluído nesse período ainda.</p>
         ) : (
@@ -255,7 +255,7 @@ function KpiTile({
   tone?: "accent" | "success";
 }) {
   return (
-    <div className="rounded-xl border border-border p-3">
+    <div className="rounded-xl bg-card-hover p-3">
       <p className="text-[11px] text-text-muted">{label}</p>
       <p
         className={`mt-1 text-sm font-semibold ${

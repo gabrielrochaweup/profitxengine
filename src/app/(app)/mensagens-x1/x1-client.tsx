@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { SubTabs } from "@/components/ui/sub-tabs";
 import { DateNav } from "../calendario/components/date-nav";
 import { DirectHistoryPanel } from "./components/direct-history-panel";
 import { X1Form } from "./components/x1-form";
@@ -16,6 +17,11 @@ interface X1ClientProps {
 }
 
 type InnerTab = "hoje" | "historico";
+
+const INNER_TABS = [
+  { key: "hoje", label: "Hoje" },
+  { key: "historico", label: "Histórico" },
+] as const;
 
 export function X1Client({ initialMessages, currentUserId }: X1ClientProps) {
   const router = useRouter();
@@ -46,13 +52,8 @@ export function X1Client({ initialMessages, currentUserId }: X1ClientProps) {
     <div>
       <DateNav dateKey={dateKey} onChange={updateDate} />
 
-      <div className="mt-4 flex gap-1.5">
-        <InnerTabButton active={innerTab === "hoje"} onClick={() => setInnerTab("hoje")}>
-          Hoje
-        </InnerTabButton>
-        <InnerTabButton active={innerTab === "historico"} onClick={() => setInnerTab("historico")}>
-          Histórico
-        </InnerTabButton>
+      <div className="mt-4">
+        <SubTabs tabs={INNER_TABS} active={innerTab} onChange={setInnerTab} />
       </div>
 
       <div className="mt-4">
@@ -69,27 +70,5 @@ export function X1Client({ initialMessages, currentUserId }: X1ClientProps) {
         )}
       </div>
     </div>
-  );
-}
-
-function InnerTabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-button px-3 py-1 text-xs font-medium transition-colors ${
-        active ? "bg-card-hover text-text-primary" : "text-text-muted hover:text-text-secondary"
-      }`}
-    >
-      {children}
-    </button>
   );
 }

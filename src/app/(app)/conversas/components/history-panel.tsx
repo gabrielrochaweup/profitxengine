@@ -33,7 +33,7 @@ export function HistoryPanel({ conversations, onSelect, onDelete }: HistoryPanel
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-button border border-border-strong px-4 py-2 text-sm text-text-primary hover:bg-card-hover"
+        className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-button bg-card-hover px-4 py-2 text-sm text-text-primary shadow-card-sm hover:brightness-95"
       >
         <History size={16} />
         Minhas conversas ({conversations.length})
@@ -57,7 +57,7 @@ export function HistoryPanel({ conversations, onSelect, onDelete }: HistoryPanel
             {filtered.map((conversation) => (
               <div
                 key={conversation.id}
-                className="flex items-center gap-2 rounded-xl border border-border p-3 hover:border-accent hover:bg-card-hover"
+                className="flex items-center gap-2 rounded-xl bg-card-hover p-3 shadow-card-sm transition-shadow hover:shadow-[0_0_0_1px_var(--accent)]"
               >
                 <button
                   type="button"
