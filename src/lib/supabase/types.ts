@@ -937,6 +937,7 @@ export interface Database {
           landing_url: string | null;
           referrer: string | null;
           email: string | null;
+          phone: string | null;
           first_seen_at: string;
           created_at: string;
         };
@@ -956,6 +957,7 @@ export interface Database {
           | "landing_url"
           | "referrer"
           | "email"
+          | "phone"
           | "first_seen_at"
           | "created_at"
         > & {
@@ -973,6 +975,7 @@ export interface Database {
           landing_url?: string | null;
           referrer?: string | null;
           email?: string | null;
+          phone?: string | null;
           first_seen_at?: string;
           created_at?: string;
         };

@@ -21,6 +21,7 @@ export const cademiAdapter: MembersAreaAdapter = (raw) => {
 
   return {
     email: typeof usuario.email === "string" ? usuario.email : null,
+    phone: typeof usuario.celular === "string" ? usuario.celular : null,
     ref: null,
     externalId: usuario.id !== undefined && usuario.id !== null ? String(usuario.id) : null,
     occurredAt: typeof usuario.criado_em === "string" ? usuario.criado_em : null,

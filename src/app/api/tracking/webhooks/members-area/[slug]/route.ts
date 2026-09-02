@@ -51,7 +51,12 @@ export async function POST(request: Request, { params }: { params: { slug: strin
 
   await logWebhookCall(admin, endpoint.id, rawBody, true);
 
-  const leadId = await matchLead(admin, { productId: endpoint.product_id, ref: normalized.ref, email: normalized.email });
+  const leadId = await matchLead(admin, {
+    productId: endpoint.product_id,
+    ref: normalized.ref,
+    email: normalized.email,
+    phone: normalized.phone,
+  });
 
   const eventRow = {
     product_id: endpoint.product_id,

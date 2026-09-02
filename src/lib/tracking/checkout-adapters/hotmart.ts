@@ -24,8 +24,16 @@ export const hotmartAdapter: CheckoutAdapter = (raw) => {
 
   const priceValue = price && typeof price.value === "number" ? price.value : null;
 
+  // Telefone AINDA NÃO CONFIRMADO com um payload real — segue o formato
+  // público documentado (checkout_phone_code + checkout_phone separados),
+  // ajustar se um payload real vier diferente.
+  const phoneCode = buyer && typeof buyer.checkout_phone_code === "string" ? buyer.checkout_phone_code : "";
+  const phoneNumber = buyer && typeof buyer.checkout_phone === "string" ? buyer.checkout_phone : "";
+  const phone = phoneNumber ? `${phoneCode}${phoneNumber}` : null;
+
   return {
     email: buyer && typeof buyer.email === "string" ? buyer.email : null,
+    phone,
     amountCents: priceValue !== null ? Math.round(priceValue * 100) : null,
     externalId: purchase && typeof purchase.transaction === "string" ? purchase.transaction : null,
     ref: origin && typeof origin.sck === "string" ? origin.sck : null,

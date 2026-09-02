@@ -3,8 +3,9 @@ import type { BrokerAdapter } from "./types";
 // Contrato genérico — pra corretora feita sob medida (código próprio, não
 // uma plataforma de mercado com formato fixo):
 // { "event": "account_created" | "deposit", "email": "...",
-//   "ref": "<lead_id ou null>", "external_id": "<id da conta ou do depósito>",
-//   "amount_cents": 45000, "occurred_at": "2026-08-26T12:00:00Z" }
+//   "phone": "<opcional>", "ref": "<lead_id ou null>",
+//   "external_id": "<id da conta ou do depósito>", "amount_cents": 45000,
+//   "occurred_at": "2026-08-26T12:00:00Z" }
 const EVENT_MAP: Record<string, "broker_signup" | "broker_deposit"> = {
   account_created: "broker_signup",
   deposit: "broker_deposit",
@@ -20,6 +21,7 @@ export const genericAdapter: BrokerAdapter = (raw) => {
   return {
     eventType,
     email: typeof body.email === "string" ? body.email : null,
+    phone: typeof body.phone === "string" ? body.phone : null,
     ref: typeof body.ref === "string" ? body.ref : null,
     externalId: typeof body.external_id === "string" ? body.external_id : null,
     amountCents: typeof body.amount_cents === "number" ? body.amount_cents : null,

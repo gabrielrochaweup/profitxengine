@@ -70,9 +70,15 @@ export const memextradeAdapter: BrokerAdapter = (raw) => {
         ? data.userId
         : null;
 
+  // Telefone: não apareceu em nenhum payload de teste visto até agora (só
+  // vimos email/userId/utm) — "phone" é um chute defensivo, ajustar se um
+  // payload real trouxer outro nome de campo.
+  const phone = data && typeof data.phone === "string" ? data.phone : null;
+
   return {
     eventType,
     email: data && typeof data.email === "string" ? data.email : null,
+    phone,
     ref: utm && typeof utm.referralCode === "string" ? utm.referralCode : null,
     externalId,
     amountCents: eventType === "broker_deposit" && amount !== null ? Math.round(amount * 100) : null,

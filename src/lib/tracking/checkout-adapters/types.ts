@@ -4,6 +4,7 @@
 // forma, sem mexer em schema nem nas rotas de webhook.
 export interface NormalizedCheckoutEvent {
   email: string | null;
+  phone: string | null;
   amountCents: number | null;
   externalId: string | null;
   ref: string | null;

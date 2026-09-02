@@ -5,6 +5,7 @@
 // checkout (src/lib/tracking/checkout-adapters).
 export interface NormalizedMembersAreaEvent {
   email: string | null;
+  phone: string | null;
   ref: string | null;
   externalId: string | null;
   occurredAt: string | null;

@@ -6,6 +6,7 @@
 export interface NormalizedBrokerEvent {
   eventType: "broker_signup" | "broker_deposit";
   email: string | null;
+  phone: string | null;
   ref: string | null;
   externalId: string | null;
   amountCents: number | null;

@@ -26,8 +26,20 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
     (typeof body.confirmation_purchase_date === "string" ? body.confirmation_purchase_date : null) ??
     (typeof body.purchase_date === "string" ? body.purchase_date : null);
 
+  // Telefone AINDA NÃO CONFIRMADO com um payload real — "phone"/"cellphone"
+  // são os nomes mais prováveis pro campo da Onprofit, mas nenhum teste
+  // visto até agora trouxe telefone preenchido. Se um payload real chegar
+  // com outro nome de campo, ajustar aqui.
+  const phone =
+    customer && typeof customer.phone === "string"
+      ? customer.phone
+      : customer && typeof customer.cellphone === "string"
+        ? customer.cellphone
+        : null;
+
   return {
     email: customer && typeof customer.email === "string" ? customer.email : null,
+    phone,
     amountCents: price !== null ? Math.round(price) : null,
     externalId: body.id !== undefined && body.id !== null ? String(body.id) : null,
     ref: typeof body.sck === "string" ? body.sck : typeof body.src === "string" ? body.src : null,
