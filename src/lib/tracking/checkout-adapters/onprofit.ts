@@ -26,15 +26,15 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
     (typeof body.confirmation_purchase_date === "string" ? body.confirmation_purchase_date : null) ??
     (typeof body.purchase_date === "string" ? body.purchase_date : null);
 
-  // Telefone AINDA NÃO CONFIRMADO com um payload real — "phone"/"cellphone"
-  // são os nomes mais prováveis pro campo da Onprofit, mas nenhum teste
-  // visto até agora trouxe telefone preenchido. Se um payload real chegar
-  // com outro nome de campo, ajustar aqui.
+  // Telefone confirmado na documentação da Onprofit (objeto "customer"):
+  // "cell" = padrão internacional (já com DDI, prioriza esse pra
+  // normalizar melhor), "phone" = telefone formatado, sem DDI garantido —
+  // usa como fallback se "cell" não vier.
   const phone =
-    customer && typeof customer.phone === "string"
-      ? customer.phone
-      : customer && typeof customer.cellphone === "string"
-        ? customer.cellphone
+    customer && typeof customer.cell === "string"
+      ? customer.cell
+      : customer && typeof customer.phone === "string"
+        ? customer.phone
         : null;
 
   return {

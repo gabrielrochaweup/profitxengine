@@ -4,9 +4,12 @@ import type { BrokerAdapter } from "./types";
 // mandados pela Memex Trade:
 // { "method": "REGISTER", "data": { "email", "userId", "registeredAt",
 //   "utm": { "referralCode", ... } }, "timestamp" }
-// { "method": "DEPOSIT_PAYED", "data": { "email", "userId", "depositId",
-//   "amount", "totalAmount", "bonusAmount", "currency", "paidAt",
-//   "utm": { "referralCode", ... } }, "timestamp" }
+// { "method": "DEPOSIT_PAYED", "data": { "email", "phone", "userId",
+//   "depositId", "amount", "totalAmount", "bonusAmount", "currency",
+//   "paidAt", "method" (forma de pagamento, ex: "PIX"), "status" (ex:
+//   "COMPLETED"), "utm": { "referralCode", ... } }, "timestamp" }
+// "data.phone" confirmado no payload (veio null no teste visto, mas o
+// campo existe) — não precisa mais de chute de nome.
 //
 // "referralCode" dentro de "utm" é o campo que carrega o identificador do
 // lead — presente na mesma forma nos dois eventos, então o casamento por
@@ -70,9 +73,6 @@ export const memextradeAdapter: BrokerAdapter = (raw) => {
         ? data.userId
         : null;
 
-  // Telefone: não apareceu em nenhum payload de teste visto até agora (só
-  // vimos email/userId/utm) — "phone" é um chute defensivo, ajustar se um
-  // payload real trouxer outro nome de campo.
   const phone = data && typeof data.phone === "string" ? data.phone : null;
 
   return {
