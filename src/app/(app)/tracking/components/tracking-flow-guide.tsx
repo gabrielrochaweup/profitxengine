@@ -116,7 +116,7 @@ export function TrackingFlowGuide({ endpoints, isAdmin }: { endpoints: WebhookEn
   return (
     <Card className="p-5">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-medium text-text-primary">Como o lead_id viaja até a corretora</h3>
+        <h3 className="text-base font-semibold text-text-primary">Como o lead_id viaja até a corretora</h3>
         {doneCount !== null && (
           <span className="text-[11px] font-medium text-text-muted">
             {doneCount === STEPS.length ? "Tudo testado ✓" : `${doneCount} de ${STEPS.length} testados`}
@@ -124,12 +124,7 @@ export function TrackingFlowGuide({ endpoints, isAdmin }: { endpoints: WebhookEn
         )}
       </div>
       <p className="mb-3 text-xs text-text-secondary">
-        Passo a passo guiado — clique numa etapa pra ver o que fazer. Checkout e Área de membros são repetíveis: cada
-        página de vendas nova ganha seu próprio endpoint. A Corretora normalmente é compartilhada por tudo (não
-        precisa de mais de uma), mas o endpoint dela pode ser criado, editado ou trocado a qualquer momento na aba
-        Webhooks, sem restrição. Criar o endpoint não é o suficiente: uma etapa só fica verde depois que o endpoint é
-        testado com sucesso (botão &quot;Testar&quot;, na aba Webhooks) — só isso prova que a URL, o token e o formato do
-        payload estão certos.
+        Clique numa etapa pra ver o que fazer — só fica verde depois de testada com sucesso.
       </p>
 
       {doneCount !== null && (
@@ -179,7 +174,7 @@ export function TrackingFlowGuide({ endpoints, isAdmin }: { endpoints: WebhookEn
                 <div className="px-3 pb-3">
                   <p className="text-xs leading-relaxed text-text-secondary">{step.description}</p>
                   {step.contract && (
-                    <code className="mt-2 block overflow-x-auto whitespace-pre rounded-input bg-input px-3 py-2 text-[11px] text-text-muted">
+                    <code className="mt-2 block overflow-x-auto whitespace-pre rounded-input bg-accent-soft px-3 py-2 text-[11px] text-text-muted">
                       {step.contract}
                     </code>
                   )}

@@ -21,13 +21,12 @@ export function TrackingScriptPanel({ productSlug }: { productSlug: string }) {
 
   return (
     <Card className="p-5">
-      <h3 className="mb-1 text-sm font-medium text-text-primary">Script de rastreamento</h3>
+      <h3 className="mb-1 text-base font-semibold text-text-primary">Script de rastreamento</h3>
       <p className="mb-3 text-xs text-text-secondary">
-        Cole esse script em qualquer site que gere tráfego pra esse produto, antes do <code>&lt;/body&gt;</code> —
-        funciona em quantos sites você quiser, sem precisar mudar nada aqui.
+        Cole em qualquer site que gere tráfego pra esse produto, antes do <code>&lt;/body&gt;</code>.
       </p>
       <div className="flex items-center gap-2">
-        <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-3 py-2 text-xs">
+        <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-accent-soft px-3 py-2 text-xs">
           {snippet}
         </code>
         <Button size="sm" variant="secondary" onClick={copy}>

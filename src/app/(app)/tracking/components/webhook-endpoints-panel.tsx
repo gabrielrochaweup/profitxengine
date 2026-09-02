@@ -229,15 +229,13 @@ export function WebhookEndpointsPanel({
   return (
     <Card className="p-5">
       <div className="mb-1 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-text-primary">Webhooks</h3>
+        <h3 className="text-base font-semibold text-text-primary">Webhooks</h3>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           Gerar novo endpoint
         </Button>
       </div>
       <p className="mb-3 text-xs text-text-secondary">
-        Dá pra ter vários endpoints de Checkout e de Área de membros — um pra cada página de vendas/plataforma. A
-        Corretora normalmente é uma só, compartilhada por todas as páginas, mas você pode criar, renomear ou trocar o
-        endpoint dela a qualquer momento — nada aqui é travado.
+        Um endpoint por página de vendas/plataforma — crie, renomeie ou troque quando precisar.
       </p>
 
       {endpoints.length === 0 ? (
@@ -400,7 +398,7 @@ export function WebhookEndpointsPanel({
             <div>
               <p className="mb-1 text-xs font-medium text-text-muted">URL</p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 truncate rounded-input bg-input px-3 py-2 text-xs">
+                <code className="flex-1 truncate rounded-input bg-accent-soft px-3 py-2 text-xs">
                   {endpointUrl(revealedSecret.endpoint)}
                 </code>
                 <Button size="sm" variant="secondary" onClick={() => copy(endpointUrl(revealedSecret.endpoint))}>
@@ -411,7 +409,7 @@ export function WebhookEndpointsPanel({
             <div>
               <p className="mb-1 text-xs font-medium text-text-muted">Token (Authorization: Bearer ...)</p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 truncate rounded-input bg-input px-3 py-2 text-xs">
+                <code className="flex-1 truncate rounded-input bg-accent-soft px-3 py-2 text-xs">
                   {revealedSecret.secret}
                 </code>
                 <Button size="sm" variant="secondary" onClick={() => copy(revealedSecret.secret)}>
@@ -424,7 +422,7 @@ export function WebhookEndpointsPanel({
                 URL com token embutido <span className="text-text-muted/70">(use essa se a plataforma não tiver campo pra header customizado — cola direto no lugar da URL, sozinha)</span>
               </p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 truncate rounded-input bg-input px-3 py-2 text-xs">
+                <code className="flex-1 truncate rounded-input bg-accent-soft px-3 py-2 text-xs">
                   {`${endpointUrl(revealedSecret.endpoint)}?token=${revealedSecret.secret}`}
                 </code>
                 <Button

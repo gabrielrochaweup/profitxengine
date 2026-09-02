@@ -5,6 +5,8 @@ import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Perce
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
+import { SubTabs } from "@/components/ui/sub-tabs";
 import { createClient } from "@/lib/supabase/client";
 import { SimpleBarChart } from "../../analytics/components/charts";
 
@@ -66,6 +68,19 @@ const EVENT_TYPE_FILTER_OPTIONS = [
   { value: "broker_deposit", label: "Depósito" },
 ];
 
+// Categorias "de fallback" que aparecem na coluna Origem/Campanha em vez
+// de um nome de campanha real — sem essa explicação, parecem só mais uma
+// campanha e confundem quem está lendo o relatório pela primeira vez.
+const SPECIAL_BUCKET_HELP: Record<string, string> = {
+  "(direto)": "Visitante chegou sem nenhuma UTM no link (sem utm_source).",
+  "(sem campanha)": "Tem utm_source, mas o link não veio com utm_campaign preenchido.",
+  "(não atribuído)": "Evento (compra, depósito...) chegou mas não deu pra ligar a nenhum lead nosso — sem campanha possível de atribuir.",
+};
+
+function isSpecialBucket(value: string): boolean {
+  return value in SPECIAL_BUCKET_HELP;
+}
+
 const TABLE_TABS = [
   { key: "contas", label: "Contas" },
   { key: "campanhas", label: "Campanhas" },
@@ -74,6 +89,14 @@ const TABLE_TABS = [
 ] as const;
 
 type TableTab = (typeof TABLE_TABS)[number]["key"];
+
+const ANALYTICS_SUB_TABS = [
+  { key: "visao", label: "Visão geral" },
+  { key: "campanhas", label: "Campanhas" },
+  { key: "eventos", label: "Eventos" },
+] as const;
+
+type AnalyticsSubTab = (typeof ANALYTICS_SUB_TABS)[number]["key"];
 
 function fmtBRL(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -94,12 +117,14 @@ export function AnalyticsTab({
 }) {
   const [period, setPeriod] = useState<Period>("90d");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [hideUnattributed, setHideUnattributed] = useState(false);
   const [eventTypeFilter, setEventTypeFilter] = useState<string>("all");
   const [report, setReport] = useState<CampaignRow[]>(initialReport);
   const [events, setEvents] = useState<RecentEvent[]>(initialEvents);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [tableTab, setTableTab] = useState<TableTab>("campanhas");
+  const [subTab, setSubTab] = useState<AnalyticsSubTab>("visao");
 
   function periodRange(next: Period) {
     const now = new Date();
@@ -171,10 +196,11 @@ export function AnalyticsTab({
 
   const sources = useMemo(() => Array.from(new Set(report.map((r) => r.utm_source))).sort(), [report]);
 
-  const filteredReport = useMemo(
-    () => (sourceFilter === "all" ? report : report.filter((r) => r.utm_source === sourceFilter)),
-    [report, sourceFilter]
-  );
+  const filteredReport = useMemo(() => {
+    let rows = sourceFilter === "all" ? report : report.filter((r) => r.utm_source === sourceFilter);
+    if (hideUnattributed) rows = rows.filter((r) => !isSpecialBucket(r.utm_source));
+    return rows;
+  }, [report, sourceFilter, hideUnattributed]);
 
   const kpis = useMemo(
     () => ({
@@ -269,18 +295,34 @@ export function AnalyticsTab({
             </div>
 
             <div className="w-40">
-              <label className="mb-1 block text-[11px] font-medium text-text-muted">Plataforma</label>
-              <Select disabled value="all" title="Disponível depois de conectar Meta Ads / Google Ads">
+              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
+                Plataforma
+                <Tooltip text="Disponível depois de conectar Meta Ads / Google Ads e sincronizar o gasto." />
+              </label>
+              <Select disabled value="all">
                 <option value="all">Qualquer</option>
               </Select>
             </div>
 
             <div className="w-44">
-              <label className="mb-1 block text-[11px] font-medium text-text-muted">Conta de anúncio</label>
-              <Select disabled value="all" title="Disponível depois de conectar Meta Ads / Google Ads">
+              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
+                Conta de anúncio
+                <Tooltip text="Disponível depois de conectar Meta Ads / Google Ads e sincronizar o gasto." />
+              </label>
+              <Select disabled value="all">
                 <option value="all">Qualquer</option>
               </Select>
             </div>
+
+            <label className="flex items-center gap-2 pb-2.5 text-xs text-text-secondary">
+              <input
+                type="checkbox"
+                checked={hideUnattributed}
+                onChange={(e) => setHideUnattributed(e.target.checked)}
+                className="h-3.5 w-3.5 accent-accent"
+              />
+              Ocultar não atribuído
+            </label>
           </div>
 
           <div className="flex items-center gap-3">
@@ -295,263 +337,295 @@ export function AnalyticsTab({
         </div>
       </Card>
 
-      {/* ── Funil + KPIs financeiros ── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <Card className="p-5">
-          <h3 className="mb-3 text-sm font-medium text-text-primary">Funil de conversão</h3>
-          <div className="space-y-2">
-            {funnelStages.map((stage) => (
-              <div key={stage.label} className="flex items-center gap-3">
-                <span className="w-40 shrink-0 text-xs text-text-secondary">{stage.label}</span>
-                <div className="h-6 flex-1 overflow-hidden rounded-button bg-card-hover">
-                  <div
-                    className="h-full rounded-button bg-accent"
-                    style={{ width: `${Math.max(2, (stage.value / maxStage) * 100)}%` }}
-                  />
-                </div>
-                <span className="w-10 shrink-0 text-right text-xs font-medium text-text-primary">{stage.value}</span>
+      <SubTabs tabs={ANALYTICS_SUB_TABS} active={subTab} onChange={setSubTab} />
+
+      {subTab === "visao" && (
+        <div className="space-y-4">
+          {/* ── Funil + KPIs financeiros ── */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
+            <Card className="p-5">
+              <h3 className="mb-3 text-base font-semibold text-text-primary">Funil de conversão</h3>
+              <div className="space-y-2">
+                {funnelStages.map((stage) => (
+                  <div key={stage.label} className="flex items-center gap-3">
+                    <span className="w-40 shrink-0 text-xs text-text-secondary">{stage.label}</span>
+                    <div className="h-6 flex-1 overflow-hidden rounded-button bg-card-hover">
+                      <div
+                        className="h-full rounded-button bg-accent"
+                        style={{ width: `${Math.max(2, (stage.value / maxStage) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="w-10 shrink-0 text-right text-xs font-medium text-text-primary">
+                      {stage.value}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </Card>
+
+            <div className="grid grid-cols-2 gap-3">
+              <FinanceTile
+                label="Gasto com anúncios"
+                value={hasSpend ? fmtBRL(kpis.spend) : "—"}
+                hint={hasSpend ? "Curso + depósitos" : "Sincronize o gasto em Contas Meta/Google"}
+              />
+              <FinanceTile
+                label="ROAS"
+                value={roas !== null ? `${roas.toFixed(1)}x` : "—"}
+                hint={hasSpend ? "Receita ÷ gasto" : "Sincronize o gasto em Contas Meta/Google"}
+              />
+              <FinanceTile
+                label="ROI"
+                value={roi !== null ? `${roi >= 0 ? "+" : ""}${(roi * 100).toFixed(0)}%` : "—"}
+                hint={hasSpend ? "(Receita − gasto) ÷ gasto" : "Sincronize o gasto em Contas Meta/Google"}
+              />
+              <FinanceTile
+                label="Lucro"
+                value={profit !== null ? fmtBRL(profit) : "—"}
+                hint={hasSpend ? "Receita − gasto" : "Sincronize o gasto em Contas Meta/Google"}
+              />
+            </div>
+          </div>
+
+          {/* ── KPIs do funil (dado real, já capturado) ── */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <KpiTile icon={Users} label="Leads" value={String(kpis.leads)} />
+            <KpiTile
+              icon={ShoppingCart}
+              label="Compras do curso"
+              value={String(kpis.purchases)}
+              sub={fmtBRL(kpis.purchaseRevenue)}
+            />
+            <KpiTile icon={GraduationCap} label="Área de membros" value={String(kpis.membersAccess)} />
+            <KpiTile icon={Landmark} label="Cadastros corretora" value={String(kpis.brokerSignups)} />
+            <KpiTile
+              icon={Wallet}
+              label="Depósitos"
+              value={String(kpis.deposits)}
+              sub={fmtBRL(kpis.depositsTotal)}
+              tone="success"
+            />
+            <KpiTile
+              icon={TrendingUp}
+              label="Ticket médio depósito"
+              value={fmtBRL(kpis.deposits > 0 ? Math.round(kpis.depositsTotal / kpis.deposits) : 0)}
+              tone="accent"
+            />
+          </div>
+
+          {/* ── Por fonte ── */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card className="p-5">
+              <h3 className="mb-3 text-base font-semibold text-text-primary">Leads por fonte</h3>
+              {bySource.length === 0 ? (
+                <p className="text-xs text-text-muted">Sem dados suficientes nesse período.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {bySource.map((s) => (
+                    <li key={s.source} className="flex items-center justify-between text-xs">
+                      <span className="text-text-secondary">{s.source}</span>
+                      <span className="font-medium text-text-primary">{s.leads}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            <Card className="p-5">
+              <h3 className="mb-3 text-base font-semibold text-text-primary">Depósitos por fonte</h3>
+              {bySource.length === 0 ? (
+                <p className="text-xs text-text-muted">Sem dados suficientes nesse período.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {bySource.map((s) => (
+                    <li key={s.source} className="flex items-center justify-between text-xs">
+                      <span className="text-text-secondary">{s.source}</span>
+                      <span className="font-medium text-text-primary">{fmtBRL(s.depositsTotal)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </div>
+
+          <Card className="p-5">
+            <h3 className="mb-3 text-base font-semibold text-text-primary">Depósitos por campanha (top 10)</h3>
+            <SimpleBarChart data={depositsByCampaign} valueLabel="Depósitos" isCurrency color="var(--success)" />
+          </Card>
+        </div>
+      )}
+
+      {subTab === "campanhas" && (
+        /* ── Tabela com abas (Contas/Campanhas/Conjuntos/Anúncios) ── */
+        <Card className="p-0">
+          <div className="flex gap-1 border-b border-border px-3 pt-2">
+            {TABLE_TABS.map((tab) => {
+              const enabled = tab.key === "campanhas";
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  disabled={!enabled}
+                  onClick={() => enabled && setTableTab(tab.key)}
+                  title={enabled ? undefined : "Disponível depois de conectar Meta Ads / Google Ads"}
+                  className={`rounded-t-lg px-3 py-2 text-xs font-medium transition-colors ${
+                    tableTab === tab.key
+                      ? "border-b-2 border-accent text-text-primary"
+                      : enabled
+                        ? "text-text-secondary hover:text-text-primary"
+                        : "cursor-not-allowed text-text-muted/50"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-5">
+            {filteredReport.length === 0 ? (
+              <p className="text-xs text-text-muted">Sem dados suficientes nesse período.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-border text-text-muted">
+                      <th className="py-2 pr-3 font-medium">Origem</th>
+                      <th className="py-2 pr-3 font-medium">Campanha</th>
+                      <th className="py-2 pr-3 font-medium">Leads</th>
+                      <th className="py-2 pr-3 font-medium">Iniciou checkout</th>
+                      <th className="py-2 pr-3 font-medium">Compras curso</th>
+                      <th className="py-2 pr-3 font-medium">Receita curso</th>
+                      <th className="py-2 pr-3 font-medium">Área de membros</th>
+                      <th className="py-2 pr-3 font-medium">Corretora</th>
+                      <th className="py-2 pr-3 font-medium">Depósitos</th>
+                      <th className="py-2 pr-3 font-medium">Total depositado</th>
+                      <th className="py-2 pr-3 font-medium">Gasto</th>
+                      <th className="py-2 font-medium">ROI</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredReport.map((r) => {
+                      const rowRevenue = r.purchase_revenue_cents + r.deposits_total_cents;
+                      const rowRoi = r.spend_cents > 0 ? (rowRevenue - r.spend_cents) / r.spend_cents : null;
+                      return (
+                        <tr
+                          key={`${r.utm_source}-${r.utm_campaign}`}
+                          className="border-b border-border/50 text-text-secondary"
+                        >
+                          <td className="py-2 pr-3 whitespace-nowrap">
+                            {isSpecialBucket(r.utm_source) ? (
+                              <span className="inline-flex items-center gap-1 italic text-text-muted">
+                                {r.utm_source}
+                                <Tooltip text={SPECIAL_BUCKET_HELP[r.utm_source]} />
+                              </span>
+                            ) : (
+                              r.utm_source
+                            )}
+                          </td>
+                          <td className="py-2 pr-3 whitespace-nowrap">
+                            {isSpecialBucket(r.utm_campaign) ? (
+                              <span className="inline-flex items-center gap-1 italic text-text-muted">
+                                {r.utm_campaign}
+                                <Tooltip text={SPECIAL_BUCKET_HELP[r.utm_campaign]} />
+                              </span>
+                            ) : (
+                              r.utm_campaign
+                            )}
+                          </td>
+                          <td className="py-2 pr-3 whitespace-nowrap">{r.leads}</td>
+                          <td className="py-2 pr-3 whitespace-nowrap">{r.initiate_checkouts}</td>
+                          <td className="py-2 pr-3 whitespace-nowrap">{r.purchases}</td>
+                          <td className="py-2 pr-3 whitespace-nowrap">{fmtBRL(r.purchase_revenue_cents)}</td>
+                          <td className="py-2 pr-3 whitespace-nowrap">{r.members_access}</td>
+                          <td className="py-2 pr-3 whitespace-nowrap">{r.broker_signups}</td>
+                          <td className="py-2 pr-3 whitespace-nowrap">{r.deposits}</td>
+                          <td className="py-2 pr-3 whitespace-nowrap font-medium text-text-primary">
+                            {fmtBRL(r.deposits_total_cents)}
+                          </td>
+                          <td className="py-2 pr-3 whitespace-nowrap">
+                            {r.spend_cents > 0 ? fmtBRL(r.spend_cents) : "—"}
+                          </td>
+                          <td className="py-2 whitespace-nowrap">
+                            {rowRoi !== null ? (
+                              <span className={rowRoi >= 0 ? "text-success" : "text-danger"}>
+                                {rowRoi >= 0 ? "+" : ""}
+                                {(rowRoi * 100).toFixed(0)}%
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </Card>
+      )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <FinanceTile
-            label="Gasto com anúncios"
-            value={hasSpend ? fmtBRL(kpis.spend) : "—"}
-            hint={hasSpend ? "Curso + depósitos" : "Sincronize o gasto em Contas Meta/Google"}
-          />
-          <FinanceTile
-            label="ROAS"
-            value={roas !== null ? `${roas.toFixed(1)}x` : "—"}
-            hint={hasSpend ? "Receita ÷ gasto" : "Sincronize o gasto em Contas Meta/Google"}
-          />
-          <FinanceTile
-            label="ROI"
-            value={roi !== null ? `${roi >= 0 ? "+" : ""}${(roi * 100).toFixed(0)}%` : "—"}
-            hint={hasSpend ? "(Receita − gasto) ÷ gasto" : "Sincronize o gasto em Contas Meta/Google"}
-          />
-          <FinanceTile
-            label="Lucro"
-            value={profit !== null ? fmtBRL(profit) : "—"}
-            hint={hasSpend ? "Receita − gasto" : "Sincronize o gasto em Contas Meta/Google"}
-          />
-        </div>
-      </div>
-
-      {/* ── KPIs do funil (dado real, já capturado) ── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <KpiTile icon={Users} label="Leads" value={String(kpis.leads)} />
-        <KpiTile
-          icon={ShoppingCart}
-          label="Compras do curso"
-          value={String(kpis.purchases)}
-          sub={fmtBRL(kpis.purchaseRevenue)}
-        />
-        <KpiTile icon={GraduationCap} label="Área de membros" value={String(kpis.membersAccess)} />
-        <KpiTile icon={Landmark} label="Cadastros corretora" value={String(kpis.brokerSignups)} />
-        <KpiTile
-          icon={Wallet}
-          label="Depósitos"
-          value={String(kpis.deposits)}
-          sub={fmtBRL(kpis.depositsTotal)}
-          tone="success"
-        />
-        <KpiTile
-          icon={TrendingUp}
-          label="Ticket médio depósito"
-          value={fmtBRL(kpis.deposits > 0 ? Math.round(kpis.depositsTotal / kpis.deposits) : 0)}
-          tone="accent"
-        />
-      </div>
-
-      {/* ── Por fonte ── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {subTab === "eventos" && (
         <Card className="p-5">
-          <h3 className="mb-3 text-sm font-medium text-text-primary">Leads por fonte</h3>
-          {bySource.length === 0 ? (
-            <p className="text-xs text-text-muted">Sem dados suficientes nesse período.</p>
-          ) : (
-            <ul className="space-y-2">
-              {bySource.map((s) => (
-                <li key={s.source} className="flex items-center justify-between text-xs">
-                  <span className="text-text-secondary">{s.source}</span>
-                  <span className="font-medium text-text-primary">{s.leads}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <Card className="p-5">
-          <h3 className="mb-3 text-sm font-medium text-text-primary">Depósitos por fonte</h3>
-          {bySource.length === 0 ? (
-            <p className="text-xs text-text-muted">Sem dados suficientes nesse período.</p>
-          ) : (
-            <ul className="space-y-2">
-              {bySource.map((s) => (
-                <li key={s.source} className="flex items-center justify-between text-xs">
-                  <span className="text-text-secondary">{s.source}</span>
-                  <span className="font-medium text-text-primary">{fmtBRL(s.depositsTotal)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-
-      <Card className="p-5">
-        <h3 className="mb-3 text-sm font-medium text-text-primary">Depósitos por campanha (top 10)</h3>
-        <SimpleBarChart data={depositsByCampaign} valueLabel="Depósitos" isCurrency color="var(--success)" />
-      </Card>
-
-      {/* ── Tabela com abas (Contas/Campanhas/Conjuntos/Anúncios) ── */}
-      <Card className="p-0">
-        <div className="flex gap-1 border-b border-border px-3 pt-2">
-          {TABLE_TABS.map((tab) => {
-            const enabled = tab.key === "campanhas";
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                disabled={!enabled}
-                onClick={() => enabled && setTableTab(tab.key)}
-                title={enabled ? undefined : "Disponível depois de conectar Meta Ads / Google Ads"}
-                className={`rounded-t-lg px-3 py-2 text-xs font-medium transition-colors ${
-                  tableTab === tab.key
-                    ? "border-b-2 border-accent text-text-primary"
-                    : enabled
-                      ? "text-text-secondary hover:text-text-primary"
-                      : "cursor-not-allowed text-text-muted/50"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="p-5">
-          {filteredReport.length === 0 ? (
-            <p className="text-xs text-text-muted">Sem dados suficientes nesse período.</p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-semibold text-text-primary">Eventos recentes</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-text-muted">
+                Período: {PERIOD_OPTIONS.find((o) => o.key === period)?.label}
+              </span>
+              <Select value={eventTypeFilter} onChange={(e) => setEventTypeFilter(e.target.value)} className="w-56">
+                {EVENT_TYPE_FILTER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+          {filteredEvents.length === 0 ? (
+            <p className="text-xs text-text-muted">Nenhum evento nesse período/tipo.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-border text-text-muted">
+                    <th className="py-2 pr-3 font-medium">Quando</th>
+                    <th className="py-2 pr-3 font-medium">Tipo</th>
                     <th className="py-2 pr-3 font-medium">Origem</th>
+                    <th className="py-2 pr-3 font-medium">E-mail</th>
+                    <th className="py-2 pr-3 font-medium">Plano</th>
+                    <th className="py-2 pr-3 font-medium">Valor</th>
                     <th className="py-2 pr-3 font-medium">Campanha</th>
-                    <th className="py-2 pr-3 font-medium">Leads</th>
-                    <th className="py-2 pr-3 font-medium">Iniciou checkout</th>
-                    <th className="py-2 pr-3 font-medium">Compras curso</th>
-                    <th className="py-2 pr-3 font-medium">Receita curso</th>
-                    <th className="py-2 pr-3 font-medium">Área de membros</th>
-                    <th className="py-2 pr-3 font-medium">Corretora</th>
-                    <th className="py-2 pr-3 font-medium">Depósitos</th>
-                    <th className="py-2 pr-3 font-medium">Total depositado</th>
-                    <th className="py-2 pr-3 font-medium">Gasto</th>
-                    <th className="py-2 font-medium">ROI</th>
+                    <th className="py-2 font-medium">Lead</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReport.map((r) => {
-                    const rowRevenue = r.purchase_revenue_cents + r.deposits_total_cents;
-                    const rowRoi = r.spend_cents > 0 ? (rowRevenue - r.spend_cents) / r.spend_cents : null;
-                    return (
-                      <tr
-                        key={`${r.utm_source}-${r.utm_campaign}`}
-                        className="border-b border-border/50 text-text-secondary"
-                      >
-                        <td className="py-2 pr-3 whitespace-nowrap">{r.utm_source}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{r.utm_campaign}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{r.leads}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{r.initiate_checkouts}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{r.purchases}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{fmtBRL(r.purchase_revenue_cents)}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{r.members_access}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{r.broker_signups}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{r.deposits}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap font-medium text-text-primary">
-                          {fmtBRL(r.deposits_total_cents)}
-                        </td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{r.spend_cents > 0 ? fmtBRL(r.spend_cents) : "—"}</td>
-                        <td className="py-2 whitespace-nowrap">
-                          {rowRoi !== null ? (
-                            <span className={rowRoi >= 0 ? "text-success" : "text-danger"}>
-                              {rowRoi >= 0 ? "+" : ""}
-                              {(rowRoi * 100).toFixed(0)}%
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredEvents.map((e) => (
+                    <tr key={e.id} className="border-b border-border/50 text-text-secondary">
+                      <td className="py-2 pr-3 whitespace-nowrap">{new Date(e.occurred_at).toLocaleString("pt-BR")}</td>
+                      <td className="py-2 pr-3 whitespace-nowrap">{EVENT_TYPE_LABEL[e.event_type] ?? e.event_type}</td>
+                      <td className="py-2 pr-3 whitespace-nowrap">{e.source}</td>
+                      <td className="py-2 pr-3 whitespace-nowrap">{e.email ?? "—"}</td>
+                      <td className="py-2 pr-3 whitespace-nowrap">{e.offer_name ?? "—"}</td>
+                      <td className="py-2 pr-3 whitespace-nowrap">
+                        {e.amount_cents != null ? fmtBRL(e.amount_cents) : "—"}
+                      </td>
+                      <td className="py-2 pr-3 whitespace-nowrap">
+                        {e.utm_source ? `${e.utm_source} · ${e.utm_campaign ?? "(sem campanha)"}` : "—"}
+                      </td>
+                      <td className="py-2 whitespace-nowrap">
+                        {e.lead_id ? "Atribuído" : <span className="text-warning">Não atribuído</span>}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
-      </Card>
-
-      <Card className="p-5">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-sm font-medium text-text-primary">Eventos recentes</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-text-muted">
-              Mesmo período do filtro acima ({PERIOD_OPTIONS.find((o) => o.key === period)?.label})
-            </span>
-            <Select value={eventTypeFilter} onChange={(e) => setEventTypeFilter(e.target.value)} className="w-56">
-              {EVENT_TYPE_FILTER_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-        </div>
-        {filteredEvents.length === 0 ? (
-          <p className="text-xs text-text-muted">Nenhum evento nesse período/tipo.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border text-text-muted">
-                  <th className="py-2 pr-3 font-medium">Quando</th>
-                  <th className="py-2 pr-3 font-medium">Tipo</th>
-                  <th className="py-2 pr-3 font-medium">Origem</th>
-                  <th className="py-2 pr-3 font-medium">E-mail</th>
-                  <th className="py-2 pr-3 font-medium">Plano</th>
-                  <th className="py-2 pr-3 font-medium">Valor</th>
-                  <th className="py-2 pr-3 font-medium">Campanha</th>
-                  <th className="py-2 font-medium">Lead</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEvents.map((e) => (
-                  <tr key={e.id} className="border-b border-border/50 text-text-secondary">
-                    <td className="py-2 pr-3 whitespace-nowrap">{new Date(e.occurred_at).toLocaleString("pt-BR")}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap">{EVENT_TYPE_LABEL[e.event_type] ?? e.event_type}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap">{e.source}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap">{e.email ?? "—"}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap">{e.offer_name ?? "—"}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
-                      {e.amount_cents != null ? fmtBRL(e.amount_cents) : "—"}
-                    </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
-                      {e.utm_source ? `${e.utm_source} · ${e.utm_campaign ?? "(sem campanha)"}` : "—"}
-                    </td>
-                    <td className="py-2 whitespace-nowrap">
-                      {e.lead_id ? "Atribuído" : <span className="text-warning">Não atribuído</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+        </Card>
+      )}
     </div>
   );
 }
@@ -570,7 +644,7 @@ function KpiTile({
   tone?: "accent" | "success";
 }) {
   return (
-    <div className="rounded-xl border border-border p-3">
+    <div className="rounded-xl bg-card-hover p-3">
       <div className="mb-1 flex items-center gap-1.5 text-text-muted">
         <Icon size={12} />
         <p className="text-[11px]">{label}</p>
@@ -589,7 +663,7 @@ function KpiTile({
 
 function FinanceTile({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
-    <div className="rounded-xl border border-border p-3">
+    <div className="rounded-xl bg-card-hover p-3">
       <div className="mb-1 flex items-center gap-1.5 text-text-muted">
         <Percent size={12} />
         <p className="text-[11px]">{label}</p>

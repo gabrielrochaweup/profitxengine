@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/toast";
 
 const PARAM_OPTIONS = [
@@ -83,14 +84,19 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
 
   return (
     <Card className="p-5">
-      <h3 className="mb-1 text-sm font-medium text-text-primary">Gerador de link com identificador</h3>
+      <div className="mb-1 flex items-center gap-1.5">
+        <h3 className="text-base font-semibold text-text-primary">Gerador de link com identificador</h3>
+        <Tooltip
+          text={
+            "O nome do parâmetro muda por plataforma: corretora, área de membros e checkout genérico usam ref; " +
+            "Onprofit e Hotmart só devolvem sck no webhook. Colando um link da Onprofit ou Hotmart, o seletor já " +
+            "muda sozinho pra sck — confira antes de usar."
+          }
+        />
+      </div>
       <p className="mb-4 text-xs text-text-secondary">
-        Cole o link de destino (checkout, área de membros, cadastro na corretora...) e receba pronto o link que já leva
-        o &quot;espaço&quot; pro identificador do visitante — sem precisar salvar nada aqui: pode gerar e usar quantos links
-        diferentes quiser, é sempre só o link, sem cadastro. O <strong>nome do parâmetro muda por plataforma</strong>:
-        corretora, área de membros e checkout genérico usam <code>ref</code>; Onprofit e Hotmart só devolvem{" "}
-        <code>sck</code> no webhook, então esses precisam do parâmetro diferente. Colando um link da Onprofit ou
-        Hotmart, o seletor abaixo já muda sozinho pra <code>sck</code> — mas confira antes de usar.
+        Cole o link de destino e receba pronto o link com o identificador do visitante — sem cadastro, use quantos
+        quiser.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
@@ -134,30 +140,28 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
       {readyLink && (
         <div className="mt-4 space-y-4">
           <div>
-            <p className="mb-1 text-[11px] font-medium text-text-muted">
-              Link pra usar — cola exatamente esse em qualquer botão do site (Elementor, Wix, HTML puro, tanto faz)
+            <p className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
+              Link pra usar — cola em qualquer botão do site
+              <Tooltip
+                text={`Já carrega um "${paramName}=" vazio no final — o script preenche sozinho no clique. Não precisa voltar aqui depois de copiar.`}
+              />
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-3 py-2 text-xs">
+              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-accent-soft px-3 py-2 text-xs">
                 {readyLink}
               </code>
               <Button size="sm" variant="secondary" onClick={() => copy(readyLink)}>
                 Copiar
               </Button>
             </div>
-            <p className="mt-1 text-[11px] text-text-muted">
-              Repara que ele já carrega um &quot;{paramName}=&quot; vazio no final — o script de rastreamento (já instalado no
-              site) preenche isso sozinho com o identificador de cada visitante no exato momento do clique. Não
-              precisa voltar aqui de novo depois de copiar: gera e usa, sem limite de quantos links diferentes.
-            </p>
           </div>
 
           <details className="text-xs text-text-secondary">
             <summary className="cursor-pointer text-[11px] font-medium text-text-muted">
-              Alternativa: colar como código (se preferir montar o botão na mão)
+              Alternativa: colar como código
             </summary>
             <div className="mt-2 flex items-start gap-2">
-              <pre className="flex-1 overflow-x-auto whitespace-pre rounded-input bg-input px-3 py-2 text-xs">
+              <pre className="flex-1 overflow-x-auto whitespace-pre rounded-input bg-accent-soft px-3 py-2 text-xs">
                 {snippet}
               </pre>
               <Button size="sm" variant="secondary" onClick={() => snippet && copy(snippet)}>

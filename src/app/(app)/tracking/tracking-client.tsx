@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { BarChart3, Webhook, Landmark, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SubTabs } from "@/components/ui/sub-tabs";
 import { AnalyticsTab } from "./components/analytics-tab";
 import { WebhookEndpointsPanel, type WebhookEndpoint } from "./components/webhook-endpoints-panel";
 import { AdAccountsPanel, type AdAccount } from "./components/ad-accounts-panel";
 import { PixelsPanel } from "./components/pixels-panel";
 import { TrackingScriptPanel } from "./components/tracking-script-panel";
-import { UtmGuide } from "./components/utm-guide";
 import { UtmBuilder } from "./components/utm-builder";
 import { TrackingFlowGuide } from "./components/tracking-flow-guide";
 import { LinkBuilder } from "./components/link-builder";
@@ -61,6 +61,25 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
+const WEBHOOKS_SUB_TABS = [
+  { key: "guia", label: "Guia" },
+  { key: "endpoints", label: "Endpoints" },
+] as const;
+type WebhooksSubTab = (typeof WEBHOOKS_SUB_TABS)[number]["key"];
+
+const CONTAS_SUB_TABS = [
+  { key: "contas", label: "Contas de anúncio" },
+  { key: "pixels", label: "Pixels" },
+] as const;
+type ContasSubTab = (typeof CONTAS_SUB_TABS)[number]["key"];
+
+const UTMS_SUB_TABS = [
+  { key: "utm", label: "Link com UTM" },
+  { key: "checkout", label: "Link de checkout" },
+  { key: "script", label: "Instalar script" },
+] as const;
+type UtmsSubTab = (typeof UTMS_SUB_TABS)[number]["key"];
+
 export function TrackingClient({
   productId,
   productSlug,
@@ -71,6 +90,9 @@ export function TrackingClient({
   isAdmin,
 }: TrackingClientProps) {
   const [tab, setTab] = useState<TabKey>("analises");
+  const [webhooksSubTab, setWebhooksSubTab] = useState<WebhooksSubTab>("guia");
+  const [contasSubTab, setContasSubTab] = useState<ContasSubTab>("contas");
+  const [utmsSubTab, setUtmsSubTab] = useState<UtmsSubTab>("utm");
   // Ficam aqui (não dentro de cada painel) porque as abas desmontam o
   // conteúdo ao trocar — um useState dentro do painel reiniciaria a partir
   // do initialEndpoints/initialAdCredentials (props da carga inicial da
@@ -107,25 +129,31 @@ export function TrackingClient({
       {tab === "analises" && <AnalyticsTab productId={productId} initialReport={initialReport} initialEvents={initialEvents} />}
 
       {tab === "webhooks" && isAdmin && (
-        <div className="space-y-4">
-          <TrackingFlowGuide endpoints={endpoints} isAdmin={isAdmin} />
-          <WebhookEndpointsPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
+        <div>
+          <SubTabs tabs={WEBHOOKS_SUB_TABS} active={webhooksSubTab} onChange={setWebhooksSubTab} />
+          {webhooksSubTab === "guia" && <TrackingFlowGuide endpoints={endpoints} isAdmin={isAdmin} />}
+          {webhooksSubTab === "endpoints" && (
+            <WebhookEndpointsPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
+          )}
         </div>
       )}
 
       {tab === "contas" && isAdmin && (
-        <div className="space-y-4">
-          <AdAccountsPanel productId={productId} accounts={adCredentials} setAccounts={setAdCredentials} />
-          <PixelsPanel productId={productId} productSlug={productSlug} />
+        <div>
+          <SubTabs tabs={CONTAS_SUB_TABS} active={contasSubTab} onChange={setContasSubTab} />
+          {contasSubTab === "contas" && (
+            <AdAccountsPanel productId={productId} accounts={adCredentials} setAccounts={setAdCredentials} />
+          )}
+          {contasSubTab === "pixels" && <PixelsPanel productId={productId} />}
         </div>
       )}
 
       {tab === "utms" && (
-        <div className="space-y-4">
-          <UtmBuilder />
-          <LinkBuilder productSlug={productSlug} />
-          <TrackingScriptPanel productSlug={productSlug} />
-          <UtmGuide />
+        <div>
+          <SubTabs tabs={UTMS_SUB_TABS} active={utmsSubTab} onChange={setUtmsSubTab} />
+          {utmsSubTab === "utm" && <UtmBuilder />}
+          {utmsSubTab === "checkout" && <LinkBuilder productSlug={productSlug} />}
+          {utmsSubTab === "script" && <TrackingScriptPanel productSlug={productSlug} />}
         </div>
       )}
     </div>

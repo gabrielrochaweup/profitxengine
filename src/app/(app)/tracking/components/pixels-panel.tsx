@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
@@ -19,7 +20,7 @@ export interface Pixel {
   created_at: string;
 }
 
-export function PixelsPanel({ productId, productSlug }: { productId: string; productSlug: string }) {
+export function PixelsPanel({ productId }: { productId: string }) {
   const [pixels, setPixels] = useState<Pixel[]>([]);
   const toast = useToast();
 
@@ -34,7 +35,6 @@ export function PixelsPanel({ productId, productSlug }: { productId: string; pro
   return (
     <PlatformSection
       productId={productId}
-      productSlug={productSlug}
       pixels={pixels}
       onUpsert={(p) => setPixels((prev) => (prev.some((x) => x.id === p.id) ? prev.map((x) => (x.id === p.id ? p : x)) : [p, ...prev]))}
       onRemove={(id) => setPixels((prev) => prev.filter((p) => p.id !== id))}
@@ -44,13 +44,11 @@ export function PixelsPanel({ productId, productSlug }: { productId: string; pro
 
 function PlatformSection({
   productId,
-  productSlug,
   pixels,
   onUpsert,
   onRemove,
 }: {
   productId: string;
-  productSlug: string;
   pixels: Pixel[];
   onUpsert: (p: Pixel) => void;
   onRemove: (id: string) => void;
@@ -59,19 +57,19 @@ function PlatformSection({
 
   return (
     <Card className="p-5">
-      <div className="mb-1 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-text-primary">Pixels</h3>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
+      <div className="mb-1 flex items-center gap-1.5">
+        <h3 className="text-base font-semibold text-text-primary">Pixels</h3>
+        <Tooltip
+          text={
+            "Dispara PageView, Lead e InitiateCheckout pelo script já instalado. Purchase (só Meta) precisa do " +
+            "token da API de Conversões, não só do Pixel ID — sem ele, a compra não é enviada pro lado do servidor."
+          }
+        />
+        <Button size="sm" className="ml-auto" onClick={() => setCreateOpen(true)}>
           Adicionar pixel
         </Button>
       </div>
-      <p className="mb-3 text-xs text-text-secondary">
-        Além de ler o gasto (aba acima), o pixel dispara os eventos padrão de verdade: <strong>PageView</strong> a cada
-        visita, <strong>Lead</strong> no primeiro toque, <strong>InitiateCheckout</strong> no clique do link de
-        checkout — tudo pelo script já instalado em {productSlug}. <strong>Purchase</strong> (só Meta, via API de
-        Conversões) dispara do lado do servidor quando o webhook de compra chega — por isso precisa do token da API de
-        Conversões, não só do Pixel ID.
-      </p>
+      <p className="mb-3 text-xs text-text-secondary">Pixel ID + token da API de Conversões, por plataforma.</p>
 
       {pixels.length === 0 ? (
         <p className="text-xs text-text-muted">Nenhum pixel conectado ainda.</p>

@@ -105,7 +105,7 @@ function PlatformSection({
   return (
     <Card className="p-5">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-text-primary">{title}</h3>
+        <h3 className="text-base font-semibold text-text-primary">{title}</h3>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           Adicionar conta
         </Button>

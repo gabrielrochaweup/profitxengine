@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
@@ -76,13 +77,17 @@ export function UtmBuilder() {
 
   return (
     <Card className="p-5">
-      <h3 className="mb-1 text-sm font-medium text-text-primary">Gerador de UTMs</h3>
-      <p className="mb-4 text-xs text-text-secondary">
-        Preenche os campos e recebe o link pronto pra colar no anúncio — sem montar a URL na mão.{" "}
-        <code>utm_source</code>/<code>utm_campaign</code> são o que aparece na aba Análises;{" "}
-        <code>mcid</code>/<code>gcid</code> são opcionais, mas recomendados: permitem cruzar com o gasto de anúncio
-        assim que a conta Meta/Google estiver conectada.
-      </p>
+      <div className="mb-4 flex items-center gap-1.5">
+        <h3 className="text-base font-semibold text-text-primary">Gerador de UTMs</h3>
+        <Tooltip
+          text={
+            "utm_source = de onde veio o clique (meta, google...). utm_medium = tipo de mídia (cpc, social...). " +
+            "utm_campaign = nome da campanha, é o que aparece na aba Análises. utm_content/utm_term são opcionais. " +
+            "mcid/gcid = ID real da campanha (Meta: {{campaign.id}}, Google: {campaignid}) — cruza com o gasto de anúncio assim que a conta estiver conectada."
+          }
+        />
+      </div>
+      <p className="mb-4 text-xs text-text-secondary">Preenche os campos e recebe o link pronto pra colar no anúncio.</p>
 
       <div className="space-y-4">
         <div>
@@ -188,10 +193,7 @@ export function UtmBuilder() {
               <Input value={fields.gcid} onChange={(e) => set("gcid", e.target.value)} placeholder="{campaignid}" />
             </div>
           </div>
-          <p className="mt-1.5 text-[11px] text-text-muted">
-            Esses dois só funcionam colados no modelo de URL de rastreamento do próprio anúncio (Meta/Google
-            substituem pelo ID real a cada clique) — não dá pra testar o valor final aqui.
-          </p>
+          <p className="mt-1.5 text-[11px] text-text-muted">Só funciona no modelo de URL do próprio anúncio.</p>
         </div>
 
         {hasBase && error && <p className="text-xs text-danger">{error}</p>}
@@ -200,7 +202,7 @@ export function UtmBuilder() {
           <div>
             <p className="mb-1 text-[11px] font-medium text-text-muted">Link pronto</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-3 py-2 text-xs">
+              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-accent-soft px-3 py-2 text-xs">
                 {url}
               </code>
               <Button size="sm" variant="secondary" onClick={copy}>
