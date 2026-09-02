@@ -37,9 +37,10 @@ interface RecentEvent {
   occurred_at: string;
 }
 
-type Period = "7d" | "30d" | "90d" | "tudo";
+type Period = "hoje" | "7d" | "30d" | "90d" | "tudo";
 
 const PERIOD_OPTIONS: { key: Period; label: string; days: number | null }[] = [
+  { key: "hoje", label: "Hoje", days: 0 },
   { key: "7d", label: "7 dias", days: 7 },
   { key: "30d", label: "30 dias", days: 30 },
   { key: "90d", label: "90 dias", days: 90 },
@@ -93,8 +94,12 @@ export function AnalyticsTab({
     const supabase = createClient();
     const now = new Date();
     const from = new Date(now);
-    const option = PERIOD_OPTIONS.find((o) => o.key === next);
-    from.setDate(from.getDate() - (option?.days ?? 3650));
+    if (next === "hoje") {
+      from.setHours(0, 0, 0, 0);
+    } else {
+      const option = PERIOD_OPTIONS.find((o) => o.key === next);
+      from.setDate(from.getDate() - (option?.days ?? 3650));
+    }
 
     const { data } = await supabase.rpc("tracking_campaign_report", {
       p_product_id: productId,
