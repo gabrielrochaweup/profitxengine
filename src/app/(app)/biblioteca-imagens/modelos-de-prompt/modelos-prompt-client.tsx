@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useActiveProduct } from "@/components/layout/active-product-context";
@@ -180,9 +181,9 @@ function PromptPartSection({
   return (
     <section>
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-medium text-text-primary">{title}</h2>
-          <p className="mt-1 text-xs text-text-muted">{description}</p>
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+          <Tooltip text={description} />
         </div>
         {isAdmin && (
           <Button type="button" variant="secondary" size="sm" onClick={handleAdd}>

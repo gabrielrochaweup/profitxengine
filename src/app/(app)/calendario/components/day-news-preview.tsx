@@ -66,10 +66,10 @@ export function DayNewsPreview({ dateKey }: DayNewsPreviewProps) {
               {trending.slice(0, 8).map((coin) => (
                 <span
                   key={coin.id}
-                  className={`inline-flex items-center gap-1 rounded-button border px-2 py-1 text-[11px] ${
+                  className={`inline-flex items-center gap-1 rounded-button px-2 py-1 text-[11px] ${
                     coin.isMemecoinRelated
-                      ? "border-accent/40 bg-accent/5 text-text-secondary"
-                      : "border-border text-text-secondary"
+                      ? "bg-accent-soft text-text-secondary shadow-[0_0_0_1px_var(--accent)]"
+                      : "bg-card-hover text-text-secondary shadow-card-sm"
                   }`}
                   title={coin.name}
                 >
@@ -113,10 +113,8 @@ export function DayNewsPreview({ dateKey }: DayNewsPreviewProps) {
                 href={item.link}
                 target="_blank"
                 rel="noreferrer"
-                className={`block rounded-lg border p-2 text-xs hover:border-accent hover:text-text-primary ${
-                  item.highPotential
-                    ? "border-accent/40 bg-accent/5 text-text-secondary"
-                    : "border-border text-text-secondary"
+                className={`block rounded-lg p-2 text-xs shadow-card-sm transition-shadow hover:shadow-[0_0_0_1px_var(--accent)] hover:text-text-primary ${
+                  item.highPotential ? "bg-accent-soft text-text-secondary" : "bg-card-hover text-text-secondary"
                 }`}
               >
                 <span className="flex items-center gap-1 line-clamp-1">

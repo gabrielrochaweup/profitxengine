@@ -41,7 +41,7 @@ export default async function BibliotecaImagensPage() {
         </div>
         <Link
           href="/biblioteca-imagens/modelos-de-prompt"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-button border border-border-strong px-3 py-1.5 text-xs text-text-secondary hover:bg-card-hover"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-button bg-card-hover px-3 py-1.5 text-xs text-text-secondary shadow-card-sm hover:brightness-95"
         >
           <Settings2 size={13} />
           Modelos de prompt

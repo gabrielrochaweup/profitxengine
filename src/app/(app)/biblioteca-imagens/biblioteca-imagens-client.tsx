@@ -291,12 +291,12 @@ export function BibliotecaImagensClient({
           handleDropOnFolder(id);
         }}
         className={cn(
-          "flex w-full min-h-0 shrink-0 flex-col overflow-hidden rounded-card border p-3 transition-colors sm:w-80",
+          "flex w-full min-h-0 shrink-0 flex-col overflow-hidden rounded-card p-3 transition-shadow sm:w-80",
           dragOverFolderId === id
-            ? "border-accent bg-accent/5"
+            ? "bg-accent-soft shadow-[0_0_0_1.5px_var(--accent)]"
             : strong
-              ? "border-border-strong bg-card-hover"
-              : "border-border bg-card"
+              ? "bg-card-hover shadow-card"
+              : "bg-card shadow-card"
         )}
       >
         <div className="mb-3 flex items-center justify-between gap-1">
@@ -354,7 +354,7 @@ export function BibliotecaImagensClient({
                 const isOpen = expandedSubfolders[id] === child.id;
                 const childItems = byFolder[child.id] ?? [];
                 return (
-                  <div key={child.id} className="rounded-lg border border-border">
+                  <div key={child.id} className="rounded-lg bg-card shadow-card-sm">
                     <div
                       onDragOver={(e) => {
                         if (!draggingImageId) return;

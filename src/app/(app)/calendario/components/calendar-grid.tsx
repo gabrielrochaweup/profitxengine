@@ -36,7 +36,7 @@ export function CalendarGrid({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-medium text-text-primary">
+        <h2 className="text-base font-semibold text-text-primary">
           {MONTH_LABELS[month]} {year}
         </h2>
         <div className="flex gap-1">
@@ -80,11 +80,11 @@ export function CalendarGrid({
               type="button"
               onClick={() => onSelectDay(dateKey)}
               className={cn(
-                "flex h-16 flex-col items-center justify-center gap-1 rounded-xl border text-sm transition-colors",
+                "flex h-16 flex-col items-center justify-center gap-1 rounded-xl text-sm transition-colors",
                 isSelected
-                  ? "border-accent bg-accent/15 text-text-primary"
-                  : "border-transparent text-text-secondary hover:bg-card-hover",
-                isToday && !isSelected && "border-border-strong"
+                  ? "bg-accent-soft text-text-primary shadow-[0_0_0_1.5px_var(--accent)]"
+                  : "text-text-secondary hover:bg-card-hover",
+                isToday && !isSelected && "shadow-[0_0_0_1px_var(--border-strong)]"
               )}
             >
               <span className="flex items-center gap-1">

@@ -50,7 +50,7 @@ export function DateNav({ dateKey, onChange }: DateNavProps) {
       <button
         type="button"
         onClick={() => onChange(toDateKey(new Date()))}
-        className="shrink-0 rounded-button border border-border-strong px-3 py-2 text-xs text-text-secondary hover:bg-card-hover"
+        className="shrink-0 rounded-button bg-card-hover px-3 py-2 text-xs text-text-secondary shadow-card-sm hover:brightness-95"
       >
         Hoje
       </button>
