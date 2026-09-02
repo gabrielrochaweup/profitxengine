@@ -56,6 +56,16 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   broker_deposit: "Depósito",
 };
 
+const EVENT_TYPE_FILTER_OPTIONS = [
+  { value: "all", label: "Todos os tipos" },
+  { value: "page_view", label: "Clique/landing" },
+  { value: "initiate_checkout", label: "Iniciou checkout" },
+  { value: "purchase", label: "Compra do curso" },
+  { value: "members_access", label: "Acesso à área de membros" },
+  { value: "broker_signup", label: "Cadastro na corretora" },
+  { value: "broker_deposit", label: "Depósito" },
+];
+
 const TABLE_TABS = [
   { key: "contas", label: "Contas" },
   { key: "campanhas", label: "Campanhas" },
@@ -84,14 +94,14 @@ export function AnalyticsTab({
 }) {
   const [period, setPeriod] = useState<Period>("90d");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [eventTypeFilter, setEventTypeFilter] = useState<string>("all");
   const [report, setReport] = useState<CampaignRow[]>(initialReport);
+  const [events, setEvents] = useState<RecentEvent[]>(initialEvents);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [tableTab, setTableTab] = useState<TableTab>("campanhas");
 
-  async function fetchReport(next: Period) {
-    setLoading(true);
-    const supabase = createClient();
+  function periodRange(next: Period) {
     const now = new Date();
     const from = new Date(now);
     if (next === "hoje") {
@@ -100,6 +110,43 @@ export function AnalyticsTab({
       const option = PERIOD_OPTIONS.find((o) => o.key === next);
       from.setDate(from.getDate() - (option?.days ?? 3650));
     }
+    return { from, now };
+  }
+
+  // Eventos recentes usa o mesmo período selecionado acima (não fica preso
+  // aos últimos 50 eventos sem filtro de data nenhum como antes) — junta a
+  // UTM/campanha do lead do mesmo jeito que a carga inicial da página faz.
+  async function fetchEvents(supabase: ReturnType<typeof createClient>, from: Date, now: Date) {
+    const { data: rawEvents } = await supabase
+      .from("tracking_events")
+      .select("id, event_type, source, email, amount_cents, currency, offer_name, lead_id, occurred_at")
+      .eq("product_id", productId)
+      .gte("occurred_at", from.toISOString())
+      .lte("occurred_at", now.toISOString())
+      .order("occurred_at", { ascending: false })
+      .limit(200);
+
+    const leadIds = Array.from(new Set((rawEvents ?? []).map((e) => e.lead_id).filter((id): id is string => !!id)));
+    const { data: eventLeads } =
+      leadIds.length > 0
+        ? await supabase.from("tracking_leads").select("id, utm_source, utm_medium, utm_campaign").in("id", leadIds)
+        : { data: [] };
+    const leadById = new Map((eventLeads ?? []).map((l) => [l.id, l]));
+
+    setEvents(
+      (rawEvents ?? []).map((e) => ({
+        ...e,
+        utm_source: e.lead_id ? (leadById.get(e.lead_id)?.utm_source ?? null) : null,
+        utm_medium: e.lead_id ? (leadById.get(e.lead_id)?.utm_medium ?? null) : null,
+        utm_campaign: e.lead_id ? (leadById.get(e.lead_id)?.utm_campaign ?? null) : null,
+      }))
+    );
+  }
+
+  async function fetchReport(next: Period) {
+    setLoading(true);
+    const supabase = createClient();
+    const { from, now } = periodRange(next);
 
     const { data } = await supabase.rpc("tracking_campaign_report", {
       p_product_id: productId,
@@ -107,6 +154,7 @@ export function AnalyticsTab({
       p_to: now.toISOString(),
     });
     setReport(data ?? []);
+    await fetchEvents(supabase, from, now);
     setLastUpdated(new Date());
     setLoading(false);
   }
@@ -115,6 +163,11 @@ export function AnalyticsTab({
     setPeriod(next);
     await fetchReport(next);
   }
+
+  const filteredEvents = useMemo(
+    () => (eventTypeFilter === "all" ? events : events.filter((e) => e.event_type === eventTypeFilter)),
+    [events, eventTypeFilter]
+  );
 
   const sources = useMemo(() => Array.from(new Set(report.map((r) => r.utm_source))).sort(), [report]);
 
@@ -443,9 +496,23 @@ export function AnalyticsTab({
       </Card>
 
       <Card className="p-5">
-        <h3 className="mb-3 text-sm font-medium text-text-primary">Eventos recentes</h3>
-        {initialEvents.length === 0 ? (
-          <p className="text-xs text-text-muted">Nenhum evento recebido ainda.</p>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-sm font-medium text-text-primary">Eventos recentes</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-text-muted">
+              Mesmo período do filtro acima ({PERIOD_OPTIONS.find((o) => o.key === period)?.label})
+            </span>
+            <Select value={eventTypeFilter} onChange={(e) => setEventTypeFilter(e.target.value)} className="w-56">
+              {EVENT_TYPE_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+        {filteredEvents.length === 0 ? (
+          <p className="text-xs text-text-muted">Nenhum evento nesse período/tipo.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -462,7 +529,7 @@ export function AnalyticsTab({
                 </tr>
               </thead>
               <tbody>
-                {initialEvents.map((e) => (
+                {filteredEvents.map((e) => (
                   <tr key={e.id} className="border-b border-border/50 text-text-secondary">
                     <td className="py-2 pr-3 whitespace-nowrap">{new Date(e.occurred_at).toLocaleString("pt-BR")}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">{EVENT_TYPE_LABEL[e.event_type] ?? e.event_type}</td>
