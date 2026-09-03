@@ -63,11 +63,13 @@ export function SimpleBarChart({
   color = "var(--accent)",
   valueLabel,
   isCurrency,
+  currencyPrefix = "R$",
 }: {
   data: { label: string; value: number }[];
   color?: string;
   valueLabel: string;
   isCurrency?: boolean;
+  currencyPrefix?: string;
 }) {
   if (data.length === 0) return <EmptyChart />;
   return (
@@ -80,7 +82,7 @@ export function SimpleBarChart({
           contentStyle={TOOLTIP_STYLE}
           formatter={(v) => {
             const n = Number(v) || 0;
-            return [isCurrency ? `R$ ${fmtBRL(n)}` : fmtBRL(n), valueLabel] as [string, string];
+            return [isCurrency ? `${currencyPrefix} ${fmtBRL(n)}` : fmtBRL(n), valueLabel] as [string, string];
           }}
         />
         <Bar dataKey="value" name={valueLabel} fill={color} radius={[6, 6, 0, 0]} />

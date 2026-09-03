@@ -102,6 +102,11 @@ function fmtBRL(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
+// Depósito na corretora é sempre em dólar — só a venda do curso é em real.
+function fmtUSD(cents: number): string {
+  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
+
 function sumBy(rows: CampaignRow[], key: keyof CampaignRow): number {
   return rows.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
 }
@@ -402,13 +407,13 @@ export function AnalyticsTab({
               icon={Wallet}
               label="Depósitos"
               value={String(kpis.deposits)}
-              sub={fmtBRL(kpis.depositsTotal)}
+              sub={fmtUSD(kpis.depositsTotal)}
               tone="success"
             />
             <KpiTile
               icon={TrendingUp}
               label="Ticket médio depósito"
-              value={fmtBRL(kpis.deposits > 0 ? Math.round(kpis.depositsTotal / kpis.deposits) : 0)}
+              value={fmtUSD(kpis.deposits > 0 ? Math.round(kpis.depositsTotal / kpis.deposits) : 0)}
               tone="accent"
             />
           </div>
@@ -440,7 +445,7 @@ export function AnalyticsTab({
                   {bySource.map((s) => (
                     <li key={s.source} className="flex items-center justify-between text-xs">
                       <span className="text-text-secondary">{s.source}</span>
-                      <span className="font-medium text-text-primary">{fmtBRL(s.depositsTotal)}</span>
+                      <span className="font-medium text-text-primary">{fmtUSD(s.depositsTotal)}</span>
                     </li>
                   ))}
                 </ul>
@@ -450,7 +455,13 @@ export function AnalyticsTab({
 
           <Card className="p-5">
             <h3 className="mb-3 text-base font-semibold text-text-primary">Depósitos por campanha (top 10)</h3>
-            <SimpleBarChart data={depositsByCampaign} valueLabel="Depósitos" isCurrency color="var(--success)" />
+            <SimpleBarChart
+              data={depositsByCampaign}
+              valueLabel="Depósitos"
+              isCurrency
+              currencyPrefix="US$"
+              color="var(--success)"
+            />
           </Card>
         </div>
       )}
@@ -541,7 +552,7 @@ export function AnalyticsTab({
                           <td className="py-2 pr-3 whitespace-nowrap">{r.broker_signups}</td>
                           <td className="py-2 pr-3 whitespace-nowrap">{r.deposits}</td>
                           <td className="py-2 pr-3 whitespace-nowrap font-medium text-text-primary">
-                            {fmtBRL(r.deposits_total_cents)}
+                            {fmtUSD(r.deposits_total_cents)}
                           </td>
                           <td className="py-2 pr-3 whitespace-nowrap">
                             {r.spend_cents > 0 ? fmtBRL(r.spend_cents) : "—"}
@@ -610,7 +621,11 @@ export function AnalyticsTab({
                       <td className="py-2 pr-3 whitespace-nowrap">{e.email ?? "—"}</td>
                       <td className="py-2 pr-3 whitespace-nowrap">{e.offer_name ?? "—"}</td>
                       <td className="py-2 pr-3 whitespace-nowrap">
-                        {e.amount_cents != null ? fmtBRL(e.amount_cents) : "—"}
+                        {e.amount_cents != null
+                          ? e.event_type === "broker_deposit"
+                            ? fmtUSD(e.amount_cents)
+                            : fmtBRL(e.amount_cents)
+                          : "—"}
                       </td>
                       <td className="py-2 pr-3 whitespace-nowrap">
                         {e.utm_source ? `${e.utm_source} · ${e.utm_campaign ?? "(sem campanha)"}` : "—"}
