@@ -211,7 +211,7 @@ function AccountRow({
   }
 
   return (
-    <div className="rounded-xl border border-border p-3">
+    <div className="rounded-xl bg-card-hover p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           {renaming ? (
