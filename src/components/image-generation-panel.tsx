@@ -298,10 +298,10 @@ export function ImageGenerationPanel({
   }
 
   return (
-    <div className="rounded-lg border border-dashed border-border-strong p-3">
+    <div className="rounded-lg bg-card p-3 shadow-card-sm">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-[11px] font-medium text-text-secondary">
-          <ImageIcon size={12} />
+        <p className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+          <ImageIcon size={13} />
           {label}
         </p>
         {promptMode === "livre" && (
@@ -425,7 +425,12 @@ export function ImageGenerationPanel({
                     {copiedPredefinido ? "Copiado!" : "Copiar prompt"}
                   </button>
                 </div>
-                <Textarea value={assembledPrompt} readOnly rows={4} className="w-full font-mono text-[10px]" />
+                <Textarea
+                  value={assembledPrompt}
+                  readOnly
+                  rows={4}
+                  className="w-full bg-accent-soft font-mono text-[10px] shadow-card-sm"
+                />
               </div>
             </>
           )}
@@ -457,7 +462,7 @@ export function ImageGenerationPanel({
             <button
               type="button"
               onClick={() => setReferenceImageUrl(null)}
-              className="ml-auto flex items-center gap-1 rounded-button border border-border-strong px-2 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
+              className="ml-auto flex items-center gap-1 rounded-button bg-card-hover px-2 py-1 text-[11px] text-text-secondary shadow-card-sm hover:brightness-95"
             >
               <X size={11} />
               Remover
@@ -564,7 +569,7 @@ export function ImageGenerationPanel({
             <button
               type="button"
               onClick={() => downloadImageUrl(value, `imagem_${Date.now()}.png`)}
-              className="flex items-center gap-1.5 rounded-button border border-border-strong px-2 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
+              className="flex items-center gap-1.5 rounded-button bg-card-hover px-2 py-1 text-[11px] text-text-secondary shadow-card-sm hover:brightness-95"
             >
               <Download size={11} />
               Baixar
@@ -572,7 +577,7 @@ export function ImageGenerationPanel({
             <button
               type="button"
               onClick={() => onChange(null)}
-              className="flex items-center gap-1.5 rounded-button border border-border-strong px-2 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
+              className="flex items-center gap-1.5 rounded-button bg-card-hover px-2 py-1 text-[11px] text-text-secondary shadow-card-sm hover:brightness-95"
             >
               <X size={11} />
               Remover

@@ -200,7 +200,7 @@ export function MessageRow({
 
             <p
               className={cn(
-                "min-h-0 overflow-y-auto whitespace-pre-wrap rounded-lg bg-card-hover p-3 text-xs text-text-primary",
+                "min-h-0 overflow-y-auto whitespace-pre-wrap rounded-lg bg-accent-soft p-3 text-xs text-text-primary shadow-card-sm",
                 textExpanded ? "max-h-none" : "max-h-32",
                 "lg:max-h-none lg:flex-1",
                 blocked && "opacity-50 grayscale"
@@ -212,7 +212,7 @@ export function MessageRow({
             <button
               type="button"
               onClick={() => setTextExpanded((v) => !v)}
-              className="flex shrink-0 items-center gap-1.5 self-start rounded-button border border-border-strong px-2 py-1 text-[11px] text-text-secondary hover:bg-card-hover lg:hidden"
+              className="flex shrink-0 items-center gap-1.5 self-start rounded-button bg-card-hover px-2 py-1 text-[11px] text-text-secondary shadow-card-sm hover:brightness-95 lg:hidden"
             >
               {textExpanded ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
               {textExpanded ? "Recolher mensagem" : "Ver mensagem completa"}
@@ -231,9 +231,9 @@ export function MessageRow({
           </div>
 
           {/* Coluna 2: gerar texto com IA */}
-          <div className="flex min-h-0 flex-col overflow-y-auto rounded-lg border border-dashed border-border-strong p-3">
-            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-secondary">
-              <Sparkles size={12} />
+          <div className="flex min-h-0 flex-col overflow-y-auto rounded-lg bg-card p-3 shadow-card-sm">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+              <Sparkles size={13} />
               Gerar variação com IA
             </p>
 
@@ -242,7 +242,7 @@ export function MessageRow({
                 type="button"
                 onClick={() => generate("Reescreva a mensagem abaixo de forma mais curta e direta, mantendo a mesma oferta e tom.")}
                 disabled={generating}
-                className="rounded-button border border-border-strong px-2.5 py-1 text-[11px] text-text-secondary hover:bg-card-hover disabled:opacity-50"
+                className="rounded-button bg-card-hover px-2.5 py-1 text-[11px] text-text-secondary shadow-card-sm hover:brightness-95 disabled:opacity-50"
               >
                 Mais curta
               </button>
@@ -250,14 +250,14 @@ export function MessageRow({
                 type="button"
                 onClick={() => generate("Reescreva a mensagem abaixo de forma mais longa e detalhada, mantendo a mesma oferta e tom.")}
                 disabled={generating}
-                className="rounded-button border border-border-strong px-2.5 py-1 text-[11px] text-text-secondary hover:bg-card-hover disabled:opacity-50"
+                className="rounded-button bg-card-hover px-2.5 py-1 text-[11px] text-text-secondary shadow-card-sm hover:brightness-95 disabled:opacity-50"
               >
                 Mais longa
               </button>
               <button
                 type="button"
                 onClick={() => setShowCtaInput((v) => !v)}
-                className="rounded-button border border-border-strong px-2.5 py-1 text-[11px] text-text-secondary hover:bg-card-hover"
+                className="rounded-button bg-card-hover px-2.5 py-1 text-[11px] text-text-secondary shadow-card-sm hover:brightness-95"
               >
                 Trocar CTA
               </button>
@@ -317,7 +317,7 @@ export function MessageRow({
             {error && <p className="mt-2 text-xs text-danger">{error}</p>}
 
             {preview && (
-              <div className="mt-3 rounded-lg border border-accent/40 bg-accent/5 p-3">
+              <div className="mt-3 rounded-lg bg-accent-soft p-3 shadow-[0_0_0_1px_var(--accent)]">
                 <p className="mb-1.5 text-[11px] font-medium text-accent">Sugestão gerada</p>
                 <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-xs text-text-primary">{preview}</p>
                 <div className="mt-2 flex gap-2">
