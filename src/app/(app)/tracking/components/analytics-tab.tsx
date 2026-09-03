@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
@@ -130,6 +130,24 @@ export function AnalyticsTab({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [tableTab, setTableTab] = useState<TableTab>("campanhas");
   const [subTab, setSubTab] = useState<AnalyticsSubTab>("visao");
+  const [usdBrlRate, setUsdBrlRate] = useState<number | null>(null);
+  const [usdBrlRateUpdatedAt, setUsdBrlRateUpdatedAt] = useState<string | null>(null);
+
+  async function fetchRate() {
+    try {
+      const res = await fetch("/api/tracking/usd-brl-rate");
+      const body = await res.json();
+      setUsdBrlRate(typeof body.rate === "number" ? body.rate : null);
+      setUsdBrlRateUpdatedAt(typeof body.updatedAt === "string" ? body.updatedAt : null);
+    } catch {
+      setUsdBrlRate(null);
+    }
+  }
+
+  useEffect(() => {
+    fetchRate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function periodRange(next: Period) {
     const now = new Date();
@@ -185,6 +203,7 @@ export function AnalyticsTab({
     });
     setReport(data ?? []);
     await fetchEvents(supabase, from, now);
+    await fetchRate();
     setLastUpdated(new Date());
     setLoading(false);
   }
@@ -222,11 +241,22 @@ export function AnalyticsTab({
     [filteredReport]
   );
 
-  const revenue = kpis.purchaseRevenue + kpis.depositsTotal;
+  // Curso é sempre em real e depósito de corretora sempre em dólar — juntar
+  // os dois numa métrica só significava somar centavo de real com centavo
+  // de dólar como se fossem a mesma coisa. Mantidos separados, cada um
+  // comparado com o mesmo gasto total (não dá pra saber quanto do gasto foi
+  // "pro curso" e quanto foi "pra corretora" — os dois usam a base inteira).
   const hasSpend = kpis.spend > 0;
-  const roas = hasSpend ? revenue / kpis.spend : null;
-  const profit = hasSpend ? revenue - kpis.spend : null;
-  const roi = hasSpend ? (revenue - kpis.spend) / kpis.spend : null;
+
+  const roasCurso = hasSpend ? kpis.purchaseRevenue / kpis.spend : null;
+  const profitCurso = hasSpend ? kpis.purchaseRevenue - kpis.spend : null;
+  const roiCurso = hasSpend ? (kpis.purchaseRevenue - kpis.spend) / kpis.spend : null;
+
+  const depositsTotalBRL = usdBrlRate !== null ? Math.round(kpis.depositsTotal * usdBrlRate) : null;
+  const roasCorretora = hasSpend && depositsTotalBRL !== null ? depositsTotalBRL / kpis.spend : null;
+  const profitCorretora = hasSpend && depositsTotalBRL !== null ? depositsTotalBRL - kpis.spend : null;
+  const roiCorretora =
+    hasSpend && depositsTotalBRL !== null ? (depositsTotalBRL - kpis.spend) / kpis.spend : null;
 
   const bySource = useMemo(() => {
     const map = new Map<string, { leads: number; depositsTotal: number }>();
@@ -368,27 +398,68 @@ export function AnalyticsTab({
               </div>
             </Card>
 
-            <div className="grid grid-cols-2 gap-3">
-              <FinanceTile
-                label="Gasto com anúncios"
-                value={hasSpend ? fmtBRL(kpis.spend) : "—"}
-                hint={hasSpend ? "Curso + depósitos" : "Sincronize o gasto em Contas Meta/Google"}
-              />
-              <FinanceTile
-                label="ROAS"
-                value={roas !== null ? `${roas.toFixed(1)}x` : "—"}
-                hint={hasSpend ? "Receita ÷ gasto" : "Sincronize o gasto em Contas Meta/Google"}
-              />
-              <FinanceTile
-                label="ROI"
-                value={roi !== null ? `${roi >= 0 ? "+" : ""}${(roi * 100).toFixed(0)}%` : "—"}
-                hint={hasSpend ? "(Receita − gasto) ÷ gasto" : "Sincronize o gasto em Contas Meta/Google"}
-              />
-              <FinanceTile
-                label="Lucro"
-                value={profit !== null ? fmtBRL(profit) : "—"}
-                hint={hasSpend ? "Receita − gasto" : "Sincronize o gasto em Contas Meta/Google"}
-              />
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <FinanceTile
+                  label="Gasto com anúncios"
+                  value={hasSpend ? fmtBRL(kpis.spend) : "—"}
+                  hint={hasSpend ? "Base dos ROIs abaixo" : "Sincronize o gasto em Contas Meta/Google"}
+                />
+                <FinanceTile
+                  label="Cotação USD/BRL"
+                  value={usdBrlRate !== null ? `R$ ${usdBrlRate.toFixed(2)}` : "—"}
+                  hint={usdBrlRateUpdatedAt ? `Atualizada ${usdBrlRateUpdatedAt}` : "Carregando..."}
+                />
+              </div>
+
+              <div>
+                <p className="mb-1.5 text-[11px] font-medium text-text-muted">Curso (R$)</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <FinanceTile
+                    label="ROAS"
+                    value={roasCurso !== null ? `${roasCurso.toFixed(1)}x` : "—"}
+                    hint="Receita / gasto"
+                  />
+                  <FinanceTile
+                    label="ROI"
+                    value={roiCurso !== null ? `${roiCurso >= 0 ? "+" : ""}${(roiCurso * 100).toFixed(0)}%` : "—"}
+                    hint="(Receita - gasto) / gasto"
+                  />
+                  <FinanceTile
+                    label="Lucro"
+                    value={profitCurso !== null ? fmtBRL(profitCurso) : "—"}
+                    hint="Receita - gasto"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
+                  Corretora (US$ convertido p/ R$)
+                  <Tooltip text="Depósito é sempre em dólar — convertido pra real na cotação atual só pra comparar com o gasto em anúncios, que é cobrado em real." />
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  <FinanceTile
+                    label="ROAS"
+                    value={roasCorretora !== null ? `${roasCorretora.toFixed(1)}x` : "—"}
+                    hint="Depósito / gasto"
+                  />
+                  <FinanceTile
+                    label="ROI"
+                    value={
+                      roiCorretora !== null
+                        ? `${roiCorretora >= 0 ? "+" : ""}${(roiCorretora * 100).toFixed(0)}%`
+                        : "—"
+                    }
+                    hint="(Depósito - gasto) / gasto"
+                  />
+                  <FinanceTile
+                    label="Lucro"
+                    value={profitCorretora !== null ? fmtBRL(profitCorretora) : "—"}
+                    hint="Depósito - gasto"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -512,13 +583,19 @@ export function AnalyticsTab({
                       <th className="py-2 pr-3 font-medium">Depósitos</th>
                       <th className="py-2 pr-3 font-medium">Total depositado</th>
                       <th className="py-2 pr-3 font-medium">Gasto</th>
-                      <th className="py-2 font-medium">ROI</th>
+                      <th className="py-2 pr-3 font-medium">ROI curso</th>
+                      <th className="py-2 font-medium">ROI corretora</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredReport.map((r) => {
-                      const rowRevenue = r.purchase_revenue_cents + r.deposits_total_cents;
-                      const rowRoi = r.spend_cents > 0 ? (rowRevenue - r.spend_cents) / r.spend_cents : null;
+                      const rowRoiCurso =
+                        r.spend_cents > 0 ? (r.purchase_revenue_cents - r.spend_cents) / r.spend_cents : null;
+                      const rowDepositsBRL = usdBrlRate !== null ? Math.round(r.deposits_total_cents * usdBrlRate) : null;
+                      const rowRoiCorretora =
+                        r.spend_cents > 0 && rowDepositsBRL !== null
+                          ? (rowDepositsBRL - r.spend_cents) / r.spend_cents
+                          : null;
                       return (
                         <tr
                           key={`${r.utm_source}-${r.utm_campaign}`}
@@ -557,11 +634,21 @@ export function AnalyticsTab({
                           <td className="py-2 pr-3 whitespace-nowrap">
                             {r.spend_cents > 0 ? fmtBRL(r.spend_cents) : "—"}
                           </td>
+                          <td className="py-2 pr-3 whitespace-nowrap">
+                            {rowRoiCurso !== null ? (
+                              <span className={rowRoiCurso >= 0 ? "text-success" : "text-danger"}>
+                                {rowRoiCurso >= 0 ? "+" : ""}
+                                {(rowRoiCurso * 100).toFixed(0)}%
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
                           <td className="py-2 whitespace-nowrap">
-                            {rowRoi !== null ? (
-                              <span className={rowRoi >= 0 ? "text-success" : "text-danger"}>
-                                {rowRoi >= 0 ? "+" : ""}
-                                {(rowRoi * 100).toFixed(0)}%
+                            {rowRoiCorretora !== null ? (
+                              <span className={rowRoiCorretora >= 0 ? "text-success" : "text-danger"}>
+                                {rowRoiCorretora >= 0 ? "+" : ""}
+                                {(rowRoiCorretora * 100).toFixed(0)}%
                               </span>
                             ) : (
                               "—"
