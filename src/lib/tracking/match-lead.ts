@@ -24,10 +24,10 @@ function normalizePhone(value: string): string | null {
 // gerado na landing, preciso), e-mail já salvo nesse lead, e por último
 // telefone já salvo — uma segunda camada além do e-mail pra quando a pessoa
 // usa e-mails diferentes em cada etapa da jornada mas o mesmo telefone.
-// Quando bate por ref e o evento trouxe e-mail/telefone que o lead ainda
-// não tinha, grava isso no lead — é isso que habilita casar por e-mail ou
-// telefone eventos futuros que não conseguirem propagar o ref (ex: se a
-// corretora não conseguir repassar o parâmetro em algum fluxo).
+// Não importa qual camada bateu o match, se o evento trouxe e-mail/telefone
+// que o lead ainda não tinha, grava isso nele — é isso que habilita casar
+// por e-mail ou telefone eventos futuros que não conseguirem propagar o ref
+// (ex: se a corretora não conseguir repassar o parâmetro em algum fluxo).
 export async function matchLead(
   supabase: SupabaseClient<Database>,
   { productId, ref, email, phone }: MatchLeadInput
@@ -35,50 +35,50 @@ export async function matchLead(
   const normalizedEmail = email?.trim().toLowerCase() || null;
   const normalizedPhone = phone ? normalizePhone(phone) : null;
 
+  let lead: { id: string; email: string | null; phone: string | null } | null = null;
+
   if (ref) {
-    const { data: lead } = await supabase
+    const { data } = await supabase
       .from("tracking_leads")
       .select("id, email, phone")
       .eq("id", ref)
       .eq("product_id", productId)
       .maybeSingle();
-
-    if (lead) {
-      const backfill: Database["public"]["Tables"]["tracking_leads"]["Update"] = {};
-      if (normalizedEmail && !lead.email) backfill.email = normalizedEmail;
-      if (normalizedPhone && !lead.phone) backfill.phone = normalizedPhone;
-      if (Object.keys(backfill).length > 0) {
-        await supabase.from("tracking_leads").update(backfill).eq("id", lead.id);
-      }
-      return lead.id;
-    }
+    lead = data;
   }
 
-  if (normalizedEmail) {
-    const { data: lead } = await supabase
+  if (!lead && normalizedEmail) {
+    const { data } = await supabase
       .from("tracking_leads")
-      .select("id")
+      .select("id, email, phone")
       .eq("product_id", productId)
       .eq("email", normalizedEmail)
       .order("first_seen_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-
-    if (lead) return lead.id;
+    lead = data;
   }
 
-  if (normalizedPhone) {
-    const { data: lead } = await supabase
+  if (!lead && normalizedPhone) {
+    const { data } = await supabase
       .from("tracking_leads")
-      .select("id")
+      .select("id, email, phone")
       .eq("product_id", productId)
       .eq("phone", normalizedPhone)
       .order("first_seen_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-
-    if (lead) return lead.id;
+    lead = data;
   }
 
-  return null;
+  if (!lead) return null;
+
+  const backfill: Database["public"]["Tables"]["tracking_leads"]["Update"] = {};
+  if (normalizedEmail && !lead.email) backfill.email = normalizedEmail;
+  if (normalizedPhone && !lead.phone) backfill.phone = normalizedPhone;
+  if (Object.keys(backfill).length > 0) {
+    await supabase.from("tracking_leads").update(backfill).eq("id", lead.id);
+  }
+
+  return lead.id;
 }
