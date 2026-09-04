@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { SubTabs } from "@/components/ui/sub-tabs";
 import { createClient } from "@/lib/supabase/client";
-import { SimpleBarChart } from "../../analytics/components/charts";
+import { cn } from "@/lib/utils";
+import { SimpleBarChart, ConversionFunnel, DynamicPieChart, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
 
 interface CampaignRow {
   utm_source: string;
@@ -57,6 +58,10 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   broker_signup: "Cadastro na corretora",
   broker_deposit: "Depósito",
 };
+
+// dow do Postgres: 0 = domingo. Reordenado pra exibir Seg→Dom.
+const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const WEEKDAY_DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 const EVENT_TYPE_FILTER_OPTIONS = [
   { value: "all", label: "Todos os tipos" },
@@ -132,6 +137,13 @@ export function AnalyticsTab({
   const [subTab, setSubTab] = useState<AnalyticsSubTab>("visao");
   const [usdBrlRate, setUsdBrlRate] = useState<number | null>(null);
   const [usdBrlRateUpdatedAt, setUsdBrlRateUpdatedAt] = useState<string | null>(null);
+  const [salesByOffer, setSalesByOffer] = useState<{ offer_name: string; purchases: number; revenue_cents: number }[]>(
+    []
+  );
+  const [salesByPayment, setSalesByPayment] = useState<
+    { payment_method: string; purchases: number; revenue_cents: number }[]
+  >([]);
+  const [salesByTime, setSalesByTime] = useState<{ weekday: number; hour: number; purchases: number }[]>([]);
 
   async function fetchRate() {
     try {
@@ -144,8 +156,22 @@ export function AnalyticsTab({
     }
   }
 
+  async function fetchSalesBreakdowns(supabase: ReturnType<typeof createClient>, from: Date, now: Date) {
+    const params = { p_product_id: productId, p_from: from.toISOString(), p_to: now.toISOString() };
+    const [{ data: offerData }, { data: paymentData }, { data: timeData }] = await Promise.all([
+      supabase.rpc("tracking_sales_by_offer", params),
+      supabase.rpc("tracking_sales_by_payment_method", params),
+      supabase.rpc("tracking_sales_by_time", params),
+    ]);
+    setSalesByOffer(offerData ?? []);
+    setSalesByPayment(paymentData ?? []);
+    setSalesByTime(timeData ?? []);
+  }
+
   useEffect(() => {
     fetchRate();
+    const { from, now } = periodRange(period);
+    fetchSalesBreakdowns(createClient(), from, now);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -203,6 +229,7 @@ export function AnalyticsTab({
     });
     setReport(data ?? []);
     await fetchEvents(supabase, from, now);
+    await fetchSalesBreakdowns(supabase, from, now);
     await fetchRate();
     setLastUpdated(new Date());
     setLoading(false);
@@ -280,15 +307,54 @@ export function AnalyticsTab({
     [filteredReport]
   );
 
-  const funnelStages = [
+  // Curso e corretora divergem logo depois de "Leads" — dois funis
+  // separados em vez de misturar as duas jornadas numa lista só.
+  const courseFunnelData = [
     { label: "Leads", value: kpis.leads },
     { label: "Iniciou checkout", value: kpis.initiateCheckouts },
     { label: "Compra do curso", value: kpis.purchases },
-    { label: "Área de membros", value: kpis.membersAccess },
+  ];
+  const brokerFunnelData = [
+    { label: "Leads", value: kpis.leads },
     { label: "Cadastro na corretora", value: kpis.brokerSignups },
     { label: "Depósito", value: kpis.deposits },
   ];
-  const maxStage = Math.max(1, ...funnelStages.map((s) => s.value));
+
+  const salesByOfferChart = useMemo(
+    () => salesByOffer.map((r) => ({ name: r.offer_name, value: r.purchases })),
+    [salesByOffer]
+  );
+  const salesByPaymentChart = useMemo(
+    () => salesByPayment.map((r) => ({ name: r.payment_method, value: r.purchases })),
+    [salesByPayment]
+  );
+
+  const salesByHourChart = useMemo(() => {
+    const byHour = new Array(24).fill(0);
+    salesByTime.forEach((r) => {
+      byHour[r.hour] += r.purchases;
+    });
+    return byHour.map((value, hour) => ({ label: `${String(hour).padStart(2, "0")}h`, value }));
+  }, [salesByTime]);
+
+  const salesByWeekdayChart = useMemo(() => {
+    const byWeekday = new Array(7).fill(0);
+    salesByTime.forEach((r) => {
+      byWeekday[r.weekday] += r.purchases;
+    });
+    return WEEKDAY_DISPLAY_ORDER.map((dow) => ({ label: WEEKDAY_LABELS[dow], value: byWeekday[dow] }));
+  }, [salesByTime]);
+
+  const salesByUtm = useMemo(
+    () =>
+      filteredReport
+        .filter((r) => r.purchases > 0)
+        .slice()
+        .sort((a, b) => b.purchase_revenue_cents - a.purchase_revenue_cents)
+        .slice(0, 10)
+        .map((r) => ({ label: `${r.utm_source} · ${r.utm_campaign}`, value: r.purchase_revenue_cents })),
+    [filteredReport]
+  );
 
   return (
     <div className="space-y-4">
@@ -376,91 +442,53 @@ export function AnalyticsTab({
 
       {subTab === "visao" && (
         <div className="space-y-4">
-          {/* ── Funil + KPIs financeiros ── */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
-            <Card className="p-5">
-              <h3 className="mb-3 text-base font-semibold text-text-primary">Funil de conversão</h3>
-              <div className="space-y-2">
-                {funnelStages.map((stage) => (
-                  <div key={stage.label} className="flex items-center gap-3">
-                    <span className="w-40 shrink-0 text-xs text-text-secondary">{stage.label}</span>
-                    <div className="h-6 flex-1 overflow-hidden rounded-button bg-card-hover">
-                      <div
-                        className="h-full rounded-button bg-accent"
-                        style={{ width: `${Math.max(2, (stage.value / maxStage) * 100)}%` }}
-                      />
-                    </div>
-                    <span className="w-10 shrink-0 text-right text-xs font-medium text-text-primary">
-                      {stage.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <div className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-3">
-                <FinanceTile
-                  label="Gasto com anúncios"
-                  value={hasSpend ? fmtBRL(kpis.spend) : "—"}
-                  hint={hasSpend ? "Base dos ROIs abaixo" : "Sincronize o gasto em Contas Meta/Google"}
-                />
-                <FinanceTile
-                  label="Cotação USD/BRL"
-                  value={usdBrlRate !== null ? `R$ ${usdBrlRate.toFixed(2)}` : "—"}
-                  hint={usdBrlRateUpdatedAt ? `Atualizada ${usdBrlRateUpdatedAt}` : "Carregando..."}
-                />
-              </div>
-
-              <div>
-                <p className="mb-1.5 text-[11px] font-medium text-text-muted">Curso (R$)</p>
-                <div className="grid grid-cols-3 gap-2">
-                  <FinanceTile
-                    label="ROAS"
-                    value={roasCurso !== null ? `${roasCurso.toFixed(1)}x` : "—"}
-                    hint="Receita / gasto"
-                  />
-                  <FinanceTile
-                    label="ROI"
-                    value={roiCurso !== null ? `${roiCurso >= 0 ? "+" : ""}${(roiCurso * 100).toFixed(0)}%` : "—"}
-                    hint="(Receita - gasto) / gasto"
-                  />
-                  <FinanceTile
-                    label="Lucro"
-                    value={profitCurso !== null ? fmtBRL(profitCurso) : "—"}
-                    hint="Receita - gasto"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
-                  Corretora (US$ convertido p/ R$)
+          {/* ── Lucro em destaque ── */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <HeroStat
+              label="Lucro — Curso (R$)"
+              value={profitCurso !== null ? fmtBRL(profitCurso) : "—"}
+              positive={profitCurso !== null ? profitCurso >= 0 : null}
+              roas={roasCurso !== null ? `${roasCurso.toFixed(1)}x` : "—"}
+              roi={roiCurso !== null ? `${roiCurso >= 0 ? "+" : ""}${(roiCurso * 100).toFixed(0)}%` : "—"}
+            />
+            <HeroStat
+              label="Lucro — Corretora (US$ convertido p/ R$)"
+              value={profitCorretora !== null ? fmtBRL(profitCorretora) : "—"}
+              positive={profitCorretora !== null ? profitCorretora >= 0 : null}
+              roas={roasCorretora !== null ? `${roasCorretora.toFixed(1)}x` : "—"}
+              roi={roiCorretora !== null ? `${roiCorretora >= 0 ? "+" : ""}${(roiCorretora * 100).toFixed(0)}%` : "—"}
+              hint={
+                <span className="inline-flex items-center gap-1">
+                  Depósito é sempre em dólar, convertido pra comparar com o gasto
                   <Tooltip text="Depósito é sempre em dólar — convertido pra real na cotação atual só pra comparar com o gasto em anúncios, que é cobrado em real." />
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  <FinanceTile
-                    label="ROAS"
-                    value={roasCorretora !== null ? `${roasCorretora.toFixed(1)}x` : "—"}
-                    hint="Depósito / gasto"
-                  />
-                  <FinanceTile
-                    label="ROI"
-                    value={
-                      roiCorretora !== null
-                        ? `${roiCorretora >= 0 ? "+" : ""}${(roiCorretora * 100).toFixed(0)}%`
-                        : "—"
-                    }
-                    hint="(Depósito - gasto) / gasto"
-                  />
-                  <FinanceTile
-                    label="Lucro"
-                    value={profitCorretora !== null ? fmtBRL(profitCorretora) : "—"}
-                    hint="Depósito - gasto"
-                  />
-                </div>
-              </div>
-            </div>
+                </span>
+              }
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+            <FinanceTile
+              label="Gasto com anúncios"
+              value={hasSpend ? fmtBRL(kpis.spend) : "—"}
+              hint={hasSpend ? "Base dos ROIs acima" : "Sincronize o gasto em Contas Meta/Google"}
+            />
+            <FinanceTile
+              label="Cotação USD/BRL"
+              value={usdBrlRate !== null ? `R$ ${usdBrlRate.toFixed(2)}` : "—"}
+              hint={usdBrlRateUpdatedAt ? `Atualizada ${usdBrlRateUpdatedAt}` : "Carregando..."}
+            />
+          </div>
+
+          {/* ── Funil do curso + funil da corretora ── */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card className="p-5">
+              <h3 className="mb-1 text-base font-semibold text-text-primary">Funil do curso</h3>
+              <ConversionFunnel data={courseFunnelData} color="var(--accent)" />
+            </Card>
+            <Card className="p-5">
+              <h3 className="mb-1 text-base font-semibold text-text-primary">Funil da corretora</h3>
+              <ConversionFunnel data={brokerFunnelData} color="var(--success)" />
+            </Card>
           </div>
 
           {/* ── KPIs do funil (dado real, já capturado) ── */}
@@ -487,6 +515,33 @@ export function AnalyticsTab({
               value={fmtUSD(kpis.deposits > 0 ? Math.round(kpis.depositsTotal / kpis.deposits) : 0)}
               tone="accent"
             />
+          </div>
+
+          {/* ── Vendas por produto e por método de pagamento ── */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card className="p-5">
+              <h3 className="mb-3 text-base font-semibold text-text-primary">Vendas por produto</h3>
+              <DynamicPieChart data={salesByOfferChart} innerRadius={55} unit="count" />
+            </Card>
+            <Card className="p-5">
+              <h3 className="mb-1 flex items-center gap-1.5 text-base font-semibold text-text-primary">
+                Vendas por método de pagamento
+                <Tooltip text="Só a Onprofit manda esse dado por enquanto (Cartão de crédito/Pix) — outras plataformas caem em '(não identificado)' até termos esse campo confirmado com elas também." />
+              </h3>
+              <DynamicPieChart data={salesByPaymentChart} innerRadius={55} unit="count" />
+            </Card>
+          </div>
+
+          {/* ── Vendas por horário e por dia da semana ── */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card className="p-5">
+              <h3 className="mb-3 text-base font-semibold text-text-primary">Vendas por horário</h3>
+              <SimpleBarChart data={salesByHourChart} valueLabel="Compras" color="var(--accent)" />
+            </Card>
+            <Card className="p-5">
+              <h3 className="mb-3 text-base font-semibold text-text-primary">Vendas por dia da semana</h3>
+              <SimpleBarChart data={salesByWeekdayChart} valueLabel="Compras" color="var(--accent-pink)" />
+            </Card>
           </div>
 
           {/* ── Por fonte ── */}
@@ -538,8 +593,14 @@ export function AnalyticsTab({
       )}
 
       {subTab === "campanhas" && (
-        /* ── Tabela com abas (Contas/Campanhas/Conjuntos/Anúncios) ── */
-        <Card className="p-0">
+        <div className="space-y-4">
+          <Card className="p-5">
+            <h3 className="mb-3 text-base font-semibold text-text-primary">Vendas por UTM/campanha (top 10)</h3>
+            <HorizontalBarList data={salesByUtm} valueFormatter={(v) => fmtBRL(v)} colorFor={colorForLabel} />
+          </Card>
+
+          {/* ── Tabela com abas (Contas/Campanhas/Conjuntos/Anúncios) ── */}
+          <Card className="p-0">
           <div className="flex gap-1 border-b border-border px-3 pt-2">
             {TABLE_TABS.map((tab) => {
               const enabled = tab.key === "campanhas";
@@ -662,7 +723,8 @@ export function AnalyticsTab({
               </div>
             )}
           </div>
-        </Card>
+          </Card>
+        </div>
       )}
 
       {subTab === "eventos" && (
@@ -759,6 +821,42 @@ function KpiTile({
         {value}
       </p>
       {sub && <p className="text-[11px] text-text-muted">{sub}</p>}
+    </div>
+  );
+}
+
+function HeroStat({
+  label,
+  value,
+  positive,
+  roas,
+  roi,
+  hint,
+}: {
+  label: string;
+  value: string;
+  /** null quando ainda não dá pra calcular (sem gasto sincronizado ainda). */
+  positive: boolean | null;
+  roas: string;
+  roi: string;
+  hint?: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl bg-card-hover p-5 shadow-card-sm">
+      <p className="mb-1 text-xs font-medium text-text-muted">{label}</p>
+      <p
+        className={cn(
+          "text-3xl font-bold",
+          positive === null ? "text-text-muted" : positive ? "text-success" : "text-danger"
+        )}
+      >
+        {value}
+      </p>
+      <div className="mt-2 flex items-center gap-3 text-[11px] text-text-muted">
+        <span>ROAS {roas}</span>
+        <span>ROI {roi}</span>
+      </div>
+      {hint && <div className="mt-1 text-[10px] text-text-muted/70">{hint}</div>}
     </div>
   );
 }
