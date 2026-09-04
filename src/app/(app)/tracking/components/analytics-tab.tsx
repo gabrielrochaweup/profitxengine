@@ -302,10 +302,24 @@ export function AnalyticsTab({
     () =>
       filteredReport
         .filter((r) => r.deposits_total_cents > 0)
+        .slice()
+        .sort((a, b) => b.deposits_total_cents - a.deposits_total_cents)
         .slice(0, 10)
-        .map((r) => ({ label: `${r.utm_source} · ${r.utm_campaign}`, value: r.deposits_total_cents / 100 })),
+        .map((r) => ({ label: `${r.utm_source} · ${r.utm_campaign}`, value: r.deposits_total_cents })),
     [filteredReport]
   );
+
+  // Visão rápida com as 6 etapas juntas — complementa os 2 funis
+  // detalhados abaixo (curso/corretora), que divergem logo após "Leads".
+  const combinedFunnelStages = [
+    { label: "Leads", value: kpis.leads },
+    { label: "Iniciou checkout", value: kpis.initiateCheckouts },
+    { label: "Compra do curso", value: kpis.purchases },
+    { label: "Área de membros", value: kpis.membersAccess },
+    { label: "Cadastro na corretora", value: kpis.brokerSignups },
+    { label: "Depósito", value: kpis.deposits },
+  ];
+  const maxCombinedStage = Math.max(1, ...combinedFunnelStages.map((s) => s.value));
 
   // Curso e corretora divergem logo depois de "Leads" — dois funis
   // separados em vez de misturar as duas jornadas numa lista só.
@@ -479,7 +493,28 @@ export function AnalyticsTab({
             />
           </div>
 
-          {/* ── Funil do curso + funil da corretora ── */}
+          {/* ── Funil de conversão (visão rápida, todas as etapas juntas) ── */}
+          <Card className="p-5">
+            <h3 className="mb-3 text-base font-semibold text-text-primary">Funil de conversão</h3>
+            <div className="space-y-2">
+              {combinedFunnelStages.map((stage) => (
+                <div key={stage.label} className="flex items-center gap-3">
+                  <span className="w-40 shrink-0 text-xs text-text-secondary">{stage.label}</span>
+                  <div className="h-6 flex-1 overflow-hidden rounded-button bg-card-hover">
+                    <div
+                      className="h-full rounded-button bg-accent"
+                      style={{ width: `${Math.max(2, (stage.value / maxCombinedStage) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="w-10 shrink-0 text-right text-xs font-medium text-text-primary">
+                    {stage.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* ── Funil do curso + funil da corretora (detalhado, estilo Meta Ads) ── */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="p-5">
               <h3 className="mb-1 text-base font-semibold text-text-primary">Funil do curso</h3>
@@ -581,13 +616,7 @@ export function AnalyticsTab({
 
           <Card className="p-5">
             <h3 className="mb-3 text-base font-semibold text-text-primary">Depósitos por campanha (top 10)</h3>
-            <SimpleBarChart
-              data={depositsByCampaign}
-              valueLabel="Depósitos"
-              isCurrency
-              currencyPrefix="US$"
-              color="var(--success)"
-            />
+            <HorizontalBarList data={depositsByCampaign} valueFormatter={(v) => fmtUSD(v)} colorFor={colorForLabel} />
           </Card>
         </div>
       )}
