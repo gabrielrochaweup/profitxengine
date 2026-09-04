@@ -13,6 +13,17 @@ import type { CheckoutAdapter } from "./types";
 // offer_price 9700 era R$97,00, não R$9.700 — bateu multiplicando por 100
 // de novo). Nada de Math.round(price * 100) aqui, diferente da Hotmart
 // (que manda em reais).
+//
+// "payment_type" confirmado com 2 payloads reais: "cc" (cartão de crédito)
+// e o outro método usado no produto é "pix" — outros valores possíveis
+// (ex: boleto) ainda não vistos, mas qualquer string desconhecida passa
+// direto sem quebrar nada (só não fica com um rótulo bonito).
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cc: "Cartão de crédito",
+  pix: "Pix",
+  boleto: "Boleto",
+};
+
 export const onprofitAdapter: CheckoutAdapter = (raw) => {
   if (typeof raw !== "object" || raw === null) return null;
   const body = raw as Record<string, unknown>;
@@ -45,6 +56,10 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
     ref: typeof body.sck === "string" ? body.sck : typeof body.src === "string" ? body.src : null,
     occurredAt: parseBrDate(dateStr),
     offerName: typeof body.offer_name === "string" ? body.offer_name : null,
+    paymentMethod:
+      typeof body.payment_type === "string"
+        ? (PAYMENT_METHOD_LABEL[body.payment_type.toLowerCase()] ?? body.payment_type)
+        : null,
   };
 };
 

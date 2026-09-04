@@ -994,13 +994,14 @@ export interface Database {
           currency: string;
           external_id: string | null;
           offer_name: string | null;
+          payment_method: string | null;
           raw_payload: Record<string, unknown> | null;
           occurred_at: string;
           received_at: string;
         };
         Insert: Omit<
           Database["public"]["Tables"]["tracking_events"]["Row"],
-          "id" | "lead_id" | "email" | "amount_cents" | "currency" | "external_id" | "offer_name" | "raw_payload" | "occurred_at" | "received_at"
+          "id" | "lead_id" | "email" | "amount_cents" | "currency" | "external_id" | "offer_name" | "payment_method" | "raw_payload" | "occurred_at" | "received_at"
         > & {
           id?: string;
           lead_id?: string | null;
@@ -1009,6 +1010,7 @@ export interface Database {
           currency?: string;
           external_id?: string | null;
           offer_name?: string | null;
+          payment_method?: string | null;
           raw_payload?: Record<string, unknown> | null;
           occurred_at?: string;
           received_at?: string;
@@ -1179,6 +1181,18 @@ export interface Database {
           deposits_total_cents: number;
           spend_cents: number;
         }[];
+      };
+      tracking_sales_by_offer: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: { offer_name: string; purchases: number; revenue_cents: number }[];
+      };
+      tracking_sales_by_payment_method: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: { payment_method: string; purchases: number; revenue_cents: number }[];
+      };
+      tracking_sales_by_time: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: { weekday: number; hour: number; purchases: number }[];
       };
     };
     Enums: Record<string, never>;

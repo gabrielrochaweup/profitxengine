@@ -11,6 +11,8 @@ export interface NormalizedCheckoutEvent {
   occurredAt: string | null;
   /** Nome do plano/oferta comprado, quando a plataforma manda isso (ex: "Método TRIAD - Starter"). */
   offerName: string | null;
+  /** Forma de pagamento normalizada (ex: "Pix", "Cartão de crédito"), quando a plataforma manda isso. */
+  paymentMethod: string | null;
 }
 
 // Retorna null quando o payload não representa uma compra aprovada pra essa

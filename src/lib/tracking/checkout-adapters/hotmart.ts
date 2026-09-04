@@ -42,6 +42,10 @@ export const hotmartAdapter: CheckoutAdapter = (raw) => {
         ? new Date(purchase.approved_date).toISOString()
         : null,
     offerName: product && typeof product.name === "string" ? product.name : null,
+    // Hotmart manda "payment_type" (ex: BILLET, CREDIT_CARD, PIX) no
+    // payload real, mas ainda não confirmamos esse caminho — fica pra
+    // quando tivermos um payload de verdade, igual ao telefone acima.
+    paymentMethod: null,
   };
 };
 

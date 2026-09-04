@@ -70,6 +70,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     amount_cents: normalized.amountCents,
     external_id: normalized.externalId,
     offer_name: normalized.offerName,
+    payment_method: normalized.paymentMethod,
     occurred_at: normalized.occurredAt || new Date().toISOString(),
     raw_payload: raw as Record<string, unknown>,
   };
