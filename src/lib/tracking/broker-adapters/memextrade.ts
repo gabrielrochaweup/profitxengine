@@ -2,8 +2,11 @@ import type { BrokerAdapter } from "./types";
 
 // Baseado nos payloads reais dos eventos "REGISTER" e "DEPOSIT_PAYED"
 // mandados pela Memex Trade:
-// { "method": "REGISTER", "data": { "email", "userId", "registeredAt",
-//   "utm": { "referralCode", ... } }, "timestamp" }
+// { "method": "REGISTER", "data": { "id" (id do usuário, não "userId" —
+//   confirmado com payload real, o "data" de REGISTER vem com o objeto de
+//   usuário inteiro da Memex Trade, dezenas de campos internos deles),
+//   "email", "registeredAt", "lead": { "userId" (mesmo id, duplicado),
+//   ... }, "utm": { "referralCode", ... } }, "timestamp" }
 // { "method": "DEPOSIT_PAYED", "data": { "email", "phone", "userId",
 //   "firstName", "lastName", "depositId", "amount", "totalAmount",
 //   "bonusAmount", "currency", "paidAt", "method" (forma de pagamento, ex:
@@ -67,16 +70,20 @@ export const memextradeAdapter: BrokerAdapter = (raw) => {
     (data && typeof data.registeredAt === "string" ? data.registeredAt : null) ??
     (typeof body.timestamp === "string" ? body.timestamp : null);
 
+  const lead = data && isRecord(data.lead) ? data.lead : null;
+
+  // Confirmado com payload real de REGISTER: o id do usuário vem em
+  // "data.id" (raiz), não em "data.userId" como o código assumia antes —
+  // isso deixava todo broker_signup sem external_id, sem proteção nenhuma
+  // contra duplicata em reenvio de webhook (achado numa varredura, nenhum
+  // duplicado real ainda, mas o campo errado zerava a defesa).
   const externalId =
     eventType === "broker_deposit"
       ? data && typeof data.depositId === "string"
         ? data.depositId
         : null
-      : data && typeof data.userId === "string"
-        ? data.userId
-        : null;
-
-  const lead = data && isRecord(data.lead) ? data.lead : null;
+      : (data && typeof data.id === "string" ? data.id : null) ??
+        (lead && typeof lead.userId === "string" ? lead.userId : null);
 
   const email = (data && typeof data.email === "string" ? data.email : null) ?? (lead && typeof lead.email === "string" ? lead.email : null);
   const phone = (data && typeof data.phone === "string" ? data.phone : null) ?? (lead && typeof lead.phone === "string" ? lead.phone : null);

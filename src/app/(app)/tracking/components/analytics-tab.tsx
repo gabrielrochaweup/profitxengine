@@ -179,7 +179,11 @@ export function AnalyticsTab({
     const now = new Date();
     const from = new Date(now);
     if (next === "hoje") {
-      from.setHours(0, 0, 0, 0);
+      // Meia-noite em Brasília (UTC-3, sem horário de verão desde 2019) —
+      // não pode usar o fuso do navegador de quem está olhando o painel,
+      // senão "Hoje" fica errado pra quem acessa de fora do Brasil.
+      const brasiliaDateStr = now.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+      from.setTime(new Date(`${brasiliaDateStr}T00:00:00-03:00`).getTime());
     } else {
       const option = PERIOD_OPTIONS.find((o) => o.key === next);
       from.setDate(from.getDate() - (option?.days ?? 3650));
