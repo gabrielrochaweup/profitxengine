@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -282,26 +282,49 @@ export function HorizontalBarList({
   valueFormatter?: (value: number) => string;
   colorFor?: (label: string) => string;
 }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   if (data.length === 0) return <EmptyChart />;
   const max = Math.max(1, ...data.map((d) => d.value));
+
+  function toggle(label: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-2.5">
-      {data.map((d) => (
-        <div key={d.label} className="flex items-center gap-3">
-          <span className="w-32 shrink-0 truncate text-xs text-text-secondary" title={d.label}>
-            {d.label}
-          </span>
-          <div className="h-5 flex-1 overflow-hidden rounded-button bg-card-hover">
-            <div
-              className="h-full rounded-button"
-              style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, backgroundColor: colorFor(d.label) }}
-            />
+      {data.map((d) => {
+        const isExpanded = expanded.has(d.label);
+        return (
+          <div key={d.label} className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => toggle(d.label)}
+              title={isExpanded ? "Clique pra recolher" : "Clique pra ver o nome inteiro"}
+              className={
+                isExpanded
+                  ? "w-32 shrink-0 whitespace-normal break-words text-left text-xs text-text-primary underline decoration-dotted"
+                  : "w-32 shrink-0 truncate text-left text-xs text-text-secondary hover:text-text-primary hover:underline"
+              }
+            >
+              {d.label}
+            </button>
+            <div className="h-5 flex-1 overflow-hidden rounded-button bg-card-hover">
+              <div
+                className="h-full rounded-button"
+                style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, backgroundColor: colorFor(d.label) }}
+              />
+            </div>
+            <span className="w-20 shrink-0 text-right text-xs font-medium text-text-primary">
+              {valueFormatter(d.value)}
+            </span>
           </div>
-          <span className="w-20 shrink-0 text-right text-xs font-medium text-text-primary">
-            {valueFormatter(d.value)}
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
