@@ -144,6 +144,12 @@ export function AnalyticsTab({
     { payment_method: string; purchases: number; revenue_cents: number }[]
   >([]);
   const [salesByTime, setSalesByTime] = useState<{ weekday: number; hour: number; purchases: number }[]>([]);
+  const [salesByPageType, setSalesByPageType] = useState<{ page_type: string; purchases: number; revenue_cents: number }[]>(
+    []
+  );
+  const [salesByChannel, setSalesByChannel] = useState<{ channel: string; purchases: number; revenue_cents: number }[]>(
+    []
+  );
 
   async function fetchRate() {
     try {
@@ -158,14 +164,19 @@ export function AnalyticsTab({
 
   async function fetchSalesBreakdowns(supabase: ReturnType<typeof createClient>, from: Date, now: Date) {
     const params = { p_product_id: productId, p_from: from.toISOString(), p_to: now.toISOString() };
-    const [{ data: offerData }, { data: paymentData }, { data: timeData }] = await Promise.all([
-      supabase.rpc("tracking_sales_by_offer", params),
-      supabase.rpc("tracking_sales_by_payment_method", params),
-      supabase.rpc("tracking_sales_by_time", params),
-    ]);
+    const [{ data: offerData }, { data: paymentData }, { data: timeData }, { data: pageTypeData }, { data: channelData }] =
+      await Promise.all([
+        supabase.rpc("tracking_sales_by_offer", params),
+        supabase.rpc("tracking_sales_by_payment_method", params),
+        supabase.rpc("tracking_sales_by_time", params),
+        supabase.rpc("tracking_sales_by_page_type", params),
+        supabase.rpc("tracking_sales_by_channel", params),
+      ]);
     setSalesByOffer(offerData ?? []);
     setSalesByPayment(paymentData ?? []);
     setSalesByTime(timeData ?? []);
+    setSalesByPageType(pageTypeData ?? []);
+    setSalesByChannel(channelData ?? []);
   }
 
   useEffect(() => {
@@ -345,6 +356,14 @@ export function AnalyticsTab({
   const salesByPaymentChart = useMemo(
     () => salesByPayment.map((r) => ({ name: r.payment_method, value: r.purchases })),
     [salesByPayment]
+  );
+  const salesByPageTypeChart = useMemo(
+    () => salesByPageType.map((r) => ({ name: r.page_type, value: r.purchases })),
+    [salesByPageType]
+  );
+  const salesByChannelChart = useMemo(
+    () => salesByChannel.map((r) => ({ label: r.channel, value: r.revenue_cents })),
+    [salesByChannel]
   );
 
   const salesByHourChart = useMemo(() => {
@@ -568,6 +587,24 @@ export function AnalyticsTab({
                 <Tooltip text="Só a Onprofit manda esse dado por enquanto (Cartão de crédito/Pix) — outras plataformas caem em '(não identificado)' até termos esse campo confirmado com elas também." />
               </h3>
               <DynamicPieChart data={salesByPaymentChart} innerRadius={55} unit="count" />
+            </Card>
+          </div>
+
+          {/* ── Vendas por tipo de página e por canal ── */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card className="p-5">
+              <h3 className="mb-1 flex items-center gap-1.5 text-base font-semibold text-text-primary">
+                Vendas por tipo de página
+                <Tooltip text="Usa o utm_medium do link — preenche isso no Gerador de UTMs com o tipo de página (ex: quiz, remarketing, vsl) pra aparecer aqui. Só conta compra que bateu com um lead." />
+              </h3>
+              <DynamicPieChart data={salesByPageTypeChart} innerRadius={55} unit="count" />
+            </Card>
+            <Card className="p-5">
+              <h3 className="mb-1 flex items-center gap-1.5 text-base font-semibold text-text-primary">
+                Vendas por canal
+                <Tooltip text="Usa o utm_content do link — preenche isso no Gerador de UTMs com o canal onde postou (ex: bio instagram, descrição youtube) pra aparecer aqui. Só conta compra que bateu com um lead." />
+              </h3>
+              <HorizontalBarList data={salesByChannelChart} valueFormatter={(v) => fmtBRL(v)} colorFor={colorForLabel} />
             </Card>
           </div>
 

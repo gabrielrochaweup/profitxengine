@@ -1194,6 +1194,14 @@ export interface Database {
         Args: { p_product_id: string; p_from: string; p_to: string };
         Returns: { weekday: number; hour: number; purchases: number }[];
       };
+      tracking_sales_by_page_type: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: { page_type: string; purchases: number; revenue_cents: number }[];
+      };
+      tracking_sales_by_channel: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: { channel: string; purchases: number; revenue_cents: number }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
