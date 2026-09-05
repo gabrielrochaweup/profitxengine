@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -135,6 +136,7 @@ export function AnalyticsTab({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [tableTab, setTableTab] = useState<TableTab>("campanhas");
   const [subTab, setSubTab] = useState<AnalyticsSubTab>("visao");
+  const [kpiDetailType, setKpiDetailType] = useState<string | null>(null);
   const [usdBrlRate, setUsdBrlRate] = useState<number | null>(null);
   const [usdBrlRateUpdatedAt, setUsdBrlRateUpdatedAt] = useState<string | null>(null);
   const [salesByOffer, setSalesByOffer] = useState<{ offer_name: string; purchases: number; revenue_cents: number }[]>(
@@ -259,6 +261,25 @@ export function AnalyticsTab({
     () => (eventTypeFilter === "all" ? events : events.filter((e) => e.event_type === eventTypeFilter)),
     [events, eventTypeFilter]
   );
+
+  // Detalhe por trás de um KPI da Visão geral (clique no card) — mesmo tipo
+  // de evento do card, com os mesmos filtros de fonte/atribuição já
+  // aplicados nela, pra bater com o número mostrado no card.
+  const kpiDetailEvents = useMemo(() => {
+    if (!kpiDetailType) return [];
+    let rows = events.filter((e) => e.event_type === kpiDetailType);
+    if (sourceFilter !== "all") rows = rows.filter((e) => e.utm_source === sourceFilter);
+    if (hideUnattributed) rows = rows.filter((e) => e.lead_id !== null);
+    return rows;
+  }, [events, kpiDetailType, sourceFilter, hideUnattributed]);
+
+  const KPI_DETAIL_LABEL: Record<string, string> = {
+    page_view: "Leads",
+    purchase: "Compras do curso",
+    members_access: "Área de membros",
+    broker_signup: "Cadastros na corretora",
+    broker_deposit: "Depósitos",
+  };
 
   const sources = useMemo(() => Array.from(new Set(report.map((r) => r.utm_source))).sort(), [report]);
 
@@ -551,27 +572,45 @@ export function AnalyticsTab({
 
           {/* ── KPIs do funil (dado real, já capturado) ── */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <KpiTile icon={Users} label="Leads" value={String(kpis.leads)} />
+            <KpiTile
+              icon={Users}
+              label="Leads"
+              value={String(kpis.leads)}
+              onClick={() => setKpiDetailType("page_view")}
+            />
             <KpiTile
               icon={ShoppingCart}
               label="Compras do curso"
               value={String(kpis.purchases)}
               sub={fmtBRL(kpis.purchaseRevenue)}
+              onClick={() => setKpiDetailType("purchase")}
             />
-            <KpiTile icon={GraduationCap} label="Área de membros" value={String(kpis.membersAccess)} />
-            <KpiTile icon={Landmark} label="Cadastros corretora" value={String(kpis.brokerSignups)} />
+            <KpiTile
+              icon={GraduationCap}
+              label="Área de membros"
+              value={String(kpis.membersAccess)}
+              onClick={() => setKpiDetailType("members_access")}
+            />
+            <KpiTile
+              icon={Landmark}
+              label="Cadastros corretora"
+              value={String(kpis.brokerSignups)}
+              onClick={() => setKpiDetailType("broker_signup")}
+            />
             <KpiTile
               icon={Wallet}
               label="Depósitos"
               value={String(kpis.deposits)}
               sub={fmtUSD(kpis.depositsTotal)}
               tone="success"
+              onClick={() => setKpiDetailType("broker_deposit")}
             />
             <KpiTile
               icon={TrendingUp}
               label="Ticket médio depósito"
               value={fmtUSD(kpis.deposits > 0 ? Math.round(kpis.depositsTotal / kpis.deposits) : 0)}
               tone="accent"
+              onClick={() => setKpiDetailType("broker_deposit")}
             />
           </div>
 
@@ -814,51 +853,23 @@ export function AnalyticsTab({
               </Select>
             </div>
           </div>
-          {filteredEvents.length === 0 ? (
-            <p className="text-xs text-text-muted">Nenhum evento nesse período/tipo.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-border text-text-muted">
-                    <th className="py-2 pr-3 font-medium">Quando</th>
-                    <th className="py-2 pr-3 font-medium">Tipo</th>
-                    <th className="py-2 pr-3 font-medium">Origem</th>
-                    <th className="py-2 pr-3 font-medium">E-mail</th>
-                    <th className="py-2 pr-3 font-medium">Plano</th>
-                    <th className="py-2 pr-3 font-medium">Valor</th>
-                    <th className="py-2 pr-3 font-medium">Campanha</th>
-                    <th className="py-2 font-medium">Lead</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEvents.map((e) => (
-                    <tr key={e.id} className="border-b border-border/50 text-text-secondary">
-                      <td className="py-2 pr-3 whitespace-nowrap">{new Date(e.occurred_at).toLocaleString("pt-BR")}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{EVENT_TYPE_LABEL[e.event_type] ?? e.event_type}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{e.source}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{e.email ?? "—"}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{e.offer_name ?? "—"}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">
-                        {e.amount_cents != null
-                          ? e.event_type === "broker_deposit"
-                            ? fmtUSD(e.amount_cents)
-                            : fmtBRL(e.amount_cents)
-                          : "—"}
-                      </td>
-                      <td className="py-2 pr-3 whitespace-nowrap">
-                        {e.utm_source ? `${e.utm_source} · ${e.utm_campaign ?? "(sem campanha)"}` : "—"}
-                      </td>
-                      <td className="py-2 whitespace-nowrap">
-                        {e.lead_id ? "Atribuído" : <span className="text-warning">Não atribuído</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <EventsTable events={filteredEvents} />
         </Card>
+      )}
+
+      {kpiDetailType && (
+        <Modal
+          open={kpiDetailType !== null}
+          onClose={() => setKpiDetailType(null)}
+          title={KPI_DETAIL_LABEL[kpiDetailType] ?? kpiDetailType}
+          className="max-w-5xl"
+        >
+          <p className="mb-3 text-xs text-text-muted">
+            {kpiDetailEvents.length} evento{kpiDetailEvents.length === 1 ? "" : "s"} — mesmo filtro de fonte/atribuição
+            da Visão geral, período {PERIOD_OPTIONS.find((o) => o.key === period)?.label}.
+          </p>
+          <EventsTable events={kpiDetailEvents} />
+        </Modal>
       )}
     </div>
   );
@@ -870,15 +881,17 @@ function KpiTile({
   value,
   sub,
   tone,
+  onClick,
 }: {
   icon: typeof Users;
   label: string;
   value: string;
   sub?: string;
   tone?: "accent" | "success";
+  onClick?: () => void;
 }) {
-  return (
-    <div className="rounded-xl bg-card-hover p-3">
+  const content = (
+    <>
       <div className="mb-1 flex items-center gap-1.5 text-text-muted">
         <Icon size={12} />
         <p className="text-[11px]">{label}</p>
@@ -891,6 +904,70 @@ function KpiTile({
         {value}
       </p>
       {sub && <p className="text-[11px] text-text-muted">{sub}</p>}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="rounded-xl bg-card-hover p-3 text-left shadow-card-sm transition-shadow hover:shadow-[0_0_0_1px_var(--accent)]"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className="rounded-xl bg-card-hover p-3">{content}</div>;
+}
+
+// Tabela de eventos compartilhada entre "Eventos recentes" e o popup de
+// detalhe de um KPI da Visão geral (mesmas colunas nos dois lugares).
+function EventsTable({ events }: { events: RecentEvent[] }) {
+  if (events.length === 0) {
+    return <p className="text-xs text-text-muted">Nenhum evento nesse período/tipo.</p>;
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-xs">
+        <thead>
+          <tr className="border-b border-border text-text-muted">
+            <th className="py-2 pr-3 font-medium">Quando</th>
+            <th className="py-2 pr-3 font-medium">Tipo</th>
+            <th className="py-2 pr-3 font-medium">Origem</th>
+            <th className="py-2 pr-3 font-medium">E-mail</th>
+            <th className="py-2 pr-3 font-medium">Plano</th>
+            <th className="py-2 pr-3 font-medium">Valor</th>
+            <th className="py-2 pr-3 font-medium">Campanha</th>
+            <th className="py-2 font-medium">Lead</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((e) => (
+            <tr key={e.id} className="border-b border-border/50 text-text-secondary">
+              <td className="py-2 pr-3 whitespace-nowrap">{new Date(e.occurred_at).toLocaleString("pt-BR")}</td>
+              <td className="py-2 pr-3 whitespace-nowrap">{EVENT_TYPE_LABEL[e.event_type] ?? e.event_type}</td>
+              <td className="py-2 pr-3 whitespace-nowrap">{e.source}</td>
+              <td className="py-2 pr-3 whitespace-nowrap">{e.email ?? "—"}</td>
+              <td className="py-2 pr-3 whitespace-nowrap">{e.offer_name ?? "—"}</td>
+              <td className="py-2 pr-3 whitespace-nowrap">
+                {e.amount_cents != null
+                  ? e.event_type === "broker_deposit"
+                    ? fmtUSD(e.amount_cents)
+                    : fmtBRL(e.amount_cents)
+                  : "—"}
+              </td>
+              <td className="py-2 pr-3 whitespace-nowrap">
+                {e.utm_source ? `${e.utm_source} · ${e.utm_campaign ?? "(sem campanha)"}` : "—"}
+              </td>
+              <td className="py-2 whitespace-nowrap">
+                {e.lead_id ? "Atribuído" : <span className="text-warning">Não atribuído</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
