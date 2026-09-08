@@ -3,7 +3,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveWebhookEndpoint } from "@/lib/tracking/webhook-auth";
 import { matchLead } from "@/lib/tracking/match-lead";
 import { CHECKOUT_ADAPTERS } from "@/lib/tracking/checkout-adapters";
-import { fireMetaEventForProduct } from "@/lib/tracking/fire-meta-event";
 import { logWebhookCall } from "@/lib/tracking/webhook-log";
 import { webhookCorsHeaders } from "@/lib/tracking/cors";
 
@@ -83,16 +82,12 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
   }
 
-  // Dispara Purchase pra API de Conversões da Meta — best-effort, nunca
-  // falha o webhook se isso der errado (a compra já foi gravada acima).
-  await fireMetaEventForProduct(admin, endpoint.product_id, {
-    eventName: "Purchase",
-    email: normalized.email,
-    amountCents: normalized.amountCents,
-    currency: "BRL",
-    externalId: normalized.externalId,
-    occurredAt: eventRow.occurred_at,
-  });
+  // Não reenvia Purchase pra API de Conversões da Meta aqui: a própria
+  // plataforma de checkout (Onprofit etc.) já tem o pixel dela configurada
+  // e manda esse evento direto, sem event_id em comum com o nosso — se
+  // mandássemos de novo, duplicaria a conversão no Ads Manager. Só o
+  // Deposit (webhooks/broker) é enviado por nós, pois a corretora não tem
+  // pixel de anúncio nenhum.
 
   return NextResponse.json({ ok: true, matched: leadId !== null }, { headers });
 }
