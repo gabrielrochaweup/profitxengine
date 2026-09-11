@@ -211,14 +211,32 @@ export function vagasIniciaisDoDia(
   dynamicSlug: string,
   ignicaoHabilitada: boolean
 ): VagasTiers {
-  const sorteio = (tier: string) =>
-    seededRandomInt(`${dateKey}:${dynamicSlug}:${tier}`, VAGAS_ALEATORIAS_MIN, VAGAS_ALEATORIAS_MAX);
+  // Cada faixa sorteia seu próprio número (seed independente, pra manter o
+  // "100% aleatório" e a estabilidade por dia), mas os 4/5 valores sorteados
+  // são ORDENADOS antes de distribuir: a faixa mais acessível (Ignição/
+  // Turbo) sempre fica com o maior número de vagas, e a mais exclusiva
+  // (Galáctica) sempre com o menor — nunca o contrário. Sem isso, dava pra
+  // sortear Galáctica ($10k+) com mais vagas que Lendária, o que não faz
+  // sentido nenhum pra quem tá lendo.
+  const ordemFaixas = ignicaoHabilitada
+    ? (["ignicao", "turbo", "suprema", "lendaria", "galactica"] as const)
+    : (["turbo", "suprema", "lendaria", "galactica"] as const);
+
+  const valoresOrdenados = ordemFaixas
+    .map((tier) => seededRandomInt(`${dateKey}:${dynamicSlug}:${tier}`, VAGAS_ALEATORIAS_MIN, VAGAS_ALEATORIAS_MAX))
+    .sort((a, b) => b - a);
+
+  const porFaixa: Partial<Record<(typeof ordemFaixas)[number], number>> = {};
+  ordemFaixas.forEach((tier, i) => {
+    porFaixa[tier] = valoresOrdenados[i];
+  });
+
   return {
-    turbo: sorteio("turbo"),
-    suprema: sorteio("suprema"),
-    lendaria: sorteio("lendaria"),
-    galactica: sorteio("galactica"),
-    ignicao: ignicaoHabilitada ? sorteio("ignicao") : undefined,
+    turbo: porFaixa.turbo ?? 0,
+    suprema: porFaixa.suprema ?? 0,
+    lendaria: porFaixa.lendaria ?? 0,
+    galactica: porFaixa.galactica ?? 0,
+    ignicao: ignicaoHabilitada ? porFaixa.ignicao : undefined,
   };
 }
 
