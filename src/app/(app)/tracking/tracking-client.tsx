@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { SubTabs } from "@/components/ui/sub-tabs";
 import { AnalyticsTab } from "./components/analytics-tab";
 import { WebhookEndpointsPanel, type WebhookEndpoint } from "./components/webhook-endpoints-panel";
+import { SendPulsePanel } from "./components/sendpulse-panel";
 import { AdAccountsPanel, type AdAccount } from "./components/ad-accounts-panel";
 import { PixelsPanel } from "./components/pixels-panel";
 import { TrackingScriptPanel } from "./components/tracking-script-panel";
@@ -64,6 +65,7 @@ type TabKey = (typeof TABS)[number]["key"];
 const WEBHOOKS_SUB_TABS = [
   { key: "guia", label: "Guia" },
   { key: "endpoints", label: "Endpoints" },
+  { key: "whatsapp", label: "WhatsApp (SendPulse)" },
 ] as const;
 type WebhooksSubTab = (typeof WEBHOOKS_SUB_TABS)[number]["key"];
 
@@ -135,6 +137,7 @@ export function TrackingClient({
           {webhooksSubTab === "endpoints" && (
             <WebhookEndpointsPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
           )}
+          {webhooksSubTab === "whatsapp" && <SendPulsePanel productId={productId} />}
         </div>
       )}
 

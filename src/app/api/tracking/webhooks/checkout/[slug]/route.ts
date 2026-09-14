@@ -5,6 +5,7 @@ import { matchLead } from "@/lib/tracking/match-lead";
 import { CHECKOUT_ADAPTERS } from "@/lib/tracking/checkout-adapters";
 import { logWebhookCall } from "@/lib/tracking/webhook-log";
 import { webhookCorsHeaders } from "@/lib/tracking/cors";
+import { dispararBoasVindas } from "@/lib/sendpulse/dispatch";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: webhookCorsHeaders() });
@@ -81,6 +82,21 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   if (error) {
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
   }
+
+  // Compra aprovada é o gatilho da mensagem de boas-vindas do plano que a
+  // pessoa acabou de alcançar (Starter na entrada, Pro/Elite no upgrade).
+  // A trava por (e-mail, plano) vive dentro do dispatch, então reenvio da
+  // plataforma não vira mensagem repetida. Esperado de propósito: em
+  // serverless a função pode ser congelada assim que a resposta sai.
+  // Nunca derruba o webhook — falha fica em sendpulse_dispatch_log.
+  await dispararBoasVindas(admin, {
+    productId: endpoint.product_id,
+    email: normalized.email ?? "",
+    phone: normalized.phone,
+    nome: normalized.name,
+    offerId: normalized.offerId,
+    offerName: normalized.offerName,
+  }).catch(() => null);
 
   // Não reenvia Purchase pra API de Conversões da Meta aqui: a própria
   // plataforma de checkout (Onprofit etc.) já tem o pixel dela configurada

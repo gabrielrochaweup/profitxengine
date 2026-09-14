@@ -987,7 +987,7 @@ export interface Database {
           id: string;
           product_id: string;
           lead_id: string | null;
-          event_type: "page_view" | "initiate_checkout" | "purchase" | "members_access" | "broker_signup" | "broker_deposit";
+          event_type: "page_view" | "initiate_checkout" | "purchase" | "members_access" | "broker_signup" | "broker_deposit" | "contract_signed";
           source: string;
           email: string | null;
           amount_cents: number | null;
@@ -1022,7 +1022,7 @@ export interface Database {
         Row: {
           id: string;
           product_id: string;
-          kind: "checkout" | "members_area" | "broker";
+          kind: "checkout" | "members_area" | "broker" | "contract";
           platform: string | null;
           label: string | null;
           endpoint_slug: string;
@@ -1047,6 +1047,81 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["tracking_webhook_endpoints"]["Insert"]>;
+        Relationships: [];
+      };
+      sendpulse_settings: {
+        Row: {
+          id: string;
+          product_id: string;
+          enabled: boolean;
+          /** tipo + plano, ex: "boasvindas_starter", "contrato_elite", "contrato_geral". */
+          key: string;
+          url: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["sendpulse_settings"]["Row"],
+          "id" | "enabled" | "url" | "created_at" | "updated_at"
+        > & {
+          id?: string;
+          enabled?: boolean;
+          url?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sendpulse_settings"]["Insert"]>;
+        Relationships: [];
+      };
+      sendpulse_boasvindas_sent: {
+        Row: {
+          id: string;
+          product_id: string;
+          email: string;
+          plano: string;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["sendpulse_boasvindas_sent"]["Row"],
+          "id" | "created_at"
+        > & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sendpulse_boasvindas_sent"]["Insert"]>;
+        Relationships: [];
+      };
+      sendpulse_dispatch_log: {
+        Row: {
+          id: string;
+          product_id: string;
+          tipo: "boas_vindas" | "contrato";
+          email: string;
+          phone: string;
+          plano: string;
+          destino: string;
+          status: "enviando" | "enviado" | "falhou";
+          erro: string;
+          response_body: string;
+          payload: Record<string, unknown> | null;
+          created_at: string;
+          sent_at: string | null;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["sendpulse_dispatch_log"]["Row"],
+          "id" | "phone" | "plano" | "destino" | "erro" | "response_body" | "payload" | "created_at" | "sent_at"
+        > & {
+          id?: string;
+          phone?: string;
+          plano?: string;
+          destino?: string;
+          erro?: string;
+          response_body?: string;
+          payload?: Record<string, unknown> | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["sendpulse_dispatch_log"]["Insert"]>;
         Relationships: [];
       };
       ad_platform_credentials: {

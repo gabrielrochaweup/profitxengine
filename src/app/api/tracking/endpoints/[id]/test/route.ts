@@ -8,6 +8,7 @@ const KIND_PATH: Record<string, string> = {
   checkout: "checkout",
   members_area: "members-area",
   broker: "broker",
+  contract: "contract-signed",
 };
 
 // Payload sintético por kind/plataforma — mesmo formato que a plataforma
@@ -78,6 +79,18 @@ function buildTestPayload(kind: string, platform: string | null): unknown {
       ref: "test-lead-id",
       external_id: testId,
       occurred_at: now.toISOString(),
+    };
+  }
+
+  if (kind === "contract") {
+    return {
+      event: "contrato_assinado",
+      doc_token: testId,
+      doc_name: "Contrato de teste",
+      email: "teste@profitx.com",
+      name: "Teste ProfitX",
+      phone: "5511999999999",
+      signed_at: now.toISOString(),
     };
   }
 

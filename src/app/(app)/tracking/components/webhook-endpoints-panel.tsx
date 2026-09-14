@@ -12,11 +12,12 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { CHECKOUT_PLATFORMS } from "@/lib/tracking/checkout-adapters";
 import { MEMBERS_AREA_PLATFORMS } from "@/lib/tracking/members-area-adapters";
 import { BROKER_PLATFORMS } from "@/lib/tracking/broker-adapters";
+import { CONTRACT_PLATFORMS } from "@/lib/tracking/contract-adapters";
 
 export interface WebhookEndpoint {
   id: string;
   product_id: string;
-  kind: "checkout" | "members_area" | "broker";
+  kind: "checkout" | "members_area" | "broker" | "contract";
   platform: string | null;
   label: string | null;
   endpoint_slug: string;
@@ -30,12 +31,14 @@ const KIND_LABEL: Record<WebhookEndpoint["kind"], string> = {
   checkout: "Checkout",
   members_area: "Área de membros",
   broker: "Corretora",
+  contract: "Contrato assinado",
 };
 
 const KIND_PATH: Record<WebhookEndpoint["kind"], string> = {
   checkout: "checkout",
   members_area: "members-area",
   broker: "broker",
+  contract: "contract-signed",
 };
 
 function endpointUrl(endpoint: WebhookEndpoint): string {
@@ -50,6 +53,7 @@ function endpointSubtitle(endpoint: WebhookEndpoint): string {
 function platformsFor(kind: WebhookEndpoint["kind"]): string[] {
   if (kind === "checkout") return CHECKOUT_PLATFORMS;
   if (kind === "members_area") return MEMBERS_AREA_PLATFORMS;
+  if (kind === "contract") return CONTRACT_PLATFORMS;
   return BROKER_PLATFORMS;
 }
 
@@ -456,14 +460,11 @@ function CreateEndpointModal({
   const [platform, setPlatform] = useState(CHECKOUT_PLATFORMS[0] ?? "generic");
   const [label, setLabel] = useState("");
 
-  const platformOptions =
-    kind === "checkout" ? CHECKOUT_PLATFORMS : kind === "members_area" ? MEMBERS_AREA_PLATFORMS : BROKER_PLATFORMS;
+  const platformOptions = platformsFor(kind);
 
   function changeKind(nextKind: WebhookEndpoint["kind"]) {
     setKind(nextKind);
-    if (nextKind === "checkout") setPlatform(CHECKOUT_PLATFORMS[0] ?? "generic");
-    else if (nextKind === "members_area") setPlatform(MEMBERS_AREA_PLATFORMS[0] ?? "generic");
-    else setPlatform(BROKER_PLATFORMS[0] ?? "generic");
+    setPlatform(platformsFor(nextKind)[0] ?? "generic");
   }
 
   function reset() {
@@ -488,6 +489,7 @@ function CreateEndpointModal({
             <option value="checkout">Checkout</option>
             <option value="members_area">Área de membros</option>
             <option value="broker">Corretora</option>
+            <option value="contract">Contrato assinado</option>
           </Select>
           {kind === "broker" && hasBroker && (
             <p className="mt-1 text-[11px] text-text-muted">

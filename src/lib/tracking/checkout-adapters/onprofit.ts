@@ -31,6 +31,7 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
   if (body.object !== "order" || body.status !== "PAID") return null;
 
   const customer = isRecord(body.customer) ? body.customer : null;
+  const product = isRecord(body.product) ? body.product : null;
   const price =
     typeof body.price === "number" ? body.price : typeof body.offer_price === "number" ? body.offer_price : null;
   const dateStr =
@@ -48,14 +49,26 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
         ? customer.phone
         : null;
 
+  // A Onprofit separa nome e sobrenome ("André" + "DAmas") — junta os dois,
+  // mas o primeiro nome sozinho já serve pra saudação.
+  const nome = [customer?.name, customer?.lastname]
+    .filter((p): p is string => typeof p === "string" && p.trim() !== "")
+    .join(" ")
+    .trim();
+
   return {
     email: customer && typeof customer.email === "string" ? customer.email : null,
     phone,
+    name: nome || null,
     amountCents: price !== null ? Math.round(price) : null,
     externalId: body.id !== undefined && body.id !== null ? String(body.id) : null,
     ref: typeof body.sck === "string" ? body.sck : typeof body.src === "string" ? body.src : null,
     occurredAt: parseBrDate(dateStr),
     offerName: typeof body.offer_name === "string" ? body.offer_name : null,
+    // "product.id" é o plano (4831/4832/4833); "offer_id" é uma oferta
+    // específica desse plano (promoção, preço diferente), então varia sem o
+    // plano mudar — por isso o plano sai do product.id.
+    offerId: idOf(product?.id) ?? idOf(body.product_id),
     paymentMethod:
       typeof body.payment_type === "string"
         ? (PAYMENT_METHOD_LABEL[body.payment_type.toLowerCase()] ?? body.payment_type)
@@ -65,6 +78,12 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function idOf(value: unknown): string | null {
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string" && value.trim()) return value.trim();
+  return null;
 }
 
 // "2026-08-18 11:04:14" (sem timezone no payload) — assume horário de

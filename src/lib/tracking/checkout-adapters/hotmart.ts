@@ -34,6 +34,7 @@ export const hotmartAdapter: CheckoutAdapter = (raw) => {
   return {
     email: buyer && typeof buyer.email === "string" ? buyer.email : null,
     phone,
+    name: buyer && typeof buyer.name === "string" ? buyer.name : null,
     amountCents: priceValue !== null ? Math.round(priceValue * 100) : null,
     externalId: purchase && typeof purchase.transaction === "string" ? purchase.transaction : null,
     ref: origin && typeof origin.sck === "string" ? origin.sck : null,
@@ -42,6 +43,10 @@ export const hotmartAdapter: CheckoutAdapter = (raw) => {
         ? new Date(purchase.approved_date).toISOString()
         : null,
     offerName: product && typeof product.name === "string" ? product.name : null,
+    offerId:
+      product && (typeof product.id === "string" || typeof product.id === "number")
+        ? String(product.id)
+        : null,
     // Hotmart manda "payment_type" (ex: BILLET, CREDIT_CARD, PIX) no
     // payload real, mas ainda não confirmamos esse caminho — fica pra
     // quando tivermos um payload de verdade, igual ao telefone acima.
