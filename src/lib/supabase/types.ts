@@ -1104,12 +1104,13 @@ export interface Database {
           erro: string;
           response_body: string;
           payload: Record<string, unknown> | null;
+          teste: boolean;
           created_at: string;
           sent_at: string | null;
         };
         Insert: Omit<
           Database["public"]["Tables"]["sendpulse_dispatch_log"]["Row"],
-          "id" | "phone" | "plano" | "destino" | "erro" | "response_body" | "payload" | "created_at" | "sent_at"
+          "id" | "phone" | "plano" | "destino" | "erro" | "response_body" | "payload" | "teste" | "created_at" | "sent_at"
         > & {
           id?: string;
           phone?: string;
@@ -1118,6 +1119,7 @@ export interface Database {
           erro?: string;
           response_body?: string;
           payload?: Record<string, unknown> | null;
+          teste?: boolean;
           created_at?: string;
           sent_at?: string | null;
         };

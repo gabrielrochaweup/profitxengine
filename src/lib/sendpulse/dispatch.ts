@@ -116,11 +116,13 @@ interface EnvioInput {
   email: string;
   phone: string;
   nome: string;
+  /** Disparo pelo botão de teste do painel — vai marcado no log. */
+  teste?: boolean;
 }
 
 async function registrarFalha(
   admin: Admin,
-  { productId, tipo, plano, email, phone }: EnvioInput,
+  { productId, tipo, plano, email, phone, teste }: EnvioInput,
   erro: string
 ): Promise<ResultadoDisparo> {
   await admin.from("sendpulse_dispatch_log").insert({
@@ -131,6 +133,7 @@ async function registrarFalha(
     plano: plano ?? "",
     status: "falhou",
     erro,
+    teste: teste === true,
   });
   return { ok: false, motivo: erro };
 }
@@ -143,7 +146,7 @@ async function registrarFalha(
  * pro fluxo poder ramificar sem depender só da URL.
  */
 async function enviar(admin: Admin, input: EnvioInput, destino: Destino): Promise<ResultadoDisparo> {
-  const { productId, tipo, plano, email, phone, nome } = input;
+  const { productId, tipo, plano, email, phone, nome, teste } = input;
 
   const corpo = {
     email,
@@ -164,6 +167,7 @@ async function enviar(admin: Admin, input: EnvioInput, destino: Destino): Promis
       destino: destino.origem,
       status: "enviando",
       payload: corpo,
+      teste: teste === true,
     })
     .select("id")
     .single();
@@ -350,6 +354,87 @@ export async function dispararPosContrato(admin: Admin, input: PosContratoInput)
 
   if (!base.phone) {
     return registrarFalha(admin, base, "Sem telefone utilizável na assinatura nem no lead.");
+  }
+
+  return enviar(admin, base, destino);
+}
+
+/* ---------------- teste manual ------------------------------------ */
+
+export interface TesteInput {
+  productId: string;
+  tipo: TipoFunil;
+  /** null = descobrir pela última compra desse e-mail. */
+  plano: Plano | null;
+  email: string;
+  phone: string | null;
+  nome: string | null;
+}
+
+/**
+ * Dispara de verdade, pelo botão do painel, para conferir a ligação com o
+ * SendPulse sem precisar comprar o curso de novo.
+ *
+ * Passa por cima das duas travas de propósito, e é por isso que ele existe
+ * separado em vez de reaproveitar os disparos normais:
+ *
+ *  - O reconhecimento (compra/acesso) ficaria no caminho de um e-mail
+ *    inventado só para o teste.
+ *  - A trava do boas-vindas é por (e-mail, plano) e vale uma vez na vida.
+ *    Se o teste passasse por ela, testar com o e-mail de um aluno real
+ *    queimaria a mensagem de verdade dele, e testar duas vezes seguidas
+ *    não funcionaria.
+ *
+ * Em troca, fica marcado como teste no log — some dos contadores e não
+ * deixa ninguém em dúvida depois se aquele envio foi real.
+ */
+export async function dispararTeste(admin: Admin, input: TesteInput): Promise<ResultadoDisparo> {
+  const email = input.email.trim().toLowerCase();
+  if (!email) return { ok: false, motivo: "Informe um e-mail." };
+
+  let plano = input.plano;
+  if (!plano) {
+    const { data: compra } = await admin
+      .from("tracking_events")
+      .select("offer_name, raw_payload")
+      .eq("product_id", input.productId)
+      .eq("email", email)
+      .eq("event_type", "purchase")
+      .order("occurred_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    plano = compra ? resolvePlano(offerIdDoPayload(compra.raw_payload), compra.offer_name) : null;
+  }
+
+  const base: EnvioInput = {
+    productId: input.productId,
+    tipo: input.tipo,
+    plano,
+    email,
+    phone: normalizarTelefone(input.phone) || (await telefoneDoLead(admin, input.productId, email)),
+    nome: input.nome?.trim() || "",
+    teste: true,
+  };
+
+  const destino = await enderecoDoEvento(admin, input.productId, input.tipo, plano);
+  if ("desligado" in destino) {
+    return registrarFalha(admin, base, "A linha desse plano está desligada no painel.");
+  }
+  if (!destino.url) {
+    return registrarFalha(
+      admin,
+      base,
+      plano
+        ? `Nenhum endereço configurado para esse funil no plano ${plano}, nem endereço geral.`
+        : "Plano não identificado e sem endereço geral configurado para esse funil."
+    );
+  }
+  if (!base.phone) {
+    return registrarFalha(
+      admin,
+      base,
+      "Sem telefone: informe um no teste ou use um e-mail que já tenha telefone registrado."
+    );
   }
 
   return enviar(admin, base, destino);

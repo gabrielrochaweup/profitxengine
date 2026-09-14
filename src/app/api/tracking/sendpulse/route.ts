@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     admin.from("sendpulse_settings").select("key, url, enabled").eq("product_id", productId),
     admin
       .from("sendpulse_dispatch_log")
-      .select("id, tipo, email, phone, plano, destino, status, erro, created_at, sent_at")
+      .select("id, tipo, email, phone, plano, destino, status, erro, teste, created_at, sent_at")
       .eq("product_id", productId)
       .order("created_at", { ascending: false })
       .limit(50),
@@ -37,8 +37,10 @@ export async function GET(request: Request) {
       enabled: porChave.get(key)?.enabled ?? false,
     })),
     log: log ?? [],
-    enviados: (log ?? []).filter((l) => l.status === "enviado").length,
-    falhas: (log ?? []).filter((l) => l.status === "falhou").length,
+    // Teste não entra na conta: o contador existe pra dizer quantos alunos
+    // foram avisados de verdade.
+    enviados: (log ?? []).filter((l) => l.status === "enviado" && !l.teste).length,
+    falhas: (log ?? []).filter((l) => l.status === "falhou" && !l.teste).length,
   });
 }
 
