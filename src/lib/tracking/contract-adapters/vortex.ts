@@ -30,6 +30,7 @@ export const vortexAdapter: ContractAdapter = (raw) => {
     ref: typeof body.ref === "string" && body.ref.trim() ? body.ref.trim() : null,
     externalId: typeof body.doc_token === "string" && body.doc_token.trim() ? body.doc_token.trim() : null,
     occurredAt: parseDate(body.signed_at),
+    backfill: body.backfill === true,
   };
 };
 

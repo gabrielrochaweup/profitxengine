@@ -10,6 +10,12 @@ export interface NormalizedContractEvent {
   /** Identificador do documento assinado — é o que impede processar a mesma assinatura duas vezes. */
   externalId: string | null;
   occurredAt: string | null;
+  /**
+   * Assinatura antiga sendo importada, não uma que acabou de acontecer.
+   * Registra o contrato mas não dispara funil: quem assinou semanas atrás
+   * não pode receber agora a mensagem de "contrato assinado".
+   */
+  backfill: boolean;
 }
 
 // Retorna null quando o payload não representa "contrato assinado" (ex:

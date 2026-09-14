@@ -84,6 +84,14 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
   }
 
+  // Importação de assinatura antiga: o contrato fica registrado (é o que
+  // faz a tabela de alunos mostrar quem já assinou), mas ninguém recebe
+  // mensagem. Quem assinou semanas atrás não pode receber hoje um
+  // "contrato assinado".
+  if (normalized.backfill) {
+    return NextResponse.json({ ok: true, backfill: true, matched: leadId !== null }, { headers });
+  }
+
   // Dispara sempre, sem olhar se a gravação acima era inédita: quem trava
   // a repetição é a trava por (funil, e-mail, plano), tomada só quando o
   // envio realmente vai acontecer. Se a primeira tentativa falhar por
