@@ -6,17 +6,24 @@ import { sendpulseKey } from "./config-keys";
 /* ==================================================================
    SendPulse — motor único de decisão dos funis de WhatsApp.
 
-   São dois funis independentes, cada um com sua própria trava:
+   São dois funis independentes, e os dois travam por PLANO ALCANÇADO:
 
-     boas-vindas  · dispara na compra, uma vez por plano ALCANÇADO
-                    (Starter -> Pro -> Elite gera até 3 ao longo da vida)
-                  · trava: sendpulse_boasvindas_sent (product, email, plano)
+     boas-vindas  · dispara na compra
                   · não depende de contrato assinado
 
-     contrato     · dispara na assinatura, uma vez por documento
-                  · trava: o próprio tracking_event do contrato (doc_token
-                    em external_id), resolvida por quem chama
-                  · exige a pessoa reconhecida por compra ou área de membros
+     contrato     · dispara na assinatura E também no upgrade
+                  · exige contrato já assinado alguma vez, e a pessoa
+                    reconhecida por compra ou área de membros
+
+   O contrato do Método TRIAD é um só para os três planos: quem assina no
+   Starter e depois sobe para o Pro não assina de novo. Por isso o funil
+   pós-contrato não pode ficar preso ao documento — ele acompanha o plano
+   atual, usando a assinatura antiga como autorização. Um upgrade dispara
+   os dois funis do plano novo.
+
+   A trava dos dois é a mesma tabela (sendpulse_funil_enviado), por
+   (tipo, email, plano): Starter -> Pro -> Elite rende até 3 mensagens de
+   cada funil ao longo da vida do aluno, e nenhuma repetida.
 
    Quem manda a mensagem é o SendPulse; aqui só decidimos SE dispara, pra
    QUAL endereço de evento, e registramos o que aconteceu.
@@ -268,15 +275,9 @@ export async function dispararBoasVindas(admin: Admin, input: BoasVindasInput): 
   // A trava vem só agora, depois de já sabermos que dá pra enviar: se
   // faltasse endereço ou telefone e a trava já estivesse tomada, arrumar a
   // configuração depois não faria a mensagem sair nunca mais.
-  const { data: travou } = await admin
-    .from("sendpulse_boasvindas_sent")
-    .upsert(
-      { product_id: input.productId, email, plano: plano ?? "" },
-      { onConflict: "product_id,email,plano", ignoreDuplicates: true }
-    )
-    .select("id");
-
-  if (!travou || travou.length === 0) return { ok: false, motivo: "boas-vindas desse plano já enviado" };
+  if (!(await travar(admin, input.productId, "boas_vindas", email, plano))) {
+    return { ok: false, motivo: "boas-vindas desse plano já enviado" };
+  }
 
   return enviar(admin, base, destino);
 }
@@ -292,32 +293,44 @@ export interface PosContratoInput {
 }
 
 /**
- * Contrato assinado -> funil do plano em que a pessoa está.
+ * Funil pós-contrato do plano ATUAL da pessoa.
  *
- * Exige reconhecimento: assinatura sozinha não basta. Qualquer um com o
- * link do contrato consegue assinar, e a ZapSign entrega telefone de quem
- * assina tenha ele comprado ou não — sem essa trava, quem nunca comprou
- * receberia o funil de aluno.
+ * Chamado nos dois gatilhos: quando a assinatura chega e quando uma compra
+ * muda o plano. O contrato é um só para os três planos — quem assinou no
+ * Starter e subiu para o Pro não assina de novo —, então a assinatura
+ * antiga autoriza o funil do plano novo.
  *
- * A trava de "uma vez por contrato" fica com quem chama: o tracking_event
- * do contrato usa o doc_token como external_id, então reenvio da ZapSign
- * não chega até aqui.
+ * Duas condições, e cada uma protege de uma coisa diferente:
+ *
+ *  - assinou alguma vez: é o que este funil comunica. Sem contrato, quem
+ *    só comprou recebe boas-vindas e mais nada.
+ *  - reconhecido por compra ou área de membros: qualquer um com o link do
+ *    contrato consegue assinar, e a ZapSign entrega o telefone de quem
+ *    assina tenha ele comprado ou não.
  */
 export async function dispararPosContrato(admin: Admin, input: PosContratoInput): Promise<ResultadoDisparo> {
   const email = input.email.trim().toLowerCase();
   if (!email) return { ok: false, motivo: "sem e-mail" };
 
-  const { data: compras } = await admin
+  const { data: eventos } = await admin
     .from("tracking_events")
     .select("offer_name, raw_payload, event_type")
     .eq("product_id", input.productId)
     .eq("email", email)
-    .in("event_type", ["purchase", "members_access"])
+    .in("event_type", ["purchase", "members_access", "contract_signed"])
     .order("occurred_at", { ascending: false })
-    .limit(20);
+    .limit(30);
 
-  const reconhecido = (compras ?? []).length > 0;
-  const compra = (compras ?? []).find((e) => e.event_type === "purchase") ?? null;
+  const assinou = (eventos ?? []).some((e) => e.event_type === "contract_signed");
+  const reconhecido = (eventos ?? []).some(
+    (e) => e.event_type === "purchase" || e.event_type === "members_access"
+  );
+  const compra = (eventos ?? []).find((e) => e.event_type === "purchase") ?? null;
+
+  // Sem contrato não é erro nem falha: é o caso normal de quem acabou de
+  // comprar e ainda não assinou. Sai quieto, sem sujar o log — o funil
+  // dele vai sair quando a assinatura chegar.
+  if (!assinou) return { ok: false, motivo: "ainda sem contrato assinado" };
 
   const plano = compra
     ? resolvePlano(offerIdDoPayload(compra.raw_payload), compra.offer_name)
@@ -354,6 +367,13 @@ export async function dispararPosContrato(admin: Admin, input: PosContratoInput)
 
   if (!base.phone) {
     return registrarFalha(admin, base, "Sem telefone utilizável na assinatura nem no lead.");
+  }
+
+  // Mesma ordem do boas-vindas: trava só depois de saber que dá pra
+  // enviar. É ela que faz o reenvio da ZapSign e a chegada de uma segunda
+  // compra do mesmo plano não virarem mensagem repetida.
+  if (!(await travar(admin, input.productId, "contrato", email, plano))) {
+    return { ok: false, motivo: "pós-contrato desse plano já enviado" };
   }
 
   return enviar(admin, base, destino);
@@ -441,6 +461,31 @@ export async function dispararTeste(admin: Admin, input: TesteInput): Promise<Re
 }
 
 /* ---------------- apoio ------------------------------------------- */
+
+/**
+ * Pega o direito de mandar este funil para este plano, uma vez só.
+ *
+ * O INSERT é a trava: quem conseguir gravar a linha dispara, quem esbarrar
+ * na chave única não. Isso vale tanto para reenvio da plataforma quanto
+ * para dois eventos chegando ao mesmo tempo — o banco resolve.
+ */
+async function travar(
+  admin: Admin,
+  productId: string,
+  tipo: TipoFunil,
+  email: string,
+  plano: Plano | null
+): Promise<boolean> {
+  const { data } = await admin
+    .from("sendpulse_funil_enviado")
+    .upsert(
+      { product_id: productId, tipo, email, plano: plano ?? "" },
+      { onConflict: "product_id,tipo,email,plano", ignoreDuplicates: true }
+    )
+    .select("id");
+
+  return (data?.length ?? 0) > 0;
+}
 
 // O lead é a memória de contato do app: o matchLead dos webhooks já grava
 // nele o telefone que apareceu em qualquer etapa da jornada, então ele

@@ -5,7 +5,7 @@ import { matchLead } from "@/lib/tracking/match-lead";
 import { CHECKOUT_ADAPTERS } from "@/lib/tracking/checkout-adapters";
 import { logWebhookCall } from "@/lib/tracking/webhook-log";
 import { webhookCorsHeaders } from "@/lib/tracking/cors";
-import { dispararBoasVindas } from "@/lib/sendpulse/dispatch";
+import { dispararBoasVindas, dispararPosContrato } from "@/lib/sendpulse/dispatch";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: webhookCorsHeaders() });
@@ -83,20 +83,32 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
   }
 
-  // Compra aprovada é o gatilho da mensagem de boas-vindas do plano que a
-  // pessoa acabou de alcançar (Starter na entrada, Pro/Elite no upgrade).
-  // A trava por (e-mail, plano) vive dentro do dispatch, então reenvio da
-  // plataforma não vira mensagem repetida. Esperado de propósito: em
-  // serverless a função pode ser congelada assim que a resposta sai.
-  // Nunca derruba o webhook — falha fica em sendpulse_dispatch_log.
-  await dispararBoasVindas(admin, {
-    productId: endpoint.product_id,
-    email: normalized.email ?? "",
-    phone: normalized.phone,
-    nome: normalized.name,
-    offerId: normalized.offerId,
-    offerName: normalized.offerName,
-  }).catch(() => null);
+  // Compra aprovada dispara os DOIS funis do plano que a pessoa acabou de
+  // alcançar. O boas-vindas sempre; o pós-contrato só se ela já tiver
+  // assinado antes — é o caso do upgrade, em que o contrato do Starter
+  // continua valendo e não há nova assinatura para servir de gatilho.
+  //
+  // Em paralelo porque são independentes e cada um tem seu timeout: em
+  // série, um upgrade seguraria a resposta do webhook o dobro do tempo.
+  // Esperados de propósito (em serverless a função pode ser congelada
+  // assim que a resposta sai) e nunca derrubam o webhook — falha fica
+  // registrada em sendpulse_dispatch_log.
+  await Promise.all([
+    dispararBoasVindas(admin, {
+      productId: endpoint.product_id,
+      email: normalized.email ?? "",
+      phone: normalized.phone,
+      nome: normalized.name,
+      offerId: normalized.offerId,
+      offerName: normalized.offerName,
+    }).catch(() => null),
+    dispararPosContrato(admin, {
+      productId: endpoint.product_id,
+      email: normalized.email ?? "",
+      phone: normalized.phone,
+      nome: normalized.name,
+    }).catch(() => null),
+  ]);
 
   // Não reenvia Purchase pra API de Conversões da Meta aqui: a própria
   // plataforma de checkout (Onprofit etc.) já tem o pixel dela configurada

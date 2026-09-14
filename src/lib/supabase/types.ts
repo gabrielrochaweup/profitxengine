@@ -1073,22 +1073,23 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["sendpulse_settings"]["Insert"]>;
         Relationships: [];
       };
-      sendpulse_boasvindas_sent: {
+      sendpulse_funil_enviado: {
         Row: {
           id: string;
           product_id: string;
+          tipo: "boas_vindas" | "contrato";
           email: string;
           plano: string;
           created_at: string;
         };
         Insert: Omit<
-          Database["public"]["Tables"]["sendpulse_boasvindas_sent"]["Row"],
+          Database["public"]["Tables"]["sendpulse_funil_enviado"]["Row"],
           "id" | "created_at"
         > & {
           id?: string;
           created_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["sendpulse_boasvindas_sent"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["sendpulse_funil_enviado"]["Insert"]>;
         Relationships: [];
       };
       sendpulse_dispatch_log: {

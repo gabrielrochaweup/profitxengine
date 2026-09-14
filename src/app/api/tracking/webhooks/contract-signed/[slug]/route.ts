@@ -76,33 +76,31 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   // A ZapSign reenvia o mesmo evento quando não recebe confirmação, e o
   // Vortex repassa cada um deles — o doc_token em external_id é o que faz
   // o reenvio virar no-op em vez de um segundo contrato assinado.
-  const { data: gravado, error } = normalized.externalId
-    ? await admin
-        .from("tracking_events")
-        .upsert(eventRow, { onConflict: "source,external_id", ignoreDuplicates: true })
-        .select("id")
-    : await admin.from("tracking_events").insert(eventRow).select("id");
+  const { error } = normalized.externalId
+    ? await admin.from("tracking_events").upsert(eventRow, { onConflict: "source,external_id", ignoreDuplicates: true })
+    : await admin.from("tracking_events").insert(eventRow);
 
   if (error) {
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
   }
 
-  // Linha nova = primeira vez que vemos essa assinatura. É esta gravação
-  // que serve de trava do funil pós-contrato: num reenvio, o upsert não
-  // devolve nada e a mensagem não sai de novo.
-  const primeiraVez = (gravado?.length ?? 0) > 0;
-  if (primeiraVez) {
-    // Esperado de propósito, em vez de disparar em segundo plano: em
-    // serverless a função pode ser congelada assim que a resposta sai, e o
-    // POST pendente morreria junto. Nunca derruba o webhook — falha de
-    // SendPulse fica registrada em sendpulse_dispatch_log.
-    await dispararPosContrato(admin, {
-      productId: endpoint.product_id,
-      email: normalized.email!,
-      phone: normalized.phone,
-      nome: normalized.name,
-    }).catch(() => null);
-  }
+  // Dispara sempre, sem olhar se a gravação acima era inédita: quem trava
+  // a repetição é a trava por (funil, e-mail, plano) lá dentro, e ela só
+  // é tomada quando o envio realmente vai acontecer. Se a primeira
+  // tentativa falhar por configuração — endereço ainda não colado no
+  // painel, por exemplo —, o reenvio da ZapSign vira uma segunda chance
+  // em vez de bater numa porta fechada.
+  //
+  // Esperado de propósito, em vez de disparar em segundo plano: em
+  // serverless a função pode ser congelada assim que a resposta sai, e o
+  // POST pendente morreria junto. Nunca derruba o webhook — falha de
+  // SendPulse fica registrada em sendpulse_dispatch_log.
+  await dispararPosContrato(admin, {
+    productId: endpoint.product_id,
+    email: normalized.email!,
+    phone: normalized.phone,
+    nome: normalized.name,
+  }).catch(() => null);
 
   return NextResponse.json({ ok: true, matched: leadId !== null }, { headers });
 }
