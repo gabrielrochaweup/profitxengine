@@ -5,7 +5,7 @@ import { matchLead } from "@/lib/tracking/match-lead";
 import { CHECKOUT_ADAPTERS } from "@/lib/tracking/checkout-adapters";
 import { logWebhookCall } from "@/lib/tracking/webhook-log";
 import { webhookCorsHeaders } from "@/lib/tracking/cors";
-import { dispararBoasVindas, dispararPosContrato } from "@/lib/sendpulse/dispatch";
+import { dispararBoasVindas, dispararPosContrato, processarPendentes } from "@/lib/sendpulse/dispatch";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: webhookCorsHeaders() });
@@ -83,16 +83,16 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
   }
 
-  // Compra aprovada dispara os DOIS funis do plano que a pessoa acabou de
+  // Compra aprovada agenda os DOIS funis do plano que a pessoa acabou de
   // alcançar. O boas-vindas sempre; o pós-contrato só se ela já tiver
   // assinado antes — é o caso do upgrade, em que o contrato do Starter
   // continua valendo e não há nova assinatura para servir de gatilho.
   //
-  // Em paralelo porque são independentes e cada um tem seu timeout: em
-  // série, um upgrade seguraria a resposta do webhook o dobro do tempo.
-  // Esperados de propósito (em serverless a função pode ser congelada
-  // assim que a resposta sai) e nunca derrubam o webhook — falha fica
-  // registrada em sendpulse_dispatch_log.
+  // Agenda em vez de enviar por causa do upsell: se o Elite chegar dentro
+  // da carência, ele substitui o Starter no agendamento e sai uma mensagem
+  // só. Quem manda de fato é processarPendentes.
+  //
+  // Nunca derruba o webhook — falha fica em sendpulse_dispatch_log.
   await Promise.all([
     dispararBoasVindas(admin, {
       productId: endpoint.product_id,
@@ -108,6 +108,9 @@ export async function POST(request: Request, { params }: { params: { slug: strin
       phone: normalized.phone,
       nome: normalized.name,
     }).catch(() => null),
+    // Escoa o que já venceu de chamadas anteriores: se o cron falhar, o
+    // movimento normal da operação continua entregando.
+    processarPendentes(admin).catch(() => null),
   ]);
 
   // Não reenvia Purchase pra API de Conversões da Meta aqui: a própria

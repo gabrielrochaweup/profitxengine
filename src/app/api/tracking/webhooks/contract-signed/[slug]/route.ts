@@ -5,7 +5,7 @@ import { matchLead } from "@/lib/tracking/match-lead";
 import { CONTRACT_ADAPTERS } from "@/lib/tracking/contract-adapters";
 import { logWebhookCall } from "@/lib/tracking/webhook-log";
 import { webhookCorsHeaders } from "@/lib/tracking/cors";
-import { dispararPosContrato } from "@/lib/sendpulse/dispatch";
+import { dispararPosContrato, processarPendentes } from "@/lib/sendpulse/dispatch";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: webhookCorsHeaders() });
@@ -84,23 +84,25 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
   }
 
-  // Dispara sempre, sem olhar se a gravação acima era inédita: quem trava
-  // a repetição é a trava por (funil, e-mail, plano) lá dentro, e ela só
-  // é tomada quando o envio realmente vai acontecer. Se a primeira
-  // tentativa falhar por configuração — endereço ainda não colado no
-  // painel, por exemplo —, o reenvio da ZapSign vira uma segunda chance
-  // em vez de bater numa porta fechada.
+  // Agenda sempre, sem olhar se a gravação acima era inédita: quem trava a
+  // repetição é a trava por (funil, e-mail, plano), tomada só na hora do
+  // envio. Se a primeira tentativa falhar por configuração — endereço
+  // ainda não colado no painel, por exemplo —, o reenvio da ZapSign vira
+  // uma segunda chance em vez de bater numa porta fechada.
   //
-  // Esperado de propósito, em vez de disparar em segundo plano: em
-  // serverless a função pode ser congelada assim que a resposta sai, e o
-  // POST pendente morreria junto. Nunca derruba o webhook — falha de
-  // SendPulse fica registrada em sendpulse_dispatch_log.
-  await dispararPosContrato(admin, {
-    productId: endpoint.product_id,
-    email: normalized.email!,
-    phone: normalized.phone,
-    nome: normalized.name,
-  }).catch(() => null);
+  // Passa pela carência como a compra: quem assina e aceita um upsell logo
+  // depois recebe um pós-contrato só, já do plano maior.
+  //
+  // Nunca derruba o webhook — falha fica em sendpulse_dispatch_log.
+  await Promise.all([
+    dispararPosContrato(admin, {
+      productId: endpoint.product_id,
+      email: normalized.email!,
+      phone: normalized.phone,
+      nome: normalized.name,
+    }).catch(() => null),
+    processarPendentes(admin).catch(() => null),
+  ]);
 
   return NextResponse.json({ ok: true, matched: leadId !== null }, { headers });
 }

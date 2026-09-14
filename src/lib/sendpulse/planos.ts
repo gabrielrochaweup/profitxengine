@@ -17,6 +17,17 @@ const OFFER_ID_TO_PLANO: Record<string, Plano> = {
   "4833": "elite",
 };
 
+// Quem é "maior" quando duas compras caem dentro da mesma carência. Só
+// existe pra isso: em nenhum outro lugar um plano vale mais que outro.
+const ORDEM: Record<Plano, number> = { starter: 1, pro: 2, elite: 3 };
+
+/** Devolve o maior dos dois planos; null só quando os dois são null. */
+export function planoMaior(a: Plano | null, b: Plano | null): Plano | null {
+  if (!a) return b;
+  if (!b) return a;
+  return ORDEM[b] > ORDEM[a] ? b : a;
+}
+
 /**
  * Descobre o plano de uma compra. O id da oferta é a fonte confiável; o
  * nome ("Método TRIAD - Starter") é só rede de segurança pra quando
