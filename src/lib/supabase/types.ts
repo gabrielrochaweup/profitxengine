@@ -1092,30 +1092,6 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["sendpulse_funil_enviado"]["Insert"]>;
         Relationships: [];
       };
-      sendpulse_pendente: {
-        Row: {
-          id: string;
-          product_id: string;
-          tipo: "boas_vindas" | "contrato";
-          email: string;
-          plano: string;
-          phone: string;
-          nome: string;
-          enviar_em: string;
-          criado_em: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["sendpulse_pendente"]["Row"],
-          "id" | "phone" | "nome" | "criado_em"
-        > & {
-          id?: string;
-          phone?: string;
-          nome?: string;
-          criado_em?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["sendpulse_pendente"]["Insert"]>;
-        Relationships: [];
-      };
       sendpulse_dispatch_log: {
         Row: {
           id: string;

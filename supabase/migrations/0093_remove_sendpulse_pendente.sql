@@ -1,0 +1,13 @@
+-- Volta atrás da carência criada na 0092.
+--
+-- A ideia era segurar a mensagem alguns minutos pra que um upsell (Starter
+-- e, logo depois, Elite) virasse uma mensagem só, do maior plano. Isso
+-- dependia de alguém chamar a rota de processamento a cada poucos minutos,
+-- e o plano do Vercel só permite cron diário — a mensagem de quem comprasse
+-- de manhã esperaria até o dia seguinte, que é pior que o problema original.
+--
+-- A sobreposição do upsell passa a ser resolvida no próprio SendPulse: o
+-- fluxo do plano maior remove o contato do fluxo do menor. Lá isso é
+-- configuração, e os fluxos já esperam 30 minutos antes de mandar, então há
+-- folga de sobra pro cancelamento acontecer.
+drop table if exists public.sendpulse_pendente;

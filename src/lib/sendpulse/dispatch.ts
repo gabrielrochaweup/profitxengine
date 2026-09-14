@@ -1,6 +1,6 @@
 import "server-only";
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { resolvePlano, planoMaior, type Plano } from "./planos";
+import { resolvePlano, type Plano } from "./planos";
 import { sendpulseKey } from "./config-keys";
 
 /* ==================================================================
@@ -237,7 +237,7 @@ export interface BoasVindasInput {
 }
 
 /**
- * Compra aprovada -> agenda a mensagem de boas-vindas do plano alcançado.
+ * Compra aprovada -> mensagem de boas-vindas do plano alcançado.
  *
  * Não exige contrato assinado: a mensagem de boas-vindas é justamente o
  * empurrão pra pessoa assinar e entrar.
@@ -246,14 +246,40 @@ export async function dispararBoasVindas(admin: Admin, input: BoasVindasInput): 
   const email = input.email.trim().toLowerCase();
   if (!email) return { ok: false, motivo: "sem e-mail" };
 
-  return agendar(admin, {
+  const plano = resolvePlano(input.offerId, input.offerName);
+  const base: EnvioInput = {
     productId: input.productId,
     tipo: "boas_vindas",
+    plano,
     email,
-    plano: resolvePlano(input.offerId, input.offerName),
-    phone: normalizarTelefone(input.phone),
+    phone: normalizarTelefone(input.phone) || (await telefoneDoLead(admin, input.productId, email)),
     nome: input.nome?.trim() || "",
-  });
+  };
+
+  const destino = await enderecoDoEvento(admin, input.productId, "boas_vindas", plano);
+  if ("desligado" in destino) return { ok: false, motivo: "desligado" };
+  if (!destino.url) {
+    return registrarFalha(
+      admin,
+      base,
+      plano
+        ? `Nenhum endereço configurado para boas-vindas do plano ${plano}, nem endereço geral.`
+        : "Compra sem plano identificado e sem endereço geral de boas-vindas configurado."
+    );
+  }
+
+  if (!base.phone) {
+    return registrarFalha(admin, base, "Sem telefone utilizável na compra nem no lead.");
+  }
+
+  // A trava vem só agora, depois de já sabermos que dá pra enviar: se
+  // faltasse endereço ou telefone e a trava já estivesse tomada, arrumar a
+  // configuração depois não faria a mensagem sair nunca mais.
+  if (!(await travar(admin, input.productId, "boas_vindas", email, plano))) {
+    return { ok: false, motivo: "boas-vindas desse plano já enviado" };
+  }
+
+  return enviar(admin, base, destino);
 }
 
 /* ---------------- funil 2: pós-contrato --------------------------- */
@@ -310,183 +336,47 @@ export async function dispararPosContrato(admin: Admin, input: PosContratoInput)
     ? resolvePlano(offerIdDoPayload(compra.raw_payload), compra.offer_name)
     : null;
 
+  const base: EnvioInput = {
+    productId: input.productId,
+    tipo: "contrato",
+    plano,
+    email,
+    phone: normalizarTelefone(input.phone) || (await telefoneDoLead(admin, input.productId, email)),
+    nome: input.nome?.trim() || "",
+  };
+
   if (!reconhecido) {
     return registrarFalha(
       admin,
-      {
-        productId: input.productId,
-        tipo: "contrato",
-        plano,
-        email,
-        phone: normalizarTelefone(input.phone),
-        nome: input.nome?.trim() || "",
-      },
+      base,
       "E-mail sem compra na Onprofit e sem acesso em área de membros — assinatura sozinha não autoriza o disparo."
     );
   }
 
-  return agendar(admin, {
-    productId: input.productId,
-    tipo: "contrato",
-    email,
-    plano,
-    phone: normalizarTelefone(input.phone),
-    nome: input.nome?.trim() || "",
-  });
-}
-
-/* ---------------- carência (fila) --------------------------------- */
-
-/**
- * Quanto a mensagem espera antes de sair.
- *
- * Existe por causa do upsell: quem compra o Starter e aceita o Elite dois
- * minutos depois receberia duas boas-vindas seguidas, porque na hora do
- * Starter o Elite ainda não existe. Esperando um pouco, a segunda compra
- * alcança o agendamento e só sai a mensagem do maior plano.
- *
- * Cinco minutos cobre o upsell (que acontece no mesmo checkout) sem
- * segurar demais quem comprou e não vai comprar mais nada.
- */
-const CARENCIA_MIN = 5;
-
-interface AgendarInput {
-  productId: string;
-  tipo: TipoFunil;
-  email: string;
-  plano: Plano | null;
-  phone: string;
-  nome: string;
-}
-
-/**
- * Coloca o funil na fila, ou promove o plano de um agendamento que já
- * existe.
- *
- * A chave única é (produto, tipo, e-mail) — sem o plano —, então a segunda
- * compra cai no mesmo agendamento em vez de criar outro. O prazo original
- * é mantido na promoção: renovar a cada compra empurraria a mensagem pra
- * frente enquanto a pessoa continuasse comprando.
- */
-async function agendar(admin: Admin, input: AgendarInput): Promise<ResultadoDisparo> {
-  const enviarEm = new Date(Date.now() + CARENCIA_MIN * 60_000).toISOString();
-
-  const { data: inserido } = await admin
-    .from("sendpulse_pendente")
-    .upsert(
-      {
-        product_id: input.productId,
-        tipo: input.tipo,
-        email: input.email,
-        plano: input.plano ?? "",
-        phone: input.phone,
-        nome: input.nome,
-        enviar_em: enviarEm,
-      },
-      { onConflict: "product_id,tipo,email", ignoreDuplicates: true }
-    )
-    .select("id");
-
-  if ((inserido?.length ?? 0) > 0) {
-    return { ok: true, motivo: `agendado para daqui a ${CARENCIA_MIN} min` };
+  const destino = await enderecoDoEvento(admin, input.productId, "contrato", plano);
+  if ("desligado" in destino) return { ok: false, motivo: "desligado" };
+  if (!destino.url) {
+    return registrarFalha(
+      admin,
+      base,
+      plano
+        ? `Nenhum endereço configurado para o pós-contrato do plano ${plano}, nem endereço geral.`
+        : "Assinatura sem plano identificado e sem endereço geral de pós-contrato configurado."
+    );
   }
 
-  // Já havia agendamento: só interessa se este plano for maior.
-  const { data: atual } = await admin
-    .from("sendpulse_pendente")
-    .select("id, plano, phone, nome")
-    .eq("product_id", input.productId)
-    .eq("tipo", input.tipo)
-    .eq("email", input.email)
-    .maybeSingle();
-
-  if (!atual) return { ok: false, motivo: "não foi possível agendar" };
-
-  const maior = planoMaior((atual.plano || null) as Plano | null, input.plano);
-  if (maior === atual.plano) {
-    // Mantém o que já estava, mas aproveita para preencher o que faltava:
-    // a compra costuma trazer telefone que a assinatura não tinha.
-    const faltando: { phone?: string; nome?: string } = {};
-    if (!atual.phone && input.phone) faltando.phone = input.phone;
-    if (!atual.nome && input.nome) faltando.nome = input.nome;
-    if (faltando.phone !== undefined || faltando.nome !== undefined) {
-      await admin.from("sendpulse_pendente").update(faltando).eq("id", atual.id);
-    }
-    return { ok: true, motivo: "já agendado, plano mantido" };
+  if (!base.phone) {
+    return registrarFalha(admin, base, "Sem telefone utilizável na assinatura nem no lead.");
   }
 
-  await admin
-    .from("sendpulse_pendente")
-    .update({
-      plano: maior ?? "",
-      phone: input.phone || atual.phone,
-      nome: input.nome || atual.nome,
-    })
-    .eq("id", atual.id);
-
-  return { ok: true, motivo: `agendamento promovido para ${maior}` };
-}
-
-/**
- * Manda o que já venceu a carência. Chamado pelo cron e também no começo
- * dos webhooks — assim, mesmo que o cron falhe, o movimento normal da
- * operação vai escoando a fila.
- */
-export async function processarPendentes(admin: Admin, limite = 50): Promise<{ processados: number }> {
-  const { data: vencidos } = await admin
-    .from("sendpulse_pendente")
-    .select("id, product_id, tipo, email, plano, phone, nome")
-    .lte("enviar_em", new Date().toISOString())
-    .limit(limite);
-
-  if (!vencidos || vencidos.length === 0) return { processados: 0 };
-
-  for (const item of vencidos) {
-    // Sai da fila antes de tentar enviar: se a linha continuasse aqui e o
-    // envio demorasse, a execução seguinte do cron pegaria o mesmo item e
-    // mandaria duas vezes. A trava por plano ainda protege, mas é melhor
-    // não depender dela para isso.
-    await admin.from("sendpulse_pendente").delete().eq("id", item.id);
-
-    const plano = (item.plano || null) as Plano | null;
-    const base: EnvioInput = {
-      productId: item.product_id,
-      tipo: item.tipo,
-      plano,
-      email: item.email,
-      phone: item.phone || (await telefoneDoLead(admin, item.product_id, item.email)),
-      nome: item.nome,
-    };
-
-    const destino = await enderecoDoEvento(admin, item.product_id, item.tipo, plano);
-    if ("desligado" in destino) continue;
-
-    if (!destino.url) {
-      const funil = item.tipo === "boas_vindas" ? "boas-vindas" : "pós-contrato";
-      await registrarFalha(
-        admin,
-        base,
-        plano
-          ? `Nenhum endereço configurado para ${funil} do plano ${plano}, nem endereço geral.`
-          : `Sem plano identificado e sem endereço geral de ${funil} configurado.`
-      );
-      continue;
-    }
-
-    if (!base.phone) {
-      await registrarFalha(admin, base, "Sem telefone utilizável na compra, na assinatura nem no lead.");
-      continue;
-    }
-
-    // A trava só é tomada aqui, quando o envio vai mesmo acontecer: se
-    // faltasse endereço ou telefone e ela já estivesse tomada, arrumar a
-    // configuração depois não faria a mensagem sair nunca mais.
-    if (!(await travar(admin, item.product_id, item.tipo, item.email, plano))) continue;
-
-    await enviar(admin, base, destino);
+  // Mesma ordem do boas-vindas: trava só depois de saber que dá pra
+  // enviar. É ela que faz o reenvio da ZapSign e a chegada de uma segunda
+  // compra do mesmo plano não virarem mensagem repetida.
+  if (!(await travar(admin, input.productId, "contrato", email, plano))) {
+    return { ok: false, motivo: "pós-contrato desse plano já enviado" };
   }
 
-  return { processados: vencidos.length };
+  return enviar(admin, base, destino);
 }
 
 /* ---------------- teste manual ------------------------------------ */

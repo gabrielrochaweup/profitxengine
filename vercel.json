@@ -3,10 +3,6 @@
     {
       "path": "/api/tracking/reconcile-unmatched",
       "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/tracking/sendpulse/processar",
-      "schedule": "15 9 * * *"
     }
   ]
 }
