@@ -149,6 +149,9 @@ export function AnalyticsTab({
   const [salesByPageType, setSalesByPageType] = useState<{ page_type: string; purchases: number; revenue_cents: number }[]>(
     []
   );
+  // Adoção do Pepe (a IA): quantos alunos criaram conta lá e quantos
+  // efetivamente entraram, separados pelo plano que a ferramenta conhece.
+  const [pepePorPlano, setPepePorPlano] = useState<{ plano: string; cadastrados: number; acessaram: number }[]>([]);
   const [salesByChannel, setSalesByChannel] = useState<{ channel: string; purchases: number; revenue_cents: number }[]>(
     []
   );
@@ -174,6 +177,9 @@ export function AnalyticsTab({
         supabase.rpc("tracking_sales_by_page_type", params),
         supabase.rpc("tracking_sales_by_channel", params),
       ]);
+
+    const { data: pepeData } = await supabase.rpc("tracking_ferramenta_por_plano", { ...params, p_source: "pepe" });
+    setPepePorPlano(pepeData ?? []);
     setSalesByOffer(offerData ?? []);
     setSalesByPayment(paymentData ?? []);
     setSalesByTime(timeData ?? []);
@@ -646,6 +652,42 @@ export function AnalyticsTab({
               <HorizontalBarList data={salesByChannelChart} valueFormatter={(v) => fmtBRL(v)} colorFor={colorForLabel} />
             </Card>
           </div>
+
+          {/* ── Adoção do Pepe ── */}
+          <Card className="p-5">
+            <h3 className="mb-1 flex items-center gap-1.5 text-base font-semibold text-text-primary">
+              Pepe — cadastros por plano
+              <Tooltip text="Quantos alunos criaram conta na ferramenta e quantos realmente entraram. O plano é o que o próprio Pepe conhece da pessoa; se divergir da compra, é sinal de que os dois sistemas estão fora de sincronia." />
+            </h3>
+            {pepePorPlano.length === 0 ? (
+              <p className="mt-3 text-sm text-text-muted">
+                Nenhum cadastro no Pepe ainda neste período.
+              </p>
+            ) : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-xs text-text-muted">
+                    <tr>
+                      <th className="py-2 pr-3 font-medium">Plano</th>
+                      <th className="py-2 pr-3 font-medium">Cadastraram</th>
+                      <th className="py-2 pr-3 font-medium">Acessaram</th>
+                      <th className="py-2 font-medium">Nunca entraram</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-text-secondary">
+                    {pepePorPlano.map((r) => (
+                      <tr key={r.plano}>
+                        <td className="py-2 pr-3 text-text-primary">{r.plano}</td>
+                        <td className="py-2 pr-3">{r.cadastrados}</td>
+                        <td className="py-2 pr-3">{r.acessaram}</td>
+                        <td className="py-2">{Math.max(0, r.cadastrados - r.acessaram)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
 
           {/* ── Vendas por horário e por dia da semana ── */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

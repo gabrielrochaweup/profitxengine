@@ -987,7 +987,7 @@ export interface Database {
           id: string;
           product_id: string;
           lead_id: string | null;
-          event_type: "page_view" | "initiate_checkout" | "purchase" | "members_access" | "broker_signup" | "broker_deposit" | "contract_signed";
+          event_type: "page_view" | "initiate_checkout" | "purchase" | "members_access" | "broker_signup" | "broker_deposit" | "contract_signed" | "tool_signup" | "tool_access";
           source: string;
           email: string | null;
           amount_cents: number | null;
@@ -1022,7 +1022,7 @@ export interface Database {
         Row: {
           id: string;
           product_id: string;
-          kind: "checkout" | "members_area" | "broker" | "contract";
+          kind: "checkout" | "members_area" | "broker" | "contract" | "tool";
           platform: string | null;
           label: string | null;
           endpoint_slug: string;
@@ -1279,6 +1279,10 @@ export interface Database {
       tracking_sales_by_channel: {
         Args: { p_product_id: string; p_from: string; p_to: string };
         Returns: { channel: string; purchases: number; revenue_cents: number }[];
+      };
+      tracking_ferramenta_por_plano: {
+        Args: { p_product_id: string; p_source: string; p_from: string; p_to: string };
+        Returns: { plano: string; cadastrados: number; acessaram: number }[];
       };
     };
     Enums: Record<string, never>;

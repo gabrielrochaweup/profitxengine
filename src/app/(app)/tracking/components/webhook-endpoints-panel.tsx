@@ -13,11 +13,12 @@ import { CHECKOUT_PLATFORMS } from "@/lib/tracking/checkout-adapters";
 import { MEMBERS_AREA_PLATFORMS } from "@/lib/tracking/members-area-adapters";
 import { BROKER_PLATFORMS } from "@/lib/tracking/broker-adapters";
 import { CONTRACT_PLATFORMS } from "@/lib/tracking/contract-adapters";
+import { TOOL_PLATFORMS } from "@/lib/tracking/tool-adapters";
 
 export interface WebhookEndpoint {
   id: string;
   product_id: string;
-  kind: "checkout" | "members_area" | "broker" | "contract";
+  kind: "checkout" | "members_area" | "broker" | "contract" | "tool";
   platform: string | null;
   label: string | null;
   endpoint_slug: string;
@@ -32,6 +33,7 @@ const KIND_LABEL: Record<WebhookEndpoint["kind"], string> = {
   members_area: "Área de membros",
   broker: "Corretora",
   contract: "Contrato assinado",
+  tool: "Ferramenta",
 };
 
 const KIND_PATH: Record<WebhookEndpoint["kind"], string> = {
@@ -39,6 +41,7 @@ const KIND_PATH: Record<WebhookEndpoint["kind"], string> = {
   members_area: "members-area",
   broker: "broker",
   contract: "contract-signed",
+  tool: "tool",
 };
 
 function endpointUrl(endpoint: WebhookEndpoint): string {
@@ -54,6 +57,7 @@ function platformsFor(kind: WebhookEndpoint["kind"]): string[] {
   if (kind === "checkout") return CHECKOUT_PLATFORMS;
   if (kind === "members_area") return MEMBERS_AREA_PLATFORMS;
   if (kind === "contract") return CONTRACT_PLATFORMS;
+  if (kind === "tool") return TOOL_PLATFORMS;
   return BROKER_PLATFORMS;
 }
 
@@ -490,6 +494,7 @@ function CreateEndpointModal({
             <option value="members_area">Área de membros</option>
             <option value="broker">Corretora</option>
             <option value="contract">Contrato assinado</option>
+            <option value="tool">Ferramenta</option>
           </Select>
           {kind === "broker" && hasBroker && (
             <p className="mt-1 text-[11px] text-text-muted">
