@@ -23,6 +23,7 @@ interface CampaignRow {
   purchases: number;
   purchase_revenue_cents: number;
   members_access: number;
+  tool_signups: number;
   broker_signups: number;
   deposits: number;
   deposits_total_cents: number;

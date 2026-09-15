@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw } from "lucide-react";
+import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
@@ -20,6 +20,7 @@ interface CampaignRow {
   purchases: number;
   purchase_revenue_cents: number;
   members_access: number;
+  tool_signups: number;
   broker_signups: number;
   deposits: number;
   deposits_total_cents: number;
@@ -56,6 +57,8 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   initiate_checkout: "Iniciou checkout",
   purchase: "Compra do curso",
   members_access: "Acesso à área de membros",
+  tool_signup: "Cadastro no Pepe",
+  tool_access: "Primeiro acesso no Pepe",
   broker_signup: "Cadastro na corretora",
   broker_deposit: "Depósito",
 };
@@ -70,6 +73,8 @@ const EVENT_TYPE_FILTER_OPTIONS = [
   { value: "initiate_checkout", label: "Iniciou checkout" },
   { value: "purchase", label: "Compra do curso" },
   { value: "members_access", label: "Acesso à área de membros" },
+  { value: "tool_signup", label: "Cadastro no Pepe" },
+  { value: "tool_access", label: "Primeiro acesso no Pepe" },
   { value: "broker_signup", label: "Cadastro na corretora" },
   { value: "broker_deposit", label: "Depósito" },
 ];
@@ -283,6 +288,7 @@ export function AnalyticsTab({
     page_view: "Leads",
     purchase: "Compras do curso",
     members_access: "Área de membros",
+    tool_signup: "Cadastros no Pepe",
     broker_signup: "Cadastros na corretora",
     broker_deposit: "Depósitos",
   };
@@ -302,6 +308,7 @@ export function AnalyticsTab({
       purchases: sumBy(filteredReport, "purchases"),
       purchaseRevenue: sumBy(filteredReport, "purchase_revenue_cents"),
       membersAccess: sumBy(filteredReport, "members_access"),
+      toolSignups: sumBy(filteredReport, "tool_signups"),
       brokerSignups: sumBy(filteredReport, "broker_signups"),
       deposits: sumBy(filteredReport, "deposits"),
       depositsTotal: sumBy(filteredReport, "deposits_total_cents"),
@@ -358,6 +365,7 @@ export function AnalyticsTab({
     { label: "Iniciou checkout", value: kpis.initiateCheckouts },
     { label: "Compra do curso", value: kpis.purchases },
     { label: "Área de membros", value: kpis.membersAccess },
+    { label: "Cadastro no Pepe", value: kpis.toolSignups },
     { label: "Cadastro na corretora", value: kpis.brokerSignups },
     { label: "Depósito", value: kpis.deposits },
   ];
@@ -596,6 +604,12 @@ export function AnalyticsTab({
               label="Área de membros"
               value={String(kpis.membersAccess)}
               onClick={() => setKpiDetailType("members_access")}
+            />
+            <KpiTile
+              icon={Sparkles}
+              label="Cadastros no Pepe"
+              value={String(kpis.toolSignups)}
+              onClick={() => setKpiDetailType("tool_signup")}
             />
             <KpiTile
               icon={Landmark}
