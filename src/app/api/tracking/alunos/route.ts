@@ -4,10 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { CHECKOUT_ADAPTERS } from "@/lib/tracking/checkout-adapters";
 import { resolvePlano } from "@/lib/sendpulse/planos";
 import { normalizarTelefone } from "@/lib/sendpulse/dispatch";
+import { normalizarEmail } from "@/lib/tracking/email";
 
-// Quem comprou, em que plano está e se já assinou o contrato — com e-mail e
-// telefone à mão, porque a razão de existir desta tela é cobrar quem ainda
-// não assinou (sem assinatura o acesso não abre).
+// Quem comprou, em que plano está, se já assinou o contrato e se já criou
+// conta no Pepe — com e-mail e telefone à mão, porque a razão de existir
+// desta tela é cobrar quem ficou pelo caminho (sem assinatura o acesso nem
+// abre; sem conta no Pepe a pessoa comprou e não está usando a ferramenta).
 //
 // Admin only: é uma lista de contatos de clientes.
 
@@ -17,9 +19,11 @@ interface Aluno {
   phone: string;
   plano: string | null;
   assinou: boolean;
+  pepe: boolean;
   primeira_compra: string | null;
   ultima_compra: string | null;
   assinado_em: string | null;
+  pepe_em: string | null;
 }
 
 export async function GET(request: Request) {
@@ -65,7 +69,7 @@ export async function GET(request: Request) {
   const porEmail = new Map<string, Aluno>();
 
   for (const ev of eventos) {
-    const email = (ev.email ?? "").trim().toLowerCase();
+    const email = normalizarEmail(ev.email);
     if (!email) continue;
 
     const atual: Aluno = porEmail.get(email) ?? {
@@ -74,9 +78,11 @@ export async function GET(request: Request) {
       phone: "",
       plano: null,
       assinou: false,
+      pepe: false,
       primeira_compra: null,
       ultima_compra: null,
       assinado_em: null,
+      pepe_em: null,
     };
 
     if (ev.event_type === "contract_signed") {
@@ -107,6 +113,40 @@ export async function GET(request: Request) {
     porEmail.set(email, atual);
   }
 
+  // Cadastro no Pepe entra como marca num aluno que já existe, nunca criando
+  // linha nova: esta lista é "quem comprou ou assinou", e alguém que só criou
+  // conta na ferramenta (time, teste, convidado) não virou aluno. Por isso é
+  // uma segunda passada, e não mais um event_type na busca de cima — ali um
+  // cadastro no Pepe anterior à compra chegaria antes de existir a linha
+  // pra marcar.
+  const pepePorEmail = new Map<string, string>();
+  for (let inicio = 0; ; inicio += PAGINA) {
+    const { data: pagina } = await admin
+      .from("tracking_events")
+      .select("email, occurred_at")
+      .eq("product_id", productId)
+      .eq("event_type", "tool_signup")
+      .not("email", "is", null)
+      .order("occurred_at", { ascending: true })
+      .range(inicio, inicio + PAGINA - 1);
+
+    if (!pagina || pagina.length === 0) break;
+    for (const ev of pagina) {
+      const email = normalizarEmail(ev.email);
+      // Ordem crescente: o primeiro que aparece é o cadastro de verdade.
+      if (email && !pepePorEmail.has(email)) pepePorEmail.set(email, ev.occurred_at);
+    }
+    if (pagina.length < PAGINA) break;
+  }
+
+  for (const [email, quando] of Array.from(pepePorEmail)) {
+    const alvo = porEmail.get(email);
+    if (alvo) {
+      alvo.pepe = true;
+      alvo.pepe_em = quando;
+    }
+  }
+
   // Completa o telefone de quem não trouxe em nenhum evento: o lead guarda o
   // que apareceu em qualquer etapa da jornada.
   const semTelefone = Array.from(porEmail.values()).filter((a) => !a.phone).map((a) => a.email);
@@ -119,7 +159,7 @@ export async function GET(request: Request) {
       .not("phone", "is", null);
 
     for (const lead of leads ?? []) {
-      const alvo = porEmail.get((lead.email ?? "").toLowerCase());
+      const alvo = porEmail.get(normalizarEmail(lead.email) ?? "");
       if (alvo && lead.phone) alvo.phone = normalizarTelefone(lead.phone);
     }
   }
@@ -132,5 +172,6 @@ export async function GET(request: Request) {
     alunos,
     total: alunos.length,
     sem_contrato: alunos.filter((a) => !a.assinou).length,
+    sem_pepe: alunos.filter((a) => !a.pepe).length,
   });
 }

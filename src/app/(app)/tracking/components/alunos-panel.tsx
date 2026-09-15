@@ -13,9 +13,11 @@ interface Aluno {
   phone: string;
   plano: string | null;
   assinou: boolean;
+  pepe: boolean;
   primeira_compra: string | null;
   ultima_compra: string | null;
   assinado_em: string | null;
+  pepe_em: string | null;
 }
 
 function data(v: string | null) {
@@ -34,6 +36,7 @@ export function AlunosPanel({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [soPendentes, setSoPendentes] = useState(false);
+  const [soSemPepe, setSoSemPepe] = useState(false);
 
   useEffect(() => {
     fetch(`/api/tracking/alunos?product_id=${productId}`)
@@ -46,6 +49,7 @@ export function AlunosPanel({ productId }: { productId: string }) {
     const termo = busca.trim().toLowerCase();
     return alunos.filter((a) => {
       if (soPendentes && a.assinou) return false;
+      if (soSemPepe && a.pepe) return false;
       if (!termo) return true;
       return (
         a.email.includes(termo) ||
@@ -53,9 +57,10 @@ export function AlunosPanel({ productId }: { productId: string }) {
         a.phone.includes(termo)
       );
     });
-  }, [alunos, busca, soPendentes]);
+  }, [alunos, busca, soPendentes, soSemPepe]);
 
   const semContrato = alunos.filter((a) => !a.assinou).length;
+  const semPepe = alunos.filter((a) => !a.pepe).length;
 
   if (loading) return <Card className="p-5 text-sm text-text-secondary">Carregando…</Card>;
 
@@ -65,13 +70,14 @@ export function AlunosPanel({ productId }: { productId: string }) {
         <div>
           <h3 className="text-sm font-semibold text-text-primary">Alunos e contratos</h3>
           <p className="mt-1 text-xs text-text-secondary">
-            Quem comprou, em que plano está e se já assinou. Sem assinatura o acesso não abre — esta lista existe
-            pra cobrar quem ficou pelo caminho.
+            Quem comprou, em que plano está, se já assinou e se já criou conta no Pepe. Sem assinatura o acesso
+            não abre — esta lista existe pra cobrar quem ficou pelo caminho.
           </p>
         </div>
         <div className="flex gap-2 text-xs">
           <Badge tone="neutral">{alunos.length} alunos</Badge>
           <Badge tone={semContrato > 0 ? "warning" : "success"}>{semContrato} sem contrato</Badge>
+          <Badge tone={semPepe > 0 ? "warning" : "success"}>{semPepe} sem Pepe</Badge>
         </div>
       </div>
 
@@ -84,6 +90,9 @@ export function AlunosPanel({ productId }: { productId: string }) {
         />
         <Button variant={soPendentes ? "primary" : "secondary"} onClick={() => setSoPendentes((v) => !v)}>
           Só quem não assinou
+        </Button>
+        <Button variant={soSemPepe ? "primary" : "secondary"} onClick={() => setSoSemPepe((v) => !v)}>
+          Só quem não entrou no Pepe
         </Button>
       </div>
 
@@ -98,6 +107,7 @@ export function AlunosPanel({ productId }: { productId: string }) {
                 <th className="py-2 pr-3 font-medium">Telefone</th>
                 <th className="py-2 pr-3 font-medium">Plano</th>
                 <th className="py-2 pr-3 font-medium">Contrato</th>
+                <th className="py-2 pr-3 font-medium">Pepe</th>
                 <th className="py-2 pr-3 font-medium">1ª compra</th>
                 <th className="py-2 font-medium">Última compra</th>
               </tr>
@@ -128,6 +138,15 @@ export function AlunosPanel({ productId }: { productId: string }) {
                         <Badge tone="success">assinado</Badge>
                       ) : (
                         <Badge tone="warning">pendente</Badge>
+                      )}
+                    </td>
+                    <td className="py-2 pr-3">
+                      {a.pepe ? (
+                        <Badge tone="success" title={`Cadastrou em ${data(a.pepe_em)}`}>
+                          cadastrado
+                        </Badge>
+                      ) : (
+                        <Badge tone="neutral">pendente</Badge>
                       )}
                     </td>
                     <td className="py-2 pr-3 whitespace-nowrap">{data(a.primeira_compra)}</td>
