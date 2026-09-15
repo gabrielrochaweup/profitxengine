@@ -33,17 +33,38 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient();
 
-  const { data: eventos } = await admin
-    .from("tracking_events")
-    .select("email, event_type, source, offer_name, raw_payload, occurred_at")
-    .eq("product_id", productId)
-    .in("event_type", ["purchase", "contract_signed"])
-    .not("email", "is", null)
-    .order("occurred_at", { ascending: true });
+  // Em páginas porque o PostgREST corta em 1000 linhas por padrão, sem
+  // avisar. Passando disso, a lista simplesmente perderia os alunos mais
+  // recentes (a ordem é crescente) e ninguém desconfiaria — é o tipo de
+  // erro que só aparece quando alguém reclama de não ter sido cobrado.
+  const PAGINA = 1000;
+  const eventos: {
+    email: string | null;
+    event_type: string;
+    source: string;
+    offer_name: string | null;
+    raw_payload: Record<string, unknown> | null;
+    occurred_at: string;
+  }[] = [];
+
+  for (let inicio = 0; ; inicio += PAGINA) {
+    const { data: pagina } = await admin
+      .from("tracking_events")
+      .select("email, event_type, source, offer_name, raw_payload, occurred_at")
+      .eq("product_id", productId)
+      .in("event_type", ["purchase", "contract_signed"])
+      .not("email", "is", null)
+      .order("occurred_at", { ascending: true })
+      .range(inicio, inicio + PAGINA - 1);
+
+    if (!pagina || pagina.length === 0) break;
+    eventos.push(...pagina);
+    if (pagina.length < PAGINA) break;
+  }
 
   const porEmail = new Map<string, Aluno>();
 
-  for (const ev of eventos ?? []) {
+  for (const ev of eventos) {
     const email = (ev.email ?? "").trim().toLowerCase();
     if (!email) continue;
 

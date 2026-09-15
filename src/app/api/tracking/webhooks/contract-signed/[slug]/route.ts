@@ -7,6 +7,13 @@ import { logWebhookCall } from "@/lib/tracking/webhook-log";
 import { webhookCorsHeaders } from "@/lib/tracking/cors";
 import { dispararPosContrato } from "@/lib/sendpulse/dispatch";
 
+// O disparo pro SendPulse acontece dentro desta requisição e tem timeout de
+// 8s. Somando cold start e as consultas ao banco, o padrão de 10s do Vercel
+// mataria a função com o POST em andamento — o webhook devolveria erro e a
+// plataforma reenviaria o evento. As travas impedem mensagem duplicada, mas
+// o reenvio é trabalho perdido.
+export const maxDuration = 30;
+
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: webhookCorsHeaders() });
 }

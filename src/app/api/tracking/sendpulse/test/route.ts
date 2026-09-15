@@ -8,6 +8,11 @@ import { PLANOS, type Plano } from "@/lib/sendpulse/planos";
 // precisar comprar o curso de novo. Admin only, como todo o resto da
 // configuração.
 
+// O POST pro SendPulse tem timeout de 8s e acontece dentro desta
+// requisição. O padrão de 10s do Vercel mataria a função no meio do envio,
+// e o painel mostraria erro numa mensagem que talvez tenha saído.
+export const maxDuration = 30;
+
 export async function POST(request: Request) {
   const profile = await getSessionProfile();
   if (!profile || !hasRole(profile.role, "admin")) {
