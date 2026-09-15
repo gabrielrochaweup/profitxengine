@@ -1,4 +1,5 @@
 import type { BrokerAdapter } from "./types";
+import { normalizarEmail } from "../email";
 
 // Baseado nos payloads reais dos eventos "REGISTER" e "DEPOSIT_PAYED"
 // mandados pela Memex Trade:
@@ -85,7 +86,7 @@ export const memextradeAdapter: BrokerAdapter = (raw) => {
       : (data && typeof data.id === "string" ? data.id : null) ??
         (lead && typeof lead.userId === "string" ? lead.userId : null);
 
-  const email = (data && typeof data.email === "string" ? data.email : null) ?? (lead && typeof lead.email === "string" ? lead.email : null);
+  const email = normalizarEmail(data?.email) ?? normalizarEmail(lead?.email);
   const phone = (data && typeof data.phone === "string" ? data.phone : null) ?? (lead && typeof lead.phone === "string" ? lead.phone : null);
 
   return {

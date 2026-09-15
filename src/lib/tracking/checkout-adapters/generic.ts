@@ -1,4 +1,5 @@
 import type { CheckoutAdapter } from "./types";
+import { normalizarEmail } from "../email";
 
 // Contrato genérico pra qualquer plataforma sem adapter dedicado ainda —
 // documentar isso pro time que for configurar o webhook do lado da
@@ -16,7 +17,7 @@ export const genericAdapter: CheckoutAdapter = (raw) => {
   if (body.event !== "purchase") return null;
 
   return {
-    email: typeof body.email === "string" ? body.email : null,
+    email: normalizarEmail(body.email),
     phone: typeof body.phone === "string" ? body.phone : null,
     name: typeof body.name === "string" ? body.name : null,
     amountCents: typeof body.amount_cents === "number" ? body.amount_cents : null,

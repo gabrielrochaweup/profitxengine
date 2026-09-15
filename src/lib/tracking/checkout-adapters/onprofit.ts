@@ -1,4 +1,5 @@
 import type { CheckoutAdapter } from "./types";
+import { normalizarEmail } from "../email";
 
 // Baseado num payload real de teste mandado pelo produtor (evento "order" da
 // Onprofit, pedido pago via Pix). Só vimos o status "PAID" até agora — outros
@@ -57,7 +58,7 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
     .trim();
 
   return {
-    email: customer && typeof customer.email === "string" ? customer.email : null,
+    email: normalizarEmail(customer?.email),
     phone,
     name: nome || null,
     amountCents: price !== null ? Math.round(price) : null,

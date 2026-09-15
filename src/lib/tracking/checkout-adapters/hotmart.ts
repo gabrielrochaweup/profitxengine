@@ -1,4 +1,5 @@
 import type { CheckoutAdapter } from "./types";
+import { normalizarEmail } from "../email";
 
 // ATENÇÃO: os caminhos abaixo (data.buyer.email, data.purchase.transaction,
 // data.purchase.price.value em reais, data.purchase.origin.sck pro parâmetro
@@ -32,7 +33,7 @@ export const hotmartAdapter: CheckoutAdapter = (raw) => {
   const phone = phoneNumber ? `${phoneCode}${phoneNumber}` : null;
 
   return {
-    email: buyer && typeof buyer.email === "string" ? buyer.email : null,
+    email: normalizarEmail(buyer?.email),
     phone,
     name: buyer && typeof buyer.name === "string" ? buyer.name : null,
     amountCents: priceValue !== null ? Math.round(priceValue * 100) : null,

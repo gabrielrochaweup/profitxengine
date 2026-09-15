@@ -1,4 +1,5 @@
 import type { MembersAreaAdapter } from "./types";
+import { normalizarEmail } from "../email";
 
 // A Cademi manda 2 formatos DIFERENTES pro mesmo evento "Aluno criado" —
 // confirmado com 2 payloads reais de alunos diferentes (02 e 04/09/2026),
@@ -29,7 +30,7 @@ export const cademiAdapter: MembersAreaAdapter = (raw) => {
     const createdAt = created && isRecord(created.at) ? created.at : null;
 
     return {
-      email: typeof user.email === "string" ? user.email : null,
+      email: normalizarEmail(user.email),
       phone: typeof user.phone === "string" ? user.phone : null,
       ref: null,
       externalId: user.id !== undefined && user.id !== null ? String(user.id) : null,
@@ -43,7 +44,7 @@ export const cademiAdapter: MembersAreaAdapter = (raw) => {
     if (!usuario) return null;
 
     return {
-      email: typeof usuario.email === "string" ? usuario.email : null,
+      email: normalizarEmail(usuario.email),
       phone: typeof usuario.celular === "string" ? usuario.celular : null,
       ref: null,
       externalId: usuario.id !== undefined && usuario.id !== null ? String(usuario.id) : null,

@@ -1,4 +1,5 @@
 import type { BrokerAdapter } from "./types";
+import { normalizarEmail } from "../email";
 
 // Contrato genérico — pra corretora feita sob medida (código próprio, não
 // uma plataforma de mercado com formato fixo):
@@ -20,7 +21,7 @@ export const genericAdapter: BrokerAdapter = (raw) => {
 
   return {
     eventType,
-    email: typeof body.email === "string" ? body.email : null,
+    email: normalizarEmail(body.email),
     phone: typeof body.phone === "string" ? body.phone : null,
     ref: typeof body.ref === "string" ? body.ref : null,
     externalId: typeof body.external_id === "string" ? body.external_id : null,

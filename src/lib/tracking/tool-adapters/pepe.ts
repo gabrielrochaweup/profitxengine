@@ -1,4 +1,5 @@
 import type { NormalizedToolEvent, ToolAdapter } from "./types";
+import { normalizarEmail } from "../email";
 
 // Pepe — a IA. Payload confirmado com o time (exemplo real de 15/09/2026):
 //
@@ -34,7 +35,7 @@ export const pepeAdapter: ToolAdapter = (raw) => {
   if (!kind) return null;
 
   const user = isRecord(body.user) ? body.user : null;
-  const email = user && typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+  const email = normalizarEmail(user?.email);
   if (!email) return null;
 
   return {

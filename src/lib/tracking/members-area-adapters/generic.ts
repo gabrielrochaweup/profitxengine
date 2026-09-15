@@ -1,4 +1,5 @@
 import type { MembersAreaAdapter } from "./types";
+import { normalizarEmail } from "../email";
 
 // Contrato genérico — pra área de membros feita sob medida (código
 // próprio, não uma plataforma de mercado com formato fixo):
@@ -12,7 +13,7 @@ export const genericAdapter: MembersAreaAdapter = (raw) => {
   if (body.event !== "first_login") return null;
 
   return {
-    email: typeof body.email === "string" ? body.email : null,
+    email: normalizarEmail(body.email),
     phone: typeof body.phone === "string" ? body.phone : null,
     ref: typeof body.ref === "string" ? body.ref : null,
     externalId: typeof body.external_id === "string" ? body.external_id : null,

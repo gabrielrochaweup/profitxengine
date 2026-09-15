@@ -9,6 +9,12 @@ interface MatchLeadInput {
   phone: string | null | undefined;
 }
 
+// ATENÇÃO: esta não é a mesma normalização de normalizarTelefone() em
+// src/lib/sendpulse/dispatch.ts, e as duas não devem ser unificadas. Aqui o
+// telefone é uma CHAVE DE COMPARAÇÃO, e o DDI é removido justamente pra que
+// o mesmo número escrito de formas diferentes case. Lá ele é o formato que o
+// SendPulse exige pra achar o contato do WhatsApp, e o +55 é obrigatório.
+//
 // Só dígitos, sem o "55" de DDI do Brasil na frente — deixa "+55 11
 // 98765-4321", "11987654321" e "5511987654321" todos virando a mesma
 // string pra comparar. Numeros de fora do Brasil com DDI de 2 dígitos

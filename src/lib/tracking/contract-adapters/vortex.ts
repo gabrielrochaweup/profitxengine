@@ -1,4 +1,5 @@
 import type { ContractAdapter } from "./types";
+import { normalizarEmail } from "../email";
 
 // A assinatura acontece na ZapSign, mas quem avisa aqui é o Vortex: ele já
 // recebe o webhook da ZapSign pra liberar o acesso do aluno, confere se o
@@ -20,7 +21,7 @@ export const vortexAdapter: ContractAdapter = (raw) => {
 
   if (body.event !== "contrato_assinado") return null;
 
-  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const email = normalizarEmail(body.email);
   if (!email) return null;
 
   return {
