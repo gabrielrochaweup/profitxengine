@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { SubTabs } from "@/components/ui/sub-tabs";
+import { AlunosPanel } from "./alunos-panel";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SimpleBarChart, ConversionFunnel, DynamicPieChart, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
@@ -101,13 +102,24 @@ const TABLE_TABS = [
 
 type TableTab = (typeof TABLE_TABS)[number]["key"];
 
-const ANALYTICS_SUB_TABS = [
-  { key: "visao", label: "Visão geral" },
-  { key: "campanhas", label: "Campanhas" },
-  { key: "eventos", label: "Eventos" },
+// Exportado porque quem manda na sub-aba ativa é o TrackingClient (ele
+// guarda a escolha na URL) — a lista precisa ser a mesma nos dois lugares,
+// senão um ?sub= válido aqui vira inválido lá.
+export const ANALYTICS_SUB_TABS = [
+  { key: "visao", label: "Visão geral", adminOnly: false },
+  { key: "campanhas", label: "Campanhas", adminOnly: false },
+  { key: "eventos", label: "Eventos", adminOnly: false },
+  { key: "alunos", label: "Alunos e contratos", adminOnly: true },
 ] as const;
 
-type AnalyticsSubTab = (typeof ANALYTICS_SUB_TABS)[number]["key"];
+export type AnalyticsSubTab = (typeof ANALYTICS_SUB_TABS)[number]["key"];
+
+// A regra de quem enxerga o quê fica num lugar só: o TrackingClient usa pra
+// validar o ?sub= que veio na URL e esta aba usa pra desenhar a barra. Em
+// dois lugares, uma sub-aba nova entraria válida num e invisível no outro.
+export function analyticsSubTabsVisiveis(isAdmin: boolean) {
+  return ANALYTICS_SUB_TABS.filter((t) => !t.adminOnly || isAdmin);
+}
 
 function fmtBRL(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -126,10 +138,16 @@ export function AnalyticsTab({
   productId,
   initialReport,
   initialEvents,
+  isAdmin,
+  subTab,
+  onSubTabChange,
 }: {
   productId: string;
   initialReport: CampaignRow[];
   initialEvents: RecentEvent[];
+  isAdmin: boolean;
+  subTab: AnalyticsSubTab;
+  onSubTabChange: (key: AnalyticsSubTab) => void;
 }) {
   const [period, setPeriod] = useState<Period>("90d");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
@@ -140,7 +158,6 @@ export function AnalyticsTab({
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [tableTab, setTableTab] = useState<TableTab>("campanhas");
-  const [subTab, setSubTab] = useState<AnalyticsSubTab>("visao");
   const [kpiDetailType, setKpiDetailType] = useState<string | null>(null);
   const [usdBrlRate, setUsdBrlRate] = useState<number | null>(null);
   const [usdBrlRateUpdatedAt, setUsdBrlRateUpdatedAt] = useState<string | null>(null);
@@ -428,9 +445,15 @@ export function AnalyticsTab({
     [filteredReport]
   );
 
+  const subTabs = analyticsSubTabsVisiveis(isAdmin);
+
   return (
     <div className="space-y-4">
-      {/* ── Barra de filtros ── */}
+      {/* ── Barra de filtros ──
+          Fora da lista de alunos: lá não existe recorte por período nem por
+          fonte de tráfego, e deixar os controles à mostra sugeriria que a
+          tabela abaixo responde a eles. */}
+      {subTab !== "alunos" && (
       <Card className="p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-wrap items-end gap-3">
@@ -509,8 +532,11 @@ export function AnalyticsTab({
           </div>
         </div>
       </Card>
+      )}
 
-      <SubTabs tabs={ANALYTICS_SUB_TABS} active={subTab} onChange={setSubTab} />
+      <SubTabs tabs={subTabs} active={subTab} onChange={onSubTabChange} />
+
+      {subTab === "alunos" && isAdmin && <AlunosPanel productId={productId} />}
 
       {subTab === "visao" && (
         <div className="space-y-4">

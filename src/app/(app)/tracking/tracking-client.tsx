@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState, type Dispatch, type SetStateAction } from "react";
+import { useSearchParams } from "next/navigation";
 import { BarChart3, Webhook, Landmark, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SubTabs } from "@/components/ui/sub-tabs";
-import { AnalyticsTab } from "./components/analytics-tab";
+import { AnalyticsTab, analyticsSubTabsVisiveis, type AnalyticsSubTab } from "./components/analytics-tab";
 import { WebhookEndpointsPanel, type WebhookEndpoint } from "./components/webhook-endpoints-panel";
 import { SendPulsePanel } from "./components/sendpulse-panel";
-import { AlunosPanel } from "./components/alunos-panel";
 import { AdAccountsPanel, type AdAccount } from "./components/ad-accounts-panel";
 import { PixelsPanel } from "./components/pixels-panel";
 import { TrackingScriptPanel } from "./components/tracking-script-panel";
@@ -68,7 +68,6 @@ const WEBHOOKS_SUB_TABS = [
   { key: "guia", label: "Guia" },
   { key: "endpoints", label: "Endpoints" },
   { key: "whatsapp", label: "WhatsApp (SendPulse)" },
-  { key: "alunos", label: "Alunos e contratos" },
 ] as const;
 type WebhooksSubTab = (typeof WEBHOOKS_SUB_TABS)[number]["key"];
 
@@ -85,6 +84,12 @@ const UTMS_SUB_TABS = [
 ] as const;
 type UtmsSubTab = (typeof UTMS_SUB_TABS)[number]["key"];
 
+// Uma sub-aba que não existe naquela aba (link velho, endereço digitado a
+// mão) cai na primeira em vez de deixar a aba sem conteúdo nenhum.
+function subInicial<T extends string>(tabs: readonly { key: T }[], valor: string | null): T {
+  return tabs.some((t) => t.key === valor) ? (valor as T) : tabs[0].key;
+}
+
 export function TrackingClient({
   productId,
   productSlug,
@@ -94,10 +99,35 @@ export function TrackingClient({
   initialAdCredentials,
   isAdmin,
 }: TrackingClientProps) {
-  const [tab, setTab] = useState<TabKey>("analises");
-  const [webhooksSubTab, setWebhooksSubTab] = useState<WebhooksSubTab>("guia");
-  const [contasSubTab, setContasSubTab] = useState<ContasSubTab>("contas");
-  const [utmsSubTab, setUtmsSubTab] = useState<UtmsSubTab>("utm");
+  const searchParams = useSearchParams();
+  const abaDaUrl = searchParams.get("aba");
+  const subDaUrl = searchParams.get("sub");
+
+  // A validação é contra o que ESTA pessoa pode ver, não contra a lista
+  // inteira: um endereço de aba só de admin, aberto por quem não é, tem que
+  // cair na primeira aba — senão a aba fica marcada no estado, some da barra
+  // de cima e o conteúdo não renderiza, deixando a tela em branco.
+  const visibleTabs = TABS.filter((t) => !t.adminOnly || isAdmin);
+  const analisesSubTabs = analyticsSubTabsVisiveis(isAdmin);
+
+  const [tab, setTab] = useState<TabKey>(
+    visibleTabs.some((t) => t.key === abaDaUrl) ? (abaDaUrl as TabKey) : visibleTabs[0].key
+  );
+  // Cada aba guarda a sua própria sub-aba, então trocar de aba e voltar não
+  // perde onde a pessoa estava. Só a sub-aba da aba que veio na URL nasce do
+  // endereço; as outras começam na primeira.
+  const [analisesSubTab, setAnalisesSubTab] = useState<AnalyticsSubTab>(
+    abaDaUrl === "analises" ? subInicial(analisesSubTabs, subDaUrl) : "visao"
+  );
+  const [webhooksSubTab, setWebhooksSubTab] = useState<WebhooksSubTab>(
+    abaDaUrl === "webhooks" ? subInicial(WEBHOOKS_SUB_TABS, subDaUrl) : "guia"
+  );
+  const [contasSubTab, setContasSubTab] = useState<ContasSubTab>(
+    abaDaUrl === "contas" ? subInicial(CONTAS_SUB_TABS, subDaUrl) : "contas"
+  );
+  const [utmsSubTab, setUtmsSubTab] = useState<UtmsSubTab>(
+    abaDaUrl === "utms" ? subInicial(UTMS_SUB_TABS, subDaUrl) : "utm"
+  );
   // Ficam aqui (não dentro de cada painel) porque as abas desmontam o
   // conteúdo ao trocar — um useState dentro do painel reiniciaria a partir
   // do initialEndpoints/initialAdCredentials (props da carga inicial da
@@ -105,7 +135,40 @@ export function TrackingClient({
   // excluído "voltar" até um refresh de página.
   const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>(initialEndpoints);
   const [adCredentials, setAdCredentials] = useState<AdAccount[]>(initialAdCredentials);
-  const visibleTabs = TABS.filter((t) => !t.adminOnly || isAdmin);
+
+  // Cada aba e sub-aba vira um endereço próprio (?aba=analises&sub=alunos),
+  // pra que atualizar a página — ou salvar o link — caia de volta exatamente
+  // onde a pessoa estava, em vez de voltar pra "Análises > Visão geral".
+  //
+  // Escrito com history.replaceState, não com router.replace: os dois deixam
+  // o endereço igual, mas o router trata como navegação e manda o servidor
+  // renderizar a página de novo, refazendo o relatório de 90 dias a cada
+  // clique numa aba. Aqui o estado já está todo no cliente — a URL é só o
+  // marcador.
+  const gravarNaUrl = useCallback((aba: TabKey, sub: string) => {
+    window.history.replaceState(null, "", `${window.location.pathname}?aba=${aba}&sub=${sub}`);
+  }, []);
+
+  const subAtual = (aba: TabKey): string =>
+    aba === "analises"
+      ? analisesSubTab
+      : aba === "webhooks"
+        ? webhooksSubTab
+        : aba === "contas"
+          ? contasSubTab
+          : utmsSubTab;
+
+  const trocarAba = (aba: TabKey) => {
+    setTab(aba);
+    gravarNaUrl(aba, subAtual(aba));
+  };
+
+  function trocarSub<T extends string>(aba: TabKey, set: Dispatch<SetStateAction<T>>) {
+    return (sub: T) => {
+      set(sub);
+      gravarNaUrl(aba, sub);
+    };
+  }
 
   return (
     <div className="mt-4">
@@ -116,7 +179,7 @@ export function TrackingClient({
             <button
               key={t.key}
               type="button"
-              onClick={() => setTab(t.key)}
+              onClick={() => trocarAba(t.key)}
               className={cn(
                 "flex items-center gap-1.5 rounded-button px-3 py-1.5 text-sm font-medium transition-colors",
                 tab === t.key
@@ -131,23 +194,31 @@ export function TrackingClient({
         })}
       </div>
 
-      {tab === "analises" && <AnalyticsTab productId={productId} initialReport={initialReport} initialEvents={initialEvents} />}
+      {tab === "analises" && (
+        <AnalyticsTab
+          productId={productId}
+          initialReport={initialReport}
+          initialEvents={initialEvents}
+          isAdmin={isAdmin}
+          subTab={analisesSubTab}
+          onSubTabChange={trocarSub("analises", setAnalisesSubTab)}
+        />
+      )}
 
       {tab === "webhooks" && isAdmin && (
         <div>
-          <SubTabs tabs={WEBHOOKS_SUB_TABS} active={webhooksSubTab} onChange={setWebhooksSubTab} />
+          <SubTabs tabs={WEBHOOKS_SUB_TABS} active={webhooksSubTab} onChange={trocarSub("webhooks", setWebhooksSubTab)} />
           {webhooksSubTab === "guia" && <TrackingFlowGuide endpoints={endpoints} isAdmin={isAdmin} />}
           {webhooksSubTab === "endpoints" && (
             <WebhookEndpointsPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
           )}
           {webhooksSubTab === "whatsapp" && <SendPulsePanel productId={productId} />}
-          {webhooksSubTab === "alunos" && <AlunosPanel productId={productId} />}
         </div>
       )}
 
       {tab === "contas" && isAdmin && (
         <div>
-          <SubTabs tabs={CONTAS_SUB_TABS} active={contasSubTab} onChange={setContasSubTab} />
+          <SubTabs tabs={CONTAS_SUB_TABS} active={contasSubTab} onChange={trocarSub("contas", setContasSubTab)} />
           {contasSubTab === "contas" && (
             <AdAccountsPanel productId={productId} accounts={adCredentials} setAccounts={setAdCredentials} />
           )}
@@ -157,7 +228,7 @@ export function TrackingClient({
 
       {tab === "utms" && (
         <div>
-          <SubTabs tabs={UTMS_SUB_TABS} active={utmsSubTab} onChange={setUtmsSubTab} />
+          <SubTabs tabs={UTMS_SUB_TABS} active={utmsSubTab} onChange={trocarSub("utms", setUtmsSubTab)} />
           {utmsSubTab === "utm" && <UtmBuilder />}
           {utmsSubTab === "checkout" && <LinkBuilder productSlug={productSlug} />}
           {utmsSubTab === "script" && <TrackingScriptPanel productSlug={productSlug} />}
