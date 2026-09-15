@@ -159,6 +159,9 @@ export function AnalyticsTab({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [tableTab, setTableTab] = useState<TableTab>("campanhas");
   const [kpiDetailType, setKpiDetailType] = useState<string | null>(null);
+  // Só o botão "Atualizar" remonta a busca da lista de alunos; trocar de
+  // período não precisa, porque o recorte por data é feito aqui no cliente.
+  const [recarregarAlunos, setRecarregarAlunos] = useState(0);
   const [usdBrlRate, setUsdBrlRate] = useState<number | null>(null);
   const [usdBrlRateUpdatedAt, setUsdBrlRateUpdatedAt] = useState<string | null>(null);
   const [salesByOffer, setSalesByOffer] = useState<{ offer_name: string; purchases: number; revenue_cents: number }[]>(
@@ -446,14 +449,26 @@ export function AnalyticsTab({
   );
 
   const subTabs = analyticsSubTabsVisiveis(isAdmin);
+  const listaDeAlunos = subTab === "alunos";
+
+  // Mesma janela que o resto da aba usa, só que aplicada por pessoa em vez
+  // de por evento — a conta fica no cliente porque a lista de alunos vem
+  // inteira de uma vez e trocar de período não precisa de ida ao servidor.
+  const janela = useMemo(() => {
+    const { from, now } = periodRange(period);
+    return { de: from.toISOString(), ate: now.toISOString() };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period]);
 
   return (
     <div className="space-y-4">
       {/* ── Barra de filtros ──
-          Fora da lista de alunos: lá não existe recorte por período nem por
-          fonte de tráfego, e deixar os controles à mostra sugeriria que a
-          tabela abaixo responde a eles. */}
-      {subTab !== "alunos" && (
+          Vale pra todas as sub-abas, inclusive a lista de alunos: o período
+          recorta quem entrou naquela janela. Os filtros de tráfego ficam
+          desligados lá — a lista é por pessoa, e uma pessoa não tem uma
+          origem só (ela pode ter chegado por um anúncio e comprado depois de
+          voltar pelo direto). Desligado é melhor do que sumido: some da tela,
+          e a impressão é de que a barra inteira parou de valer.  */}
       <Card className="p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-wrap items-end gap-3">
@@ -479,8 +494,17 @@ export function AnalyticsTab({
             </div>
 
             <div className="w-40">
-              <label className="mb-1 block text-[11px] font-medium text-text-muted">Fonte de tráfego</label>
-              <Select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
+                Fonte de tráfego
+                {listaDeAlunos && (
+                  <Tooltip text="Vale pros relatórios por campanha. A lista de alunos é por pessoa, e a mesma pessoa costuma passar por mais de uma origem antes de comprar." />
+                )}
+              </label>
+              <Select
+                value={listaDeAlunos ? "all" : sourceFilter}
+                disabled={listaDeAlunos}
+                onChange={(e) => setSourceFilter(e.target.value)}
+              >
                 <option value="all">Qualquer</option>
                 {sources.map((s) => (
                   <option key={s} value={s}>
@@ -513,7 +537,8 @@ export function AnalyticsTab({
             <label className="flex items-center gap-2 pb-2.5 text-xs text-text-secondary">
               <input
                 type="checkbox"
-                checked={hideUnattributed}
+                checked={hideUnattributed && !listaDeAlunos}
+                disabled={listaDeAlunos}
                 onChange={(e) => setHideUnattributed(e.target.checked)}
                 className="h-3.5 w-3.5 accent-accent"
               />
@@ -525,18 +550,27 @@ export function AnalyticsTab({
             <span className="text-[11px] text-text-muted">
               {lastUpdated ? `Atualizado às ${lastUpdated.toLocaleTimeString("pt-BR")}` : "—"}
             </span>
-            <Button size="sm" variant="secondary" onClick={() => fetchReport(period)} disabled={loading}>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setRecarregarAlunos((n) => n + 1);
+                fetchReport(period);
+              }}
+              disabled={loading}
+            >
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
               Atualizar
             </Button>
           </div>
         </div>
       </Card>
-      )}
 
       <SubTabs tabs={subTabs} active={subTab} onChange={onSubTabChange} />
 
-      {subTab === "alunos" && isAdmin && <AlunosPanel productId={productId} />}
+      {listaDeAlunos && isAdmin && (
+        <AlunosPanel productId={productId} de={janela.de} ate={janela.ate} recarregar={recarregarAlunos} />
+      )}
 
       {subTab === "visao" && (
         <div className="space-y-4">

@@ -31,7 +31,17 @@ function linkWhatsapp(phone: string) {
   return digits ? `https://wa.me/${digits}` : null;
 }
 
-export function AlunosPanel({ productId }: { productId: string }) {
+export function AlunosPanel({
+  productId,
+  de,
+  ate,
+  recarregar,
+}: {
+  productId: string;
+  de: string;
+  ate: string;
+  recarregar: number;
+}) {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
@@ -43,11 +53,29 @@ export function AlunosPanel({ productId }: { productId: string }) {
       .then((r) => r.json())
       .then((d) => setAlunos(d.alunos ?? []))
       .finally(() => setLoading(false));
-  }, [productId]);
+  }, [productId, recarregar]);
+
+  // O período recorta por QUANDO a pessoa entrou, não pelos eventos dela: o
+  // plano, o contrato e o Pepe continuam sendo o estado atual e completo.
+  // Recortar os eventos faria alguém que comprou hoje e assinou semana
+  // passada aparecer como "pendente" no filtro de hoje — numa lista cuja
+  // razão de existir é cobrar quem não assinou, isso é pior do que inútil.
+  const noPeriodo = useMemo(() => {
+    const inicio = new Date(de).getTime();
+    const fim = new Date(ate).getTime();
+    return alunos.filter((a) => {
+      const entrada = a.primeira_compra ?? a.assinado_em ?? a.pepe_em;
+      // Sem nenhuma data conhecida, fica visível: sumir de uma lista de
+      // cobrança é um jeito silencioso de perder a pessoa de vista.
+      if (!entrada) return true;
+      const quando = new Date(entrada).getTime();
+      return quando >= inicio && quando <= fim;
+    });
+  }, [alunos, de, ate]);
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    return alunos.filter((a) => {
+    return noPeriodo.filter((a) => {
       if (soPendentes && a.assinou) return false;
       if (soSemPepe && a.pepe) return false;
       if (!termo) return true;
@@ -57,10 +85,12 @@ export function AlunosPanel({ productId }: { productId: string }) {
         a.phone.includes(termo)
       );
     });
-  }, [alunos, busca, soPendentes, soSemPepe]);
+  }, [noPeriodo, busca, soPendentes, soSemPepe]);
 
-  const semContrato = alunos.filter((a) => !a.assinou).length;
-  const semPepe = alunos.filter((a) => !a.pepe).length;
+  // Os contadores seguem o período (e não a busca): eles descrevem o
+  // universo daquela janela, que é o que os botões abaixo filtram.
+  const semContrato = noPeriodo.filter((a) => !a.assinou).length;
+  const semPepe = noPeriodo.filter((a) => !a.pepe).length;
 
   if (loading) return <Card className="p-5 text-sm text-text-secondary">Carregando…</Card>;
 
@@ -75,7 +105,7 @@ export function AlunosPanel({ productId }: { productId: string }) {
           </p>
         </div>
         <div className="flex gap-2 text-xs">
-          <Badge tone="neutral">{alunos.length} alunos</Badge>
+          <Badge tone="neutral">{noPeriodo.length} alunos</Badge>
           <Badge tone={semContrato > 0 ? "warning" : "success"}>{semContrato} sem contrato</Badge>
           <Badge tone={semPepe > 0 ? "warning" : "success"}>{semPepe} sem Pepe</Badge>
         </div>
@@ -97,7 +127,11 @@ export function AlunosPanel({ productId }: { productId: string }) {
       </div>
 
       {filtrados.length === 0 ? (
-        <p className="mt-4 text-sm text-text-muted">Nenhum aluno encontrado.</p>
+        <p className="mt-4 text-sm text-text-muted">
+          {alunos.length > 0 && noPeriodo.length === 0
+            ? "Ninguém entrou nesse período — troque o filtro de data acima."
+            : "Nenhum aluno encontrado."}
+        </p>
       ) : (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-xs">
