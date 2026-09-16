@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw, Sparkles } from "lucide-react";
+import {
+  Users,
+  ShoppingCart,
+  GraduationCap,
+  Landmark,
+  Wallet,
+  TrendingUp,
+  Percent,
+  RefreshCw,
+  Sparkles,
+  FileSignature,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
@@ -20,6 +31,7 @@ interface CampaignRow {
   initiate_checkouts: number;
   purchases: number;
   purchase_revenue_cents: number;
+  contracts_signed: number;
   members_access: number;
   tool_signups: number;
   broker_signups: number;
@@ -57,6 +69,7 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   page_view: "Clique/landing",
   initiate_checkout: "Iniciou checkout",
   purchase: "Compra do curso",
+  contract_signed: "Contrato assinado",
   members_access: "Acesso à área de membros",
   tool_signup: "Cadastro no Pepe",
   tool_access: "Primeiro acesso no Pepe",
@@ -73,6 +86,7 @@ const EVENT_TYPE_FILTER_OPTIONS = [
   { value: "page_view", label: "Clique/landing" },
   { value: "initiate_checkout", label: "Iniciou checkout" },
   { value: "purchase", label: "Compra do curso" },
+  { value: "contract_signed", label: "Contrato assinado" },
   { value: "members_access", label: "Acesso à área de membros" },
   { value: "tool_signup", label: "Cadastro no Pepe" },
   { value: "tool_access", label: "Primeiro acesso no Pepe" },
@@ -307,6 +321,7 @@ export function AnalyticsTab({
   const KPI_DETAIL_LABEL: Record<string, string> = {
     page_view: "Leads",
     purchase: "Compras do curso",
+    contract_signed: "Contratos assinados",
     members_access: "Área de membros",
     tool_signup: "Cadastros no Pepe",
     broker_signup: "Cadastros na corretora",
@@ -327,6 +342,7 @@ export function AnalyticsTab({
       initiateCheckouts: sumBy(filteredReport, "initiate_checkouts"),
       purchases: sumBy(filteredReport, "purchases"),
       purchaseRevenue: sumBy(filteredReport, "purchase_revenue_cents"),
+      contractsSigned: sumBy(filteredReport, "contracts_signed"),
       membersAccess: sumBy(filteredReport, "members_access"),
       toolSignups: sumBy(filteredReport, "tool_signups"),
       brokerSignups: sumBy(filteredReport, "broker_signups"),
@@ -384,6 +400,7 @@ export function AnalyticsTab({
     { label: "Leads", value: kpis.leads },
     { label: "Iniciou checkout", value: kpis.initiateCheckouts },
     { label: "Compra do curso", value: kpis.purchases },
+    { label: "Contrato assinado", value: kpis.contractsSigned },
     { label: "Área de membros", value: kpis.membersAccess },
     { label: "Cadastro no Pepe", value: kpis.toolSignups },
     { label: "Cadastro na corretora", value: kpis.brokerSignups },
@@ -644,8 +661,10 @@ export function AnalyticsTab({
             </Card>
           </div>
 
-          {/* ── KPIs do funil (dado real, já capturado) ── */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {/* ── KPIs do funil (dado real, já capturado) ──
+              São 8 cards: em 6 colunas sobrava uma segunda fileira com dois
+              cards soltos. 4 e 8 dividem certo. */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
             <KpiTile
               icon={Users}
               label="Leads"
@@ -658,6 +677,12 @@ export function AnalyticsTab({
               value={String(kpis.purchases)}
               sub={fmtBRL(kpis.purchaseRevenue)}
               onClick={() => setKpiDetailType("purchase")}
+            />
+            <KpiTile
+              icon={FileSignature}
+              label="Contratos assinados"
+              value={String(kpis.contractsSigned)}
+              onClick={() => setKpiDetailType("contract_signed")}
             />
             <KpiTile
               icon={GraduationCap}

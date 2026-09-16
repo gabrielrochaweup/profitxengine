@@ -2,9 +2,27 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "remotion-profitx-video",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "../PROFITX-VIDEO",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3111",
+        "--no-open"
+      ],
+      "port": 3111
+    },
+    {
       "name": "profitx-engine-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
     }
   ]
