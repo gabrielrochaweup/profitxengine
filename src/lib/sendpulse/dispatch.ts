@@ -114,6 +114,23 @@ async function enderecoDoEvento(
   return { url: "", origem: "" };
 }
 
+/* ---------------- nome ------------------------------------------- */
+
+/**
+ * Nome quebrado em primeiro nome e resto.
+ *
+ * A Onprofit manda "name" e "lastname" separados e o adapter junta os dois
+ * pra guardar o nome completo. Aqui desfaz só o suficiente pra saudação: o
+ * SendPulse usa {{first_name}}, e "Olá Teste" é o esperado, não "Olá Teste
+ * Testando". Quem tem nome composto ("Ana Maria Silva") é saudado por
+ * "Ana" — é o que a Onprofit também faria se o cadastro tivesse vindo com
+ * "Ana Maria" no campo de nome.
+ */
+function partesDoNome(nome: string): { primeiro: string; resto: string } {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  return { primeiro: partes[0] ?? "", resto: partes.slice(1).join(" ") };
+}
+
 /* ---------------- registro + envio -------------------------------- */
 
 interface EnvioInput {
@@ -151,16 +168,36 @@ async function registrarFalha(
  * O corpo é o mesmo em todos os funis — quem diferencia a mensagem é o
  * evento do SendPulse que recebeu o POST, e o campo "evento" aqui dentro
  * pro fluxo poder ramificar sem depender só da URL.
+ *
+ * Os campos vão repetidos em dois formatos de propósito. Os eventos de
+ * boas-vindas no SendPulse foram montados quando quem chamava era a
+ * Onprofit, que manda o cliente aninhado em "customer" com nome e sobrenome
+ * já separados — é desse "customer.name" que sai o {{first_name}} das
+ * mensagens. Falando a mesma língua, o mapeamento que já existe lá continua
+ * valendo depois de desligar a integração da Onprofit; sem isso, desligar a
+ * Onprofit calaria o nome e a mensagem sairia "Olá ,". Os campos planos
+ * (nome, phone, email) ficam porque os eventos de pós-contrato foram
+ * montados em cima deles.
  */
 async function enviar(admin: Admin, input: EnvioInput, destino: Destino): Promise<ResultadoDisparo> {
   const { productId, tipo, plano, email, phone, nome, teste } = input;
+  const { primeiro, resto } = partesDoNome(nome);
 
   const corpo = {
     email,
     phone,
     nome,
+    first_name: primeiro,
+    last_name: resto,
     plano: plano ?? "",
     evento: tipo === "boas_vindas" ? "boas_vindas" : "contrato_assinado",
+    customer: {
+      name: primeiro,
+      lastname: resto,
+      email,
+      cell: phone,
+      phone,
+    },
   };
 
   const { data: registro } = await admin
