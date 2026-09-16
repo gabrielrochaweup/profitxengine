@@ -594,24 +594,28 @@ export function AnalyticsTab({
           {/* ── Lucro em destaque ── */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <HeroStat
-              label="Lucro — Curso (R$)"
-              value={profitCurso !== null ? fmtBRL(profitCurso) : "—"}
-              positive={profitCurso !== null ? profitCurso >= 0 : null}
-              roas={roasCurso !== null ? `${roasCurso.toFixed(1)}x` : "—"}
-              roi={roiCurso !== null ? `${roiCurso >= 0 ? "+" : ""}${(roiCurso * 100).toFixed(0)}%` : "—"}
+              label="Curso — faturamento (R$)"
+              value={fmtBRL(kpis.purchaseRevenue)}
+              sub={`${kpis.purchases} ${kpis.purchases === 1 ? "compra" : "compras"}`}
+              lucro={profitCurso !== null ? { valor: fmtBRL(profitCurso), positivo: profitCurso >= 0 } : null}
+              roas={roasCurso !== null ? `${roasCurso.toFixed(1)}x` : null}
+              roi={roiCurso !== null ? `${roiCurso >= 0 ? "+" : ""}${(roiCurso * 100).toFixed(0)}%` : null}
             />
             <HeroStat
-              label="Lucro — Corretora (US$ convertido p/ R$)"
-              value={profitCorretora !== null ? fmtBRL(profitCorretora) : "—"}
-              positive={profitCorretora !== null ? profitCorretora >= 0 : null}
-              roas={roasCorretora !== null ? `${roasCorretora.toFixed(1)}x` : "—"}
-              roi={roiCorretora !== null ? `${roiCorretora >= 0 ? "+" : ""}${(roiCorretora * 100).toFixed(0)}%` : "—"}
-              hint={
-                <span className="inline-flex items-center gap-1">
-                  Depósito é sempre em dólar, convertido pra comparar com o gasto
+              label="Corretora — depósitos (US$)"
+              value={fmtUSD(kpis.depositsTotal)}
+              sub={
+                <span className="inline-flex flex-wrap items-center gap-1">
+                  {kpis.deposits} {kpis.deposits === 1 ? "depósito" : "depósitos"}
+                  {depositsTotalBRL !== null && <span>· ≈ {fmtBRL(depositsTotalBRL)}</span>}
                   <Tooltip text="Depósito é sempre em dólar — convertido pra real na cotação atual só pra comparar com o gasto em anúncios, que é cobrado em real." />
                 </span>
               }
+              lucro={
+                profitCorretora !== null ? { valor: fmtBRL(profitCorretora), positivo: profitCorretora >= 0 } : null
+              }
+              roas={roasCorretora !== null ? `${roasCorretora.toFixed(1)}x` : null}
+              roi={roiCorretora !== null ? `${roiCorretora >= 0 ? "+" : ""}${(roiCorretora * 100).toFixed(0)}%` : null}
             />
           </div>
 
@@ -1113,38 +1117,65 @@ function EventsTable({ events }: { events: RecentEvent[] }) {
   );
 }
 
+/**
+ * Valor que entrou, e — só quando dá pra calcular — o que sobrou dele.
+ *
+ * O número grande é sempre o total faturado/depositado, que existe desde a
+ * primeira venda. Lucro, ROAS e ROI dependem do gasto com anúncios estar
+ * sincronizado em Contas Meta/Google, e por isso moram num bloco separado
+ * que simplesmente não aparece enquanto não houver gasto. Antes o card
+ * inteiro era o lucro: sem gasto sincronizado ele mostrava "—" e escondia
+ * junto o faturamento, que já era conhecido.
+ *
+ * A cor verde/vermelha fica no lucro, não no total: faturamento não tem
+ * sinal, só tamanho.
+ */
 function HeroStat({
   label,
   value,
-  positive,
+  sub,
+  lucro,
   roas,
   roi,
-  hint,
 }: {
   label: string;
   value: string;
-  /** null quando ainda não dá pra calcular (sem gasto sincronizado ainda). */
-  positive: boolean | null;
-  roas: string;
-  roi: string;
-  hint?: ReactNode;
+  sub?: ReactNode;
+  /** null enquanto não houver gasto sincronizado pra descontar. */
+  lucro: { valor: string; positivo: boolean } | null;
+  roas: string | null;
+  roi: string | null;
 }) {
   return (
     <div className="rounded-xl bg-card-hover p-5 shadow-card-sm">
       <p className="mb-1 text-xs font-medium text-text-muted">{label}</p>
-      <p
-        className={cn(
-          "text-3xl font-bold",
-          positive === null ? "text-text-muted" : positive ? "text-success" : "text-danger"
-        )}
-      >
-        {value}
-      </p>
-      <div className="mt-2 flex items-center gap-3 text-[11px] text-text-muted">
-        <span>ROAS {roas}</span>
-        <span>ROI {roi}</span>
-      </div>
-      {hint && <div className="mt-1 text-[10px] text-text-muted/70">{hint}</div>}
+      <p className="text-3xl font-bold text-text-primary">{value}</p>
+      {sub && <div className="mt-1 text-[11px] text-text-muted">{sub}</div>}
+
+      {lucro ? (
+        <div className="mt-4 rounded-lg bg-card p-3">
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-text-muted">Lucro</p>
+              <p className={cn("text-base font-bold", lucro.positivo ? "text-success" : "text-danger")}>
+                {lucro.valor}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-text-muted">ROAS</p>
+              <p className="text-base font-semibold text-text-primary">{roas ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-text-muted">ROI</p>
+              <p className="text-base font-semibold text-text-primary">{roi ?? "—"}</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-4 text-[10px] text-text-muted/70">
+          Lucro, ROAS e ROI entram aqui quando o gasto com anúncios for sincronizado.
+        </p>
+      )}
     </div>
   );
 }
