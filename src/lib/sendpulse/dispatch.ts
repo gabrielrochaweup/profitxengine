@@ -86,7 +86,7 @@ async function enderecoDoEvento(
   productId: string,
   tipo: TipoFunil,
   plano: Plano | null
-): Promise<Destino | { desligado: true }> {
+): Promise<Destino | { desligado: true; origem: string }> {
   const prefixo = tipo === "boas_vindas" ? "boasvindas" : "contrato";
 
   if (plano) {
@@ -97,7 +97,7 @@ async function enderecoDoEvento(
       .eq("key", sendpulseKey(prefixo, plano))
       .maybeSingle();
 
-    if (doPlano && !doPlano.enabled) return { desligado: true };
+    if (doPlano && !doPlano.enabled) return { desligado: true, origem: plano };
     if (doPlano?.url?.trim()) return { url: doPlano.url.trim(), origem: plano };
   }
 
@@ -108,10 +108,25 @@ async function enderecoDoEvento(
     .eq("key", sendpulseKey(prefixo, "geral"))
     .maybeSingle();
 
-  if (geral && !geral.enabled) return { desligado: true };
+  if (geral && !geral.enabled) return { desligado: true, origem: "geral" };
   if (geral?.url?.trim()) return { url: geral.url.trim(), origem: "geral" };
 
   return { url: "", origem: "" };
+}
+
+/**
+ * Por que o disparo parou, dizendo qual interruptor do painel o segurou.
+ *
+ * "geral" merece frase própria: quando a pessoa não tem compra registrada
+ * não dá pra saber o plano, então o disparo cai no geral — e ler "o funil
+ * geral está desligado" leva direto ao campo certo, enquanto "está
+ * desligado" mandaria procurar no plano errado.
+ */
+function motivoDesligado(tipo: TipoFunil, origem: string): string {
+  const funil = tipo === "boas_vindas" ? "boas-vindas" : "pós-contrato";
+  return origem === "geral"
+    ? `Sem plano identificado, e o funil ${funil} geral está desligado no painel.`
+    : `O funil ${funil} do plano ${origem} está desligado no painel.`;
 }
 
 /* ---------------- nome ------------------------------------------- */
@@ -294,7 +309,9 @@ export async function dispararBoasVindas(admin: Admin, input: BoasVindasInput): 
   };
 
   const destino = await enderecoDoEvento(admin, input.productId, "boas_vindas", plano);
-  if ("desligado" in destino) return { ok: false, motivo: "desligado" };
+  if ("desligado" in destino) {
+    return registrarFalha(admin, base, motivoDesligado("boas_vindas", destino.origem));
+  }
   if (!destino.url) {
     return registrarFalha(
       admin,
@@ -391,7 +408,9 @@ export async function dispararPosContrato(admin: Admin, input: PosContratoInput)
   }
 
   const destino = await enderecoDoEvento(admin, input.productId, "contrato", plano);
-  if ("desligado" in destino) return { ok: false, motivo: "desligado" };
+  if ("desligado" in destino) {
+    return registrarFalha(admin, base, motivoDesligado("contrato", destino.origem));
+  }
   if (!destino.url) {
     return registrarFalha(
       admin,
@@ -475,7 +494,7 @@ export async function dispararTeste(admin: Admin, input: TesteInput): Promise<Re
 
   const destino = await enderecoDoEvento(admin, input.productId, input.tipo, plano);
   if ("desligado" in destino) {
-    return registrarFalha(admin, base, "A linha desse plano está desligada no painel.");
+    return registrarFalha(admin, base, motivoDesligado(input.tipo, destino.origem));
   }
   if (!destino.url) {
     return registrarFalha(
