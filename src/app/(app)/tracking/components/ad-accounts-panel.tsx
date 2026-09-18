@@ -45,10 +45,13 @@ const EMPTY_GOOGLE: GoogleFieldsValue = {
 
 export function AdAccountsPanel({
   productId,
+  platform,
   accounts,
   setAccounts,
 }: {
   productId: string;
+  /** A aba já é por plataforma; o painel mostra só o lado que ela abriu. */
+  platform: "meta" | "google";
   accounts: AdAccount[];
   setAccounts: Dispatch<SetStateAction<AdAccount[]>>;
 }) {
@@ -64,24 +67,14 @@ export function AdAccountsPanel({
   }
 
   return (
-    <div className="space-y-4">
-      <PlatformSection
-        platform="meta"
-        title="Meta Ads"
-        productId={productId}
-        accounts={accounts.filter((a) => a.platform === "meta")}
-        onUpsert={upsert}
-        onRemove={remove}
-      />
-      <PlatformSection
-        platform="google"
-        title="Google Ads"
-        productId={productId}
-        accounts={accounts.filter((a) => a.platform === "google")}
-        onUpsert={upsert}
-        onRemove={remove}
-      />
-    </div>
+    <PlatformSection
+      platform={platform}
+      title={platform === "meta" ? "Contas Meta Ads" : "Contas Google Ads"}
+      productId={productId}
+      accounts={accounts.filter((a) => a.platform === platform)}
+      onUpsert={upsert}
+      onRemove={remove}
+    />
   );
 }
 

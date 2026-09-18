@@ -1187,6 +1187,67 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["ad_campaign_spend"]["Insert"]>;
         Relationships: [];
       };
+      ad_business_managers: {
+        Row: {
+          id: string;
+          product_id: string;
+          platform: "meta" | "google";
+          nome: string;
+          external_id: string | null;
+          status: "ativa" | "pronta" | "restrita" | "bloqueada";
+          contas: string;
+          paginas: string;
+          observacoes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["ad_business_managers"]["Row"],
+          "id" | "external_id" | "status" | "contas" | "paginas" | "observacoes" | "created_by" | "created_at" | "updated_at"
+        > & {
+          id?: string;
+          external_id?: string | null;
+          status?: "ativa" | "pronta" | "restrita" | "bloqueada";
+          contas?: string;
+          paginas?: string;
+          observacoes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_business_managers"]["Insert"]>;
+        Relationships: [];
+      };
+      tracking_utm_presets: {
+        Row: {
+          id: string;
+          product_id: string;
+          nome: string;
+          utm_source: string;
+          utm_medium: string;
+          utm_campaign: string;
+          utm_content: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["tracking_utm_presets"]["Row"],
+          "id" | "utm_source" | "utm_medium" | "utm_campaign" | "utm_content" | "position" | "created_by" | "created_at"
+        > & {
+          id?: string;
+          utm_source?: string;
+          utm_medium?: string;
+          utm_campaign?: string;
+          utm_content?: string;
+          position?: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tracking_utm_presets"]["Insert"]>;
+        Relationships: [];
+      };
       tracking_pixels: {
         Row: {
           id: string;

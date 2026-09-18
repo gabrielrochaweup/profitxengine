@@ -6,21 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
-
-interface Preset {
-  label: string;
-  source: string;
-  medium: string;
-}
-
-const PRESETS: Preset[] = [
-  { label: "Meta Ads", source: "meta", medium: "cpc" },
-  { label: "Google Ads", source: "google", medium: "cpc" },
-  { label: "Instagram orgânico", source: "instagram", medium: "social" },
-  { label: "WhatsApp", source: "whatsapp", medium: "referral" },
-  { label: "E-mail", source: "email", medium: "email" },
-];
+import { UtmPresetsPanel } from "./utm-presets-panel";
 
 const EMPTY = {
   baseUrl: "",
@@ -33,7 +19,7 @@ const EMPTY = {
   gcid: "",
 };
 
-export function UtmBuilder() {
+export function UtmBuilder({ productId }: { productId: string }) {
   const toast = useToast();
   const [fields, setFields] = useState(EMPTY);
 
@@ -69,14 +55,11 @@ export function UtmBuilder() {
     toast.success("Link copiado.");
   }
 
-  function applyPreset(preset: Preset) {
-    setFields((prev) => ({ ...prev, source: preset.source, medium: preset.medium }));
-  }
-
   const hasBase = fields.baseUrl.trim().length > 0;
 
   return (
-    <Card className="p-5">
+    <div className="space-y-4">
+      <Card className="p-5">
       <div className="mb-4 flex items-center gap-1.5">
         <h3 className="text-base font-semibold text-text-primary">Gerador de UTMs</h3>
         <Tooltip
@@ -97,27 +80,6 @@ export function UtmBuilder() {
             onChange={(e) => set("baseUrl", e.target.value)}
             placeholder="https://escolaprofitx.com"
           />
-        </div>
-
-        <div>
-          <p className="mb-1.5 text-[11px] font-medium text-text-muted">Atalhos</p>
-          <div className="flex flex-wrap gap-1.5">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() => applyPreset(preset)}
-                className={cn(
-                  "rounded-button px-2.5 py-1 text-[11px] font-medium transition-colors",
-                  fields.source === preset.source && fields.medium === preset.medium
-                    ? "bg-accent text-white"
-                    : "bg-card-hover text-text-secondary hover:text-text-primary"
-                )}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -212,6 +174,21 @@ export function UtmBuilder() {
           </div>
         )}
       </div>
-    </Card>
+      </Card>
+
+      <UtmPresetsPanel
+        productId={productId}
+        atual={{ source: fields.source, medium: fields.medium, campaign: fields.campaign, content: fields.content }}
+        onUsar={(v) =>
+          setFields((prev) => ({
+            ...prev,
+            source: v.source,
+            medium: v.medium,
+            campaign: v.campaign || prev.campaign,
+            content: v.content || prev.content,
+          }))
+        }
+      />
+    </div>
   );
 }

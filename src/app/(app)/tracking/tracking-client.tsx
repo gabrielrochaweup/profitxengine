@@ -9,6 +9,7 @@ import { AnalyticsTab, analyticsSubTabsVisiveis, type AnalyticsSubTab } from "./
 import { WebhookEndpointsPanel, type WebhookEndpoint } from "./components/webhook-endpoints-panel";
 import { SendPulsePanel } from "./components/sendpulse-panel";
 import { AdAccountsPanel, type AdAccount } from "./components/ad-accounts-panel";
+import { BmsPanel } from "./components/bms-panel";
 import { PixelsPanel } from "./components/pixels-panel";
 import { TrackingScriptPanel } from "./components/tracking-script-panel";
 import { UtmBuilder } from "./components/utm-builder";
@@ -72,8 +73,14 @@ const WEBHOOKS_SUB_TABS = [
 ] as const;
 type WebhooksSubTab = (typeof WEBHOOKS_SUB_TABS)[number]["key"];
 
+// Separado por plataforma, e não por tipo de cadastro: quem abre essa aba
+// está resolvendo um problema de UM lado (a BM da Meta caiu, a conta do
+// Google foi suspensa) e quer ver tudo daquele lado junto — inventário de
+// BMs e as contas conectadas pro sync de gasto. Pixels ficam de fora porque
+// são a mesma tela pras duas plataformas.
 const CONTAS_SUB_TABS = [
-  { key: "contas", label: "Contas de anúncio" },
+  { key: "meta", label: "Meta" },
+  { key: "google", label: "Google" },
   { key: "pixels", label: "Pixels" },
 ] as const;
 type ContasSubTab = (typeof CONTAS_SUB_TABS)[number]["key"];
@@ -124,7 +131,7 @@ export function TrackingClient({
     abaDaUrl === "webhooks" ? subInicial(WEBHOOKS_SUB_TABS, subDaUrl) : "guia"
   );
   const [contasSubTab, setContasSubTab] = useState<ContasSubTab>(
-    abaDaUrl === "contas" ? subInicial(CONTAS_SUB_TABS, subDaUrl) : "contas"
+    abaDaUrl === "contas" ? subInicial(CONTAS_SUB_TABS, subDaUrl) : "meta"
   );
   const [utmsSubTab, setUtmsSubTab] = useState<UtmsSubTab>(
     abaDaUrl === "utms" ? subInicial(UTMS_SUB_TABS, subDaUrl) : "utm"
@@ -220,8 +227,16 @@ export function TrackingClient({
       {tab === "contas" && isAdmin && (
         <div>
           <SubTabs tabs={CONTAS_SUB_TABS} active={contasSubTab} onChange={trocarSub("contas", setContasSubTab)} />
-          {contasSubTab === "contas" && (
-            <AdAccountsPanel productId={productId} accounts={adCredentials} setAccounts={setAdCredentials} />
+          {(contasSubTab === "meta" || contasSubTab === "google") && (
+            <div className="space-y-4">
+              <BmsPanel productId={productId} platform={contasSubTab} />
+              <AdAccountsPanel
+                productId={productId}
+                platform={contasSubTab}
+                accounts={adCredentials}
+                setAccounts={setAdCredentials}
+              />
+            </div>
           )}
           {contasSubTab === "pixels" && <PixelsPanel productId={productId} />}
         </div>
@@ -230,7 +245,7 @@ export function TrackingClient({
       {tab === "utms" && (
         <div>
           <SubTabs tabs={UTMS_SUB_TABS} active={utmsSubTab} onChange={trocarSub("utms", setUtmsSubTab)} />
-          {utmsSubTab === "utm" && <UtmBuilder />}
+          {utmsSubTab === "utm" && <UtmBuilder productId={productId} />}
           {utmsSubTab === "checkout" && <LinkBuilder productSlug={productSlug} />}
           {utmsSubTab === "script" && <TrackingScriptPanel productSlug={productSlug} />}
         </div>
