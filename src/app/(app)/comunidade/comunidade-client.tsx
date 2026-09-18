@@ -13,6 +13,7 @@ import { Membros } from "./components/membros";
 import { SalasSidebar } from "./components/salas-sidebar";
 import { SalaModal, type DadosSala } from "./components/sala-modal";
 import { PAGINA, usePresenca, type MembroSala, type Mensagem, type Pessoa, type Reacao, type Sala } from "./lib";
+import { useChamada } from "./lib-chamada";
 
 /**
  * O módulo inteiro roda numa página só, com três áreas.
@@ -24,6 +25,7 @@ import { PAGINA, usePresenca, type MembroSala, type Mensagem, type Pessoa, type 
  */
 export function ComunidadeClient({
   meuId,
+  meuNome,
   souAdminDoApp,
   podeCriarSala,
   pessoas,
@@ -33,6 +35,7 @@ export function ComunidadeClient({
   chamadaDisponivel,
 }: {
   meuId: string;
+  meuNome: string;
   souAdminDoApp: boolean;
   podeCriarSala: boolean;
   pessoas: Pessoa[];
@@ -64,12 +67,14 @@ export function ComunidadeClient({
   const [drawerSalas, setDrawerSalas] = useState(false);
   const [drawerMembros, setDrawerMembros] = useState(false);
 
-  // A chamada é estado de sessão, não de banco (ver components/chamada.tsx).
-  const [naChamada, setNaChamada] = useState(false);
 
   const salaAtivaRef = useRef(salaAtiva);
   salaAtivaRef.current = salaAtiva;
 
+  // A chamada é sessão, não banco: quem está nela agora vive no LiveKit (pra
+  // quem entrou) e na presença (pra quem só está olhando de fora).
+  const chamada = useChamada(salaAtiva, meuNome);
+  const naChamada = chamada.status === "dentro" || chamada.status === "reconectando";
   const { presencas, conectado } = usePresenca(meuId, salaAtiva, naChamada);
 
   const pessoasPorId = useMemo(() => new Map(pessoas.map((p) => [p.id, p])), [pessoas]);
@@ -482,11 +487,24 @@ export function ComunidadeClient({
         {sala && (
           <Chamada
             disponivel={chamadaDisponivel}
-            naChamada={naChamada}
+            salaId={sala.id}
+            status={chamada.status}
+            erro={chamada.erro}
+            limparErro={chamada.limparErro}
+            participantes={chamada.participantes}
+            telaDeAlguem={chamada.telaDeAlguem}
+            micLigado={chamada.micLigado}
+            cameraLigada={chamada.cameraLigada}
+            telaLigada={chamada.telaLigada}
+            dispositivos={chamada.dispositivos}
             pessoas={pessoasPorId}
             presencas={presencas}
-            salaId={sala.id}
-            onEntrar={() => setNaChamada((v) => !v)}
+            onEntrar={chamada.entrar}
+            onSair={chamada.sair}
+            onAlternarMic={chamada.alternarMic}
+            onAlternarCamera={chamada.alternarCamera}
+            onAlternarTela={chamada.alternarTela}
+            onTrocarDispositivo={chamada.trocarDispositivo}
           />
         )}
 

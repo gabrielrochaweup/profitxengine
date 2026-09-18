@@ -20,6 +20,8 @@
     "fast-xml-parser": "^5.10.1",
     "geist": "^1.7.2",
     "html-to-image": "^1.11.13",
+    "livekit-client": "^2.22.3",
+    "livekit-server-sdk": "^2.19.0",
     "lucide-react": "^1.24.0",
     "next": "14.2.35",
     "openai": "^6.47.0",
