@@ -8,6 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { Select } from "@/components/ui/select";
+import { STATUS_BM, STATUS_BM_LABEL, type StatusBm } from "@/lib/tracking/bms";
+
+const TOM_STATUS: Record<StatusBm, "success" | "neutral" | "warning" | "danger"> = {
+  ativa: "success",
+  pronta: "neutral",
+  restrita: "warning",
+  bloqueada: "danger",
+};
 
 export interface AdAccount {
   id: string;
@@ -15,6 +24,12 @@ export interface AdAccount {
   label: string | null;
   ad_account_id: string | null;
   is_valid: boolean;
+  /**
+   * Marcação manual de quem administra as contas — mesmos estados da BM.
+   * Diferente de is_valid: aquele diz se o token responde, e conta restrita
+   * costuma responder normalmente enquanto se recusa a entregar anúncio.
+   */
+  status: StatusBm;
   last_checked_at: string | null;
   last_synced_at: string | null;
 }
@@ -185,6 +200,22 @@ function AccountRow({
     setRenaming(false);
   }
 
+  // Otimista e sem confirmação: é o gesto mais repetido dessa tela, e
+  // desfazer é trocar de volta no mesmo select.
+  async function trocarStatus(status: StatusBm) {
+    const antes = account.status;
+    onUpsert({ ...account, status });
+    const res = await fetch(`/api/ads/credentials/${account.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) {
+      onUpsert({ ...account, status: antes });
+      toast.error("Falha ao mudar o status.");
+    }
+  }
+
   async function deleteAccount() {
     const ok = await confirm({
       title: "Excluir conta",
@@ -225,6 +256,7 @@ function AccountRow({
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-text-primary">{account.label || account.ad_account_id}</span>
+              <Badge tone={TOM_STATUS[account.status]}>{STATUS_BM_LABEL[account.status]}</Badge>
               <Badge tone={account.is_valid ? "success" : "danger"}>{account.is_valid ? "Conectada" : "Falha na conexão"}</Badge>
             </div>
           )}
@@ -242,7 +274,18 @@ function AccountRow({
         </div>
 
         {!renaming && (
-          <div className="flex shrink-0 gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              className="w-44"
+              value={account.status}
+              onChange={(e) => trocarStatus(e.target.value as StatusBm)}
+            >
+              {STATUS_BM.map((st) => (
+                <option key={st} value={st}>
+                  {STATUS_BM_LABEL[st]}
+                </option>
+              ))}
+            </Select>
             <Button size="sm" variant="secondary" onClick={() => setRenaming(true)}>
               Renomear
             </Button>

@@ -1136,6 +1136,7 @@ export interface Database {
           encrypted_credentials: string;
           ad_account_id: string | null;
           is_valid: boolean;
+          status: "ativa" | "pronta" | "restrita" | "bloqueada";
           last_checked_at: string | null;
           last_synced_at: string | null;
           created_by: string | null;
@@ -1147,6 +1148,7 @@ export interface Database {
           | "label"
           | "ad_account_id"
           | "is_valid"
+          | "status"
           | "last_checked_at"
           | "last_synced_at"
           | "created_by"
@@ -1156,6 +1158,7 @@ export interface Database {
           label?: string | null;
           ad_account_id?: string | null;
           is_valid?: boolean;
+          status?: "ativa" | "pronta" | "restrita" | "bloqueada";
           last_checked_at?: string | null;
           last_synced_at?: string | null;
           created_by?: string | null;
@@ -1217,6 +1220,29 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["ad_business_managers"]["Insert"]>;
+        Relationships: [];
+      };
+      tracking_checkout_links: {
+        Row: {
+          id: string;
+          product_id: string;
+          plano: string;
+          checkout: string;
+          url: string;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["tracking_checkout_links"]["Row"],
+          "id" | "position" | "created_by" | "created_at"
+        > & {
+          id?: string;
+          position?: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tracking_checkout_links"]["Insert"]>;
         Relationships: [];
       };
       tracking_utm_presets: {

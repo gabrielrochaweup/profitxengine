@@ -75,20 +75,21 @@ type WebhooksSubTab = (typeof WEBHOOKS_SUB_TABS)[number]["key"];
 
 // Separado por plataforma, e não por tipo de cadastro: quem abre essa aba
 // está resolvendo um problema de UM lado (a BM da Meta caiu, a conta do
-// Google foi suspensa) e quer ver tudo daquele lado junto — inventário de
-// BMs e as contas conectadas pro sync de gasto. Pixels ficam de fora porque
-// são a mesma tela pras duas plataformas.
+// Google foi suspensa) e quer ver tudo daquele lado junto — inventário,
+// contas conectadas e pixel, sem pular de aba no meio.
 const CONTAS_SUB_TABS = [
   { key: "meta", label: "Meta" },
   { key: "google", label: "Google" },
-  { key: "pixels", label: "Pixels" },
 ] as const;
 type ContasSubTab = (typeof CONTAS_SUB_TABS)[number]["key"];
 
+// "Link de checkout" e "Instalar script" viraram uma aba só: os dois são a
+// mesma tarefa vista de dois ângulos — fazer o site reconhecer o visitante e
+// levar esse reconhecimento até o checkout. Separados, quem instalava o
+// script não descobria que precisava do link, e vice-versa.
 const UTMS_SUB_TABS = [
   { key: "utm", label: "Link com UTM" },
-  { key: "checkout", label: "Link de checkout" },
-  { key: "script", label: "Instalar script" },
+  { key: "rastreamento", label: "Rastreamento" },
 ] as const;
 type UtmsSubTab = (typeof UTMS_SUB_TABS)[number]["key"];
 
@@ -227,18 +228,16 @@ export function TrackingClient({
       {tab === "contas" && isAdmin && (
         <div>
           <SubTabs tabs={CONTAS_SUB_TABS} active={contasSubTab} onChange={trocarSub("contas", setContasSubTab)} />
-          {(contasSubTab === "meta" || contasSubTab === "google") && (
-            <div className="space-y-4">
-              <BmsPanel productId={productId} platform={contasSubTab} />
-              <AdAccountsPanel
-                productId={productId}
-                platform={contasSubTab}
-                accounts={adCredentials}
-                setAccounts={setAdCredentials}
-              />
-            </div>
-          )}
-          {contasSubTab === "pixels" && <PixelsPanel productId={productId} />}
+          <div className="space-y-4">
+            <BmsPanel productId={productId} platform={contasSubTab} />
+            <AdAccountsPanel
+              productId={productId}
+              platform={contasSubTab}
+              accounts={adCredentials}
+              setAccounts={setAdCredentials}
+            />
+            <PixelsPanel productId={productId} platform={contasSubTab} />
+          </div>
         </div>
       )}
 
@@ -246,8 +245,12 @@ export function TrackingClient({
         <div>
           <SubTabs tabs={UTMS_SUB_TABS} active={utmsSubTab} onChange={trocarSub("utms", setUtmsSubTab)} />
           {utmsSubTab === "utm" && <UtmBuilder productId={productId} />}
-          {utmsSubTab === "checkout" && <LinkBuilder productSlug={productSlug} />}
-          {utmsSubTab === "script" && <TrackingScriptPanel productSlug={productSlug} />}
+          {utmsSubTab === "rastreamento" && (
+            <div className="space-y-4">
+              <TrackingScriptPanel productSlug={productSlug} />
+              <LinkBuilder productSlug={productSlug} />
+            </div>
+          )}
         </div>
       )}
     </div>

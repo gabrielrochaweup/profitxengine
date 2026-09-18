@@ -20,7 +20,7 @@ export interface Pixel {
   created_at: string;
 }
 
-export function PixelsPanel({ productId }: { productId: string }) {
+export function PixelsPanel({ productId, platform }: { productId: string; platform: "meta" | "google" }) {
   const [pixels, setPixels] = useState<Pixel[]>([]);
   const toast = useToast();
 
@@ -35,7 +35,8 @@ export function PixelsPanel({ productId }: { productId: string }) {
   return (
     <PlatformSection
       productId={productId}
-      pixels={pixels}
+      platform={platform}
+      pixels={pixels.filter((p) => p.platform === platform)}
       onUpsert={(p) => setPixels((prev) => (prev.some((x) => x.id === p.id) ? prev.map((x) => (x.id === p.id ? p : x)) : [p, ...prev]))}
       onRemove={(id) => setPixels((prev) => prev.filter((p) => p.id !== id))}
     />
@@ -44,11 +45,13 @@ export function PixelsPanel({ productId }: { productId: string }) {
 
 function PlatformSection({
   productId,
+  platform,
   pixels,
   onUpsert,
   onRemove,
 }: {
   productId: string;
+  platform: "meta" | "google";
   pixels: Pixel[];
   onUpsert: (p: Pixel) => void;
   onRemove: (id: string) => void;
@@ -58,21 +61,28 @@ function PlatformSection({
   return (
     <Card className="p-5">
       <div className="mb-1 flex items-center gap-1.5">
-        <h3 className="text-base font-semibold text-text-primary">Pixels</h3>
+        <h3 className="text-base font-semibold text-text-primary">
+          {platform === "meta" ? "Pixel da Meta" : "Tag do Google"}
+        </h3>
         <Tooltip
           text={
-            "Dispara PageView, Lead e InitiateCheckout pelo script já instalado. Purchase (só Meta) precisa do " +
-            "token da API de Conversões, não só do Pixel ID — sem ele, a compra não é enviada pro lado do servidor."
+            platform === "meta"
+              ? "Dispara PageView, Lead e InitiateCheckout pelo script já instalado. Purchase precisa do token da API de Conversões, não só do Pixel ID — sem ele, a compra não é enviada pro lado do servidor."
+              : "Dispara page_view, generate_lead e begin_checkout pelo script já instalado, usando o Conversion ID (AW-...)."
           }
         />
         <Button size="sm" className="ml-auto" onClick={() => setCreateOpen(true)}>
-          Adicionar pixel
+          {platform === "meta" ? "Adicionar pixel" : "Adicionar tag"}
         </Button>
       </div>
-      <p className="mb-3 text-xs text-text-secondary">Pixel ID + token da API de Conversões, por plataforma.</p>
+      <p className="mb-3 text-xs text-text-secondary">
+        {platform === "meta" ? "Pixel ID + token da API de Conversões." : "Conversion ID do Google Ads (AW-...)."}
+      </p>
 
       {pixels.length === 0 ? (
-        <p className="text-xs text-text-muted">Nenhum pixel conectado ainda.</p>
+        <p className="text-xs text-text-muted">
+          {platform === "meta" ? "Nenhum pixel da Meta conectado ainda." : "Nenhuma tag do Google conectada ainda."}
+        </p>
       ) : (
         <div className="space-y-2">
           {pixels.map((pixel) => (
@@ -85,6 +95,7 @@ function PlatformSection({
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         productId={productId}
+        platform={platform}
         onCreated={(p) => {
           onUpsert(p);
           setCreateOpen(false);
@@ -187,7 +198,6 @@ function PixelRow({ pixel, onUpsert, onRemove }: { pixel: Pixel; onUpsert: (p: P
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-text-primary">{pixel.label || pixel.pixel_id}</span>
-              <Badge tone="neutral">{pixel.platform === "meta" ? "Meta" : "Google"}</Badge>
               <Badge tone={pixel.active ? "success" : "neutral"}>{pixel.active ? "Ativo" : "Inativo"}</Badge>
               {pixel.platform === "meta" && (
                 <Badge tone={pixel.has_capi_token ? "success" : "warning"}>
@@ -246,22 +256,23 @@ function CreatePixelModal({
   open,
   onClose,
   productId,
+  platform,
   onCreated,
 }: {
   open: boolean;
   onClose: () => void;
   productId: string;
+  /** Vem da aba aberta — não existe mais escolha dentro do formulário. */
+  platform: "meta" | "google";
   onCreated: (p: Pixel) => void;
 }) {
   const toast = useToast();
-  const [platform, setPlatform] = useState<"meta" | "google">("meta");
   const [pixelId, setPixelId] = useState("");
   const [label, setLabel] = useState("");
   const [capiToken, setCapiToken] = useState("");
   const [saving, setSaving] = useState(false);
 
   function reset() {
-    setPlatform("meta");
     setPixelId("");
     setLabel("");
     setCapiToken("");
@@ -297,26 +308,9 @@ function CreatePixelModal({
         reset();
         onClose();
       }}
-      title="Adicionar pixel"
+      title={platform === "meta" ? "Adicionar pixel da Meta" : "Adicionar tag do Google"}
     >
       <div className="space-y-3">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setPlatform("meta")}
-            className={`flex-1 rounded-input px-3 py-2 text-sm font-medium ${platform === "meta" ? "bg-accent text-white" : "bg-card-hover text-text-secondary"}`}
-          >
-            Meta Pixel
-          </button>
-          <button
-            type="button"
-            onClick={() => setPlatform("google")}
-            className={`flex-1 rounded-input px-3 py-2 text-sm font-medium ${platform === "google" ? "bg-accent text-white" : "bg-card-hover text-text-secondary"}`}
-          >
-            Google Ads
-          </button>
-        </div>
-
         <div>
           <label className="mb-1 block text-xs font-medium text-text-muted">
             {platform === "meta" ? "Pixel ID" : "Conversion ID (ex: AW-123456789)"}

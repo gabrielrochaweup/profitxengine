@@ -49,7 +49,7 @@ export default async function TrackingPage() {
     isAdmin
       ? supabase
           .from("ad_platform_credentials")
-          .select("id, platform, label, ad_account_id, is_valid, last_checked_at, last_synced_at")
+          .select("id, platform, label, ad_account_id, is_valid, status, last_checked_at, last_synced_at")
           .eq("product_id", activeProduct.id)
       : Promise.resolve({ data: [] }),
   ]);

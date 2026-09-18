@@ -7,7 +7,7 @@ import { testGoogleCredentials, type GoogleCredentials } from "@/lib/ads/google-
 
 // Nunca devolve encrypted_credentials — só status, mesmo cuidado de
 // ai_credentials.
-const SELECT_FIELDS = "id, platform, label, ad_account_id, is_valid, last_checked_at, last_synced_at";
+const SELECT_FIELDS = "id, platform, label, ad_account_id, is_valid, status, last_checked_at, last_synced_at";
 
 export async function GET(request: Request) {
   const profile = await getSessionProfile();

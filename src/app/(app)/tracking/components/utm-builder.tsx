@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/toast";
 import { UtmPresetsPanel } from "./utm-presets-panel";
+import { CheckoutLinksPanel } from "./checkout-links-panel";
 
 const EMPTY = {
   baseUrl: "",
@@ -175,6 +176,12 @@ export function UtmBuilder({ productId }: { productId: string }) {
         )}
       </div>
       </Card>
+
+      <CheckoutLinksPanel
+        productId={productId}
+        atual={fields.baseUrl}
+        onUsar={(url) => setFields((prev) => ({ ...prev, baseUrl: url }))}
+      />
 
       <UtmPresetsPanel
         productId={productId}
