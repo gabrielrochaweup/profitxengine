@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Pencil, Power, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Bloco, Cartao, ItemMenu, MenuMais, Ponto, Vazio } from "./ui";
 import { Modal } from "@/components/ui/modal";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/toast";
@@ -59,11 +59,9 @@ function PlatformSection({
   const [createOpen, setCreateOpen] = useState(false);
 
   return (
-    <Card className="p-5">
-      <div className="mb-1 flex items-center gap-1.5">
-        <h3 className="text-base font-semibold text-text-primary">
-          {platform === "meta" ? "Pixel da Meta" : "Tag do Google"}
-        </h3>
+    <Bloco
+      titulo={platform === "meta" ? "Pixel da Meta" : "Tag do Google"}
+      dica={
         <Tooltip
           text={
             platform === "meta"
@@ -71,20 +69,25 @@ function PlatformSection({
               : "Dispara page_view, generate_lead e begin_checkout pelo script já instalado, usando o Conversion ID (AW-...)."
           }
         />
-        <Button size="sm" className="ml-auto" onClick={() => setCreateOpen(true)}>
+      }
+      acoes={
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
           {platform === "meta" ? "Adicionar pixel" : "Adicionar tag"}
         </Button>
-      </div>
-      <p className="mb-3 text-xs text-text-secondary">
+      }
+    >
+      <p className="-mt-1 mb-3 text-[11px] text-text-tertiary">
         {platform === "meta" ? "Pixel ID + token da API de Conversões." : "Conversion ID do Google Ads (AW-...)."}
       </p>
 
       {pixels.length === 0 ? (
-        <p className="text-xs text-text-muted">
-          {platform === "meta" ? "Nenhum pixel da Meta conectado ainda." : "Nenhuma tag do Google conectada ainda."}
-        </p>
+        <Cartao>
+          <Vazio>
+            {platform === "meta" ? "Nenhum pixel da Meta conectado ainda." : "Nenhuma tag do Google conectada ainda."}
+          </Vazio>
+        </Cartao>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
           {pixels.map((pixel) => (
             <PixelRow key={pixel.id} pixel={pixel} onUpsert={onUpsert} onRemove={onRemove} />
           ))}
@@ -101,7 +104,7 @@ function PlatformSection({
           setCreateOpen(false);
         }}
       />
-    </Card>
+    </Bloco>
   );
 }
 
@@ -182,12 +185,17 @@ function PixelRow({ pixel, onUpsert, onRemove }: { pixel: Pixel; onUpsert: (p: P
   }
 
   return (
-    <div className="rounded-xl bg-card-hover p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
+    <div className="px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           {renaming ? (
-            <div className="flex items-center gap-2">
-              <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Nome do pixel" className="h-8 w-48 text-xs" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="Nome do pixel"
+                className="h-8 w-48 text-xs"
+              />
               <Button size="sm" onClick={saveLabel} disabled={saving}>
                 Salvar
               </Button>
@@ -196,37 +204,70 @@ function PixelRow({ pixel, onUpsert, onRemove }: { pixel: Pixel; onUpsert: (p: P
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-text-primary">{pixel.label || pixel.pixel_id}</span>
-              <Badge tone={pixel.active ? "success" : "neutral"}>{pixel.active ? "Ativo" : "Inativo"}</Badge>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="truncate text-[13px] font-medium text-text-primary">
+                {pixel.label || pixel.pixel_id}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px]">
+                <Ponto tom={pixel.active ? "ok" : "neutro"} />
+                <span className="text-text-tertiary">{pixel.active ? "Ativo" : "Inativo"}</span>
+              </span>
               {pixel.platform === "meta" && (
-                <Badge tone={pixel.has_capi_token ? "success" : "warning"}>
-                  {pixel.has_capi_token ? "Purchase configurado" : "Sem token de Purchase"}
-                </Badge>
+                <span className="inline-flex items-center gap-1.5 text-[11px]">
+                  <Ponto tom={pixel.has_capi_token ? "ok" : "alerta"} />
+                  <span className={pixel.has_capi_token ? "text-text-tertiary" : "text-warning"}>
+                    {pixel.has_capi_token ? "Purchase configurado" : "Sem token de Purchase"}
+                  </span>
+                </span>
               )}
             </div>
           )}
-          <p className="mt-1 text-xs text-text-muted">
-            ID <code>{pixel.pixel_id}</code>
+          <p className="mt-0.5 text-[11px] text-text-tertiary">
+            <code className="font-mono">{pixel.pixel_id}</code>
           </p>
         </div>
 
         {!renaming && (
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Button size="sm" variant="secondary" onClick={() => setRenaming(true)}>
-              Renomear
-            </Button>
+          <div className="flex shrink-0 items-center gap-1.5">
             {pixel.platform === "meta" && (
               <Button size="sm" variant="secondary" onClick={() => setEditingToken((v) => !v)}>
                 {pixel.has_capi_token ? "Trocar token" : "Adicionar token"}
               </Button>
             )}
-            <Button size="sm" variant="ghost" onClick={toggleActive}>
-              {pixel.active ? "Desativar" : "Ativar"}
-            </Button>
-            <Button size="sm" variant="danger" onClick={remove}>
-              Excluir
-            </Button>
+            <MenuMais>
+              {(fechar) => (
+                <>
+                  <ItemMenu
+                    icone={<Pencil size={13} />}
+                    onClick={() => {
+                      setRenaming(true);
+                      fechar();
+                    }}
+                  >
+                    Renomear
+                  </ItemMenu>
+                  <ItemMenu
+                    icone={<Power size={13} />}
+                    onClick={() => {
+                      toggleActive();
+                      fechar();
+                    }}
+                  >
+                    {pixel.active ? "Desativar" : "Ativar"}
+                  </ItemMenu>
+                  <ItemMenu
+                    perigo
+                    icone={<Trash2 size={13} />}
+                    onClick={() => {
+                      remove();
+                      fechar();
+                    }}
+                  >
+                    Excluir
+                  </ItemMenu>
+                </>
+              )}
+            </MenuMais>
           </div>
         )}
       </div>

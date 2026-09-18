@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { Tooltip } from "@/components/ui/tooltip";
 import { STATUS_BM, STATUS_BM_LABEL, contarLinhas, type StatusBm } from "@/lib/tracking/bms";
+import { Bloco, Cartao, ItemMenu, MenuMais, Ponto, Vazio } from "./ui";
+import { cn } from "@/lib/utils";
 
 export interface Bm {
   id: string;
@@ -26,11 +27,13 @@ export interface Bm {
   updated_at: string;
 }
 
-const TOM: Record<StatusBm, "success" | "neutral" | "warning" | "danger"> = {
-  ativa: "success",
-  pronta: "neutral",
-  restrita: "warning",
-  bloqueada: "danger",
+// Ponto de status em vez de selo: a lista inteira é de status, e quatro
+// selos coloridos empilhados não destacam nenhum.
+const TOM: Record<StatusBm, "ok" | "neutro" | "alerta" | "erro"> = {
+  ativa: "ok",
+  pronta: "neutro",
+  restrita: "alerta",
+  bloqueada: "erro",
 };
 
 // Ativa primeiro, bloqueada por último: a pergunta que se faz olhando essa
@@ -53,6 +56,9 @@ export function BmsPanel({ productId, platform }: { productId: string; platform:
   const [carregando, setCarregando] = useState(true);
   const [editando, setEditando] = useState<Bm | null>(null);
   const [criando, setCriando] = useState(false);
+  // O inventário de contas e páginas é consulta pontual, não o assunto da
+  // linha: fica guardado atrás do chevron em vez de esticar cada item.
+  const [aberta, setAberta] = useState<string | null>(null);
 
   const termo = platform === "meta" ? "BM" : "conta de gerente";
   const termoPlural = platform === "meta" ? "BMs" : "contas de gerente";
@@ -102,84 +108,127 @@ export function BmsPanel({ productId, platform }: { productId: string; platform:
     }
   }
 
-  if (carregando) return <Card className="p-5 text-sm text-text-secondary">Carregando…</Card>;
+  if (carregando) return <Cartao className="text-sm text-text-secondary">Carregando…</Cartao>;
 
   return (
-    <Card className="p-5">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <h3 className="text-base font-semibold text-text-primary">
-            {platform === "meta" ? "Business Managers" : "Contas de gerente (MCC)"}
-          </h3>
-          <Tooltip
-            text={`Inventário de ${termoPlural}: o que existe, o que cada uma tem dentro e qual dá pra usar agora. Não conversa com o Meta/Google — é registro manual, preenchido por quem organiza as contas.`}
-          />
+    <Bloco
+      titulo={platform === "meta" ? "Business Managers" : "Contas de gerente (MCC)"}
+      dica={
+        <Tooltip
+          text={`Inventário de ${termoPlural}: o que existe, o que cada uma tem dentro e qual dá pra usar agora. Não conversa com o Meta/Google — é registro manual, preenchido por quem organiza as contas.`}
+        />
+      }
+      acoes={
+        <>
           {daPlataforma.length > 0 && (
-            <Badge tone={ativas > 0 ? "success" : "warning"}>
-              {ativas} {ativas === 1 ? "ativa" : "ativas"} de {daPlataforma.length}
-            </Badge>
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-text-tertiary">
+              <Ponto tom={ativas > 0 ? "ok" : "alerta"} />
+              <span className="font-semibold tabular-nums text-text-primary">{ativas}</span>
+              {ativas === 1 ? "ativa" : "ativas"} de {daPlataforma.length}
+            </span>
           )}
-        </div>
-        <Button size="sm" onClick={() => setCriando(true)}>
-          Adicionar {termo}
-        </Button>
-      </div>
-
+          <Button size="sm" onClick={() => setCriando(true)}>
+            Adicionar {termo}
+          </Button>
+        </>
+      }
+    >
       {daPlataforma.length === 0 ? (
-        <p className="text-xs text-text-muted">
-          Nenhuma {termo} cadastrada ainda.
-        </p>
+        <Cartao>
+          <Vazio>Nenhuma {termo} cadastrada ainda.</Vazio>
+        </Cartao>
       ) : (
-        <div className="space-y-2">
-          {daPlataforma.map((bm) => (
-            <div key={bm.id} className="rounded-xl bg-card-hover p-3">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-text-primary">{bm.nome}</span>
-                    <Badge tone={TOM[bm.status]}>{STATUS_BM_LABEL[bm.status]}</Badge>
-                  </div>
-                  <p className="mt-1 text-[11px] text-text-muted">
-                    {bm.external_id ? `ID ${bm.external_id} · ` : ""}
-                    {contarLinhas(bm.contas)} {contarLinhas(bm.contas) === 1 ? "conta" : "contas"} ·{" "}
-                    {contarLinhas(bm.paginas)} {contarLinhas(bm.paginas) === 1 ? "página" : "páginas"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Select
-                    className="w-44"
-                    value={bm.status}
-                    onChange={(e) => trocarStatus(bm, e.target.value as StatusBm)}
-                  >
-                    {STATUS_BM.map((s) => (
-                      <option key={s} value={s}>
-                        {STATUS_BM_LABEL[s]}
-                      </option>
-                    ))}
-                  </Select>
-                  <Button size="sm" variant="secondary" onClick={() => setEditando(bm)}>
-                    Editar
-                  </Button>
-                  <Button size="sm" variant="danger" onClick={() => excluir(bm)}>
-                    Excluir
-                  </Button>
-                </div>
-              </div>
-
-              {(bm.contas.trim() || bm.paginas.trim() || bm.observacoes) && (
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {bm.contas.trim() && <Lista titulo="Contas de anúncio" texto={bm.contas} />}
-                  {bm.paginas.trim() && <Lista titulo="Páginas" texto={bm.paginas} />}
-                  {bm.observacoes && (
-                    <div className="sm:col-span-2">
-                      <p className="mb-1 text-[10px] uppercase tracking-wide text-text-muted">Observações</p>
-                      <p className="text-[11px] text-text-secondary">{bm.observacoes}</p>
+        <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
+          {daPlataforma.map((bm) => {
+            const temDetalhe = !!(bm.contas.trim() || bm.paginas.trim() || bm.observacoes);
+            const aberto = aberta === bm.id;
+            return (
+              <div key={bm.id}>
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    {temDetalhe ? (
+                      <button
+                        type="button"
+                        onClick={() => setAberta(aberto ? null : bm.id)}
+                        aria-label={aberto ? "Fechar detalhes" : "Ver detalhes"}
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-button text-text-tertiary transition-colors hover:bg-card-hover hover:text-text-primary"
+                      >
+                        <ChevronDown size={14} className={cn("transition-transform", aberto && "rotate-180")} />
+                      </button>
+                    ) : (
+                      <span className="h-5 w-5 shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="truncate text-[13px] font-medium text-text-primary">{bm.nome}</span>
+                        <span className="inline-flex items-center gap-1.5 text-[11px]">
+                          <Ponto tom={TOM[bm.status]} />
+                          <span className="text-text-tertiary">{STATUS_BM_LABEL[bm.status]}</span>
+                        </span>
+                      </div>
+                      <p className="mt-0.5 truncate text-[11px] text-text-tertiary">
+                        {bm.external_id ? `ID ${bm.external_id} · ` : ""}
+                        {contarLinhas(bm.contas)} {contarLinhas(bm.contas) === 1 ? "conta" : "contas"} ·{" "}
+                        {contarLinhas(bm.paginas)} {contarLinhas(bm.paginas) === 1 ? "página" : "páginas"}
+                      </p>
                     </div>
-                  )}
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Select
+                      className="h-8 w-40 text-xs"
+                      value={bm.status}
+                      onChange={(e) => trocarStatus(bm, e.target.value as StatusBm)}
+                    >
+                      {STATUS_BM.map((st) => (
+                        <option key={st} value={st}>
+                          {STATUS_BM_LABEL[st]}
+                        </option>
+                      ))}
+                    </Select>
+                    <MenuMais>
+                      {(fechar) => (
+                        <>
+                          <ItemMenu
+                            icone={<Pencil size={13} />}
+                            onClick={() => {
+                              setEditando(bm);
+                              fechar();
+                            }}
+                          >
+                            Editar
+                          </ItemMenu>
+                          <ItemMenu
+                            perigo
+                            icone={<Trash2 size={13} />}
+                            onClick={() => {
+                              excluir(bm);
+                              fechar();
+                            }}
+                          >
+                            Excluir
+                          </ItemMenu>
+                        </>
+                      )}
+                    </MenuMais>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {aberto && temDetalhe && (
+                  <div className="grid grid-cols-1 gap-4 border-t border-border bg-card-hover/40 px-4 py-3 sm:grid-cols-2">
+                    {bm.contas.trim() && <Lista titulo="Contas de anúncio" texto={bm.contas} />}
+                    {bm.paginas.trim() && <Lista titulo="Páginas" texto={bm.paginas} />}
+                    {bm.observacoes && (
+                      <div className="sm:col-span-2">
+                        <p className="mb-1 text-[10px] uppercase tracking-wide text-text-tertiary">Observações</p>
+                        <p className="text-[11px] text-text-secondary">{bm.observacoes}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -208,7 +257,7 @@ export function BmsPanel({ productId, platform }: { productId: string; platform:
           }}
         />
       )}
-    </Card>
+    </Bloco>
   );
 }
 
@@ -219,7 +268,7 @@ function Lista({ titulo, texto }: { titulo: string; texto: string }) {
     .filter(Boolean);
   return (
     <div>
-      <p className="mb-1 text-[10px] uppercase tracking-wide text-text-muted">{titulo}</p>
+      <p className="mb-1 text-[10px] uppercase tracking-wide text-text-tertiary">{titulo}</p>
       <ul className="space-y-0.5">
         {itens.map((item, i) => (
           <li key={`${item}-${i}`} className="text-[11px] text-text-secondary">

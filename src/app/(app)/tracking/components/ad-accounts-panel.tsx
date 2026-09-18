@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Pencil, KeyRound, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Bloco, Cartao, ItemMenu, MenuMais, Ponto, Vazio } from "./ui";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Select } from "@/components/ui/select";
 import { STATUS_BM, STATUS_BM_LABEL, type StatusBm } from "@/lib/tracking/bms";
 
-const TOM_STATUS: Record<StatusBm, "success" | "neutral" | "warning" | "danger"> = {
-  ativa: "success",
-  pronta: "neutral",
-  restrita: "warning",
-  bloqueada: "danger",
+const TOM_STATUS: Record<StatusBm, "ok" | "neutro" | "alerta" | "erro"> = {
+  ativa: "ok",
+  pronta: "neutro",
+  restrita: "alerta",
+  bloqueada: "erro",
 };
 
 export interface AdAccount {
@@ -111,18 +111,20 @@ function PlatformSection({
   const [createOpen, setCreateOpen] = useState(false);
 
   return (
-    <Card className="p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-text-primary">{title}</h3>
+    <Bloco
+      titulo={title}
+      acoes={
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           Adicionar conta
         </Button>
-      </div>
-
+      }
+    >
       {accounts.length === 0 ? (
-        <p className="text-xs text-text-muted">Nenhuma conta conectada ainda.</p>
+        <Cartao>
+          <Vazio>Nenhuma conta conectada ainda.</Vazio>
+        </Cartao>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
           {accounts.map((account) => (
             <AccountRow key={account.id} platform={platform} account={account} onUpsert={onUpsert} onRemove={onRemove} />
           ))}
@@ -139,7 +141,7 @@ function PlatformSection({
           setCreateOpen(false);
         }}
       />
-    </Card>
+    </Bloco>
   );
 }
 
@@ -235,11 +237,11 @@ function AccountRow({
   }
 
   return (
-    <div className="rounded-xl bg-card-hover p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
+    <div className="px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           {renaming ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Input
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
@@ -254,14 +256,27 @@ function AccountRow({
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-text-primary">{account.label || account.ad_account_id}</span>
-              <Badge tone={TOM_STATUS[account.status]}>{STATUS_BM_LABEL[account.status]}</Badge>
-              <Badge tone={account.is_valid ? "success" : "danger"}>{account.is_valid ? "Conectada" : "Falha na conexão"}</Badge>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="truncate text-[13px] font-medium text-text-primary">
+                {account.label || account.ad_account_id}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px]">
+                <Ponto tom={TOM_STATUS[account.status]} />
+                <span className="text-text-tertiary">{STATUS_BM_LABEL[account.status]}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px]">
+                <Ponto tom={account.is_valid ? "ok" : "erro"} />
+                <span className={account.is_valid ? "text-text-tertiary" : "text-danger"}>
+                  {account.is_valid ? "Conectada" : "Falha na conexão"}
+                </span>
+              </span>
             </div>
           )}
-          <p className="mt-1 text-xs text-text-muted">
-            Conta <code>{account.ad_account_id}</code>
+          {/* Linha técnica: id, último teste e última sincronização. É o
+              terceiro nível — está ali pra quando se procura, não pra
+              disputar leitura com o nome da conta. */}
+          <p className="mt-0.5 truncate text-[11px] text-text-tertiary">
+            <code className="font-mono">{account.ad_account_id}</code>
             {account.last_checked_at && (
               <span> · testado em {new Date(account.last_checked_at).toLocaleString("pt-BR")}</span>
             )}
@@ -274,9 +289,9 @@ function AccountRow({
         </div>
 
         {!renaming && (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
             <Select
-              className="w-44"
+              className="h-8 w-40 text-xs"
               value={account.status}
               onChange={(e) => trocarStatus(e.target.value as StatusBm)}
             >
@@ -286,12 +301,6 @@ function AccountRow({
                 </option>
               ))}
             </Select>
-            <Button size="sm" variant="secondary" onClick={() => setRenaming(true)}>
-              Renomear
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => setEditingCreds((v) => !v)}>
-              Alterar credenciais
-            </Button>
             <Button
               size="sm"
               variant="secondary"
@@ -301,9 +310,40 @@ function AccountRow({
             >
               {syncing ? "Sincronizando..." : "Sincronizar gasto"}
             </Button>
-            <Button size="sm" variant="danger" onClick={deleteAccount}>
-              Excluir
-            </Button>
+            <MenuMais>
+              {(fechar) => (
+                <>
+                  <ItemMenu
+                    icone={<Pencil size={13} />}
+                    onClick={() => {
+                      setRenaming(true);
+                      fechar();
+                    }}
+                  >
+                    Renomear
+                  </ItemMenu>
+                  <ItemMenu
+                    icone={<KeyRound size={13} />}
+                    onClick={() => {
+                      setEditingCreds((v) => !v);
+                      fechar();
+                    }}
+                  >
+                    Alterar credenciais
+                  </ItemMenu>
+                  <ItemMenu
+                    perigo
+                    icone={<Trash2 size={13} />}
+                    onClick={() => {
+                      deleteAccount();
+                      fechar();
+                    }}
+                  >
+                    Excluir
+                  </ItemMenu>
+                </>
+              )}
+            </MenuMais>
           </div>
         )}
       </div>
