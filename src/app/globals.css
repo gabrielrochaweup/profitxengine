@@ -3,10 +3,7 @@
 @tailwind utilities;
 
 /*
-  Paleta única, escura. O tema claro foi removido de propósito: manter dois
-  temas significa validar cada tela duas vezes, e na prática só o escuro era
-  usado. Se voltar algum dia, volta como um bloco [data-theme="light"] aqui —
-  o resto do app já fala só por token.
+  Dois temas, escuro como padrão.
 
   As cores vêm da paleta definida pro produto:
     060507  fundo da aplicação
@@ -16,6 +13,11 @@
     D47865  vermelho/salmão
     F3DE7F  amarelo
     3E1014  vermelho profundo, usado como fundo de estado destrutivo
+
+  O tema claro reusa os MESMOS papéis, mas não as mesmas cores em papel de
+  texto: #95CF0E e #F3DE7F somem sobre branco. Onde a cor vira texto (selo,
+  rótulo), o claro usa uma versão escurecida da mesma família; onde ela vira
+  preenchimento (botão, fatia de gráfico), usa a cor original.
 */
 :root {
   color-scheme: dark;
@@ -37,8 +39,7 @@
 
   --accent: #95cf0e;
   --accent-hover: #a7e219;
-  /* Texto sobre o verde: o lime é claro demais pra texto branco em cima. */
-  --accent-contrast: #101300;
+  --accent-contrast: #ffffff;
   --accent-pink: #d47865;
 
   --success: #95cf0e;
@@ -58,6 +59,47 @@
   --shadow-card: 0 0 0 1px var(--border);
   --shadow-card-sm: 0 0 0 1px var(--border);
   --shadow-popover: 0 16px 40px -12px rgba(0, 0, 0, 0.8);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-app: #f1f1ef;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f5f3;
+  --bg-input: #f5f5f3;
+
+  --border: rgba(10, 10, 10, 0.1);
+  --border-strong: rgba(10, 10, 10, 0.18);
+
+  --text-primary: #121212;
+  --text-secondary: #5c5c5c;
+  --text-muted: #8a8a8a;
+
+  /* O lime some no branco. Ele não é só preenchimento: vira TEXTO na aba
+     ativa, no rótulo de gráfico e em vários rótulos — e #95CF0E sobre branco
+     dá ~1,9:1, ilegível. No claro ele desce um tom, o suficiente pra
+     continuar lendo como a mesma cor de marca e passar a ser legível como
+     texto. No escuro segue exatamente #95CF0E. */
+  --accent: #6f9c0a;
+  --accent-hover: #5f8708;
+  --accent-contrast: #ffffff;
+  --accent-pink: #b0563f;
+
+  /* Texto: escurecidos, senão desaparecem no branco. */
+  --success: #5b7f08;
+  --warning: #8a7410;
+  --danger: #b0563f;
+
+  --success-soft: #eef7dc;
+  --warning-soft: #fbf3d9;
+  --danger-soft: #f8e6e1;
+  --accent-soft: #eef7dc;
+
+  --shadow-card: 0 0 0 1px var(--border);
+  --shadow-card-sm: 0 0 0 1px var(--border);
+  --shadow-popover: 0 16px 40px -12px rgba(10, 10, 10, 0.18);
 }
 
 * {

@@ -19,6 +19,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "./theme-toggle";
 import { useActiveProduct } from "./active-product-context";
 import { getNavSections } from "@/lib/products";
 
@@ -186,7 +187,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                 <MenuLink href="/admin" icon={ShieldCheck} label="Admin" onNavigate={() => setMobileOpen(false)} />
               )}
 
-              <div className="mt-1 border-t border-border pt-1">
+              <div className="mt-1 flex items-center justify-between border-t border-border pt-1">
                 <form action="/auth/logout" method="post">
                   <button
                     type="submit"
@@ -196,6 +197,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                     Sair
                   </button>
                 </form>
+                <ThemeToggle />
               </div>
             </div>
           </div>
@@ -273,17 +275,21 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
 
         <div className={cn("relative mt-2 flex flex-col gap-1.5 border-t border-border pt-3", collapsed ? "items-center" : "items-stretch")}>
           {collapsed ? (
-            <button
-              type="button"
-              onClick={toggleCollapsed}
-              title="Expandir menu"
-              aria-label="Expandir menu"
-              className="flex h-8 w-8 items-center justify-center rounded-button text-text-secondary hover:bg-card-hover hover:text-text-primary"
-            >
-              <PanelLeftOpen size={16} />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={toggleCollapsed}
+                title="Expandir menu"
+                aria-label="Expandir menu"
+                className="flex h-8 w-8 items-center justify-center rounded-button text-text-secondary hover:bg-card-hover hover:text-text-primary"
+              >
+                <PanelLeftOpen size={16} />
+              </button>
+              <ThemeToggle />
+            </>
           ) : (
-            <div className="flex items-center justify-end px-1">
+            <div className="flex items-center justify-between px-1">
+              <ThemeToggle />
               <button
                 type="button"
                 onClick={toggleCollapsed}

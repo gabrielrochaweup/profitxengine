@@ -131,9 +131,13 @@ export function DynamicPieChart({
           outerRadius={90}
           label={(entry) => `${entry.name}: ${fmt(entry.value)}`}
           labelLine={false}
+          /* O Recharts desenha contorno branco entre as fatias por padrão —
+             herança de gráfico feito pra fundo claro. Em fundo escuro isso
+             vira um risco luminoso separando as cores. */
+          stroke="none"
         >
           {withValue.map((entry) => (
-            <Cell key={entry.name} fill={colorForLabel(entry.name)} />
+            <Cell key={entry.name} fill={colorForLabel(entry.name)} stroke="none" />
           ))}
         </Pie>
         <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => fmt(Number(v) || 0)} />
