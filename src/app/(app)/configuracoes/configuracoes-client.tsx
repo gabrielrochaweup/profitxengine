@@ -10,7 +10,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 
 type Provider = "openai" | "anthropic" | "google";
 type ImageProvider = "openai" | "google";
-type Module = "conversa" | "mensagem" | "imagem" | "email";
+type Module = "conversa" | "mensagem" | "imagem" | "email" | "blog";
 
 interface CredentialStatus {
   provider: Provider;
@@ -35,6 +35,7 @@ const MODULE_LABEL: Record<Module, string> = {
   mensagem: "Texto de mensagens do grupo",
   imagem: "Geração de imagem",
   email: "Texto de e-mails",
+  blog: "Texto de posts do blog",
 };
 
 // Módulos de texto aceitam os 3 provedores; imagem só os que geram imagem (Anthropic não gera).
@@ -42,6 +43,7 @@ const MODULE_PROVIDERS: Record<Module, Provider[]> = {
   conversa: ["openai", "anthropic", "google"],
   mensagem: ["openai", "anthropic", "google"],
   email: ["openai", "anthropic", "google"],
+  blog: ["openai", "anthropic", "google"],
   imagem: ["openai", "google"],
 };
 
@@ -191,7 +193,7 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
         </p>
 
         <Card className="mt-4 divide-y divide-border">
-          {(["conversa", "mensagem", "imagem", "email"] as Module[]).map((module) => (
+          {(["conversa", "mensagem", "blog", "email", "imagem"] as Module[]).map((module) => (
             <ModuleSettingRow
               key={module}
               module={module}
