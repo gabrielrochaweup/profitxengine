@@ -9,6 +9,20 @@ import { cn } from "@/lib/utils";
 import { Avatar } from "./avatar";
 import type { Pessoa, Sala } from "../lib";
 
+/**
+ * O primeiro símbolo do que foi digitado, sem cortar emoji no meio.
+ *
+ * Cortar por posição de caractere (slice) parte um emoji em duas metades, e
+ * meia metade não é texto válido: o pedido nem chega no banco, ele morre como
+ * JSON inválido. Array.from percorre por code point, então um emoji comum sai
+ * inteiro; os compostos (família, bandeira, tom de pele) vêm em vários code
+ * points ligados, e por isso a folga de até quatro.
+ */
+function primeiroSimbolo(texto: string): string {
+  const pontos = Array.from(texto.trim());
+  return pontos.slice(0, 4).join("");
+}
+
 export interface DadosSala {
   nome: string;
   descricao: string;
@@ -66,8 +80,9 @@ export function SalaModal({
             <label className="mb-1.5 block text-[11px] font-medium text-text-secondary">Ícone</label>
             <Input
               value={icone}
-              onChange={(e) => setIcone(e.target.value.slice(0, 2))}
+              onChange={(e) => setIcone(primeiroSimbolo(e.target.value))}
               placeholder="🎯"
+              maxLength={16}
               className="text-center"
             />
           </div>

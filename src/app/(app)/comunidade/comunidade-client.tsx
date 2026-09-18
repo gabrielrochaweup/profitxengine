@@ -305,6 +305,8 @@ export function ComunidadeClient({
   async function salvarSala(dados: DadosSala) {
     setSalvandoSala(true);
     try {
+      // Cada passo carrega o próprio erro: sem isso, "não deu pra salvar"
+      // vale igual pra política de acesso, campo inválido e queda de rede.
       if (editandoSala) {
         const { error } = await supabase
           .from("community_rooms")
@@ -331,14 +333,18 @@ export function ComunidadeClient({
           })
           .select()
           .single();
-        if (error || !data) throw error;
+        if (error || !data) throw error ?? new Error("O banco não devolveu a sala criada.");
         // Quem cria entra como admin da sala — inclusive em sala pública,
         // pra existir alguém responsável por ela além do admin do app.
-        await supabase.from("community_room_members").insert({ room_id: data.id, user_id: meuId, papel: "admin" });
+        const { error: erroMembro } = await supabase
+          .from("community_room_members")
+          .insert({ room_id: data.id, user_id: meuId, papel: "admin" });
+        if (erroMembro) throw erroMembro;
         if (dados.privada && dados.membros.length > 0) {
-          await supabase
+          const { error: erroConvidados } = await supabase
             .from("community_room_members")
             .insert(dados.membros.map((id) => ({ room_id: data.id, user_id: id, papel: "membro" as const })));
+          if (erroConvidados) throw erroConvidados;
         }
         await recarregarMembros();
         setSalas((atual) => (atual.some((s) => s.id === data.id) ? atual : [...atual, data]));
@@ -347,8 +353,12 @@ export function ComunidadeClient({
       }
       setModalAberto(false);
       setEditandoSala(null);
-    } catch {
-      toast.error("Não deu pra salvar a sala.");
+    } catch (e) {
+      const detalhe = e instanceof Error ? e.message : typeof e === "string" ? e : "";
+      toast.error(detalhe ? `Não deu pra salvar a sala: ${detalhe}` : "Não deu pra salvar a sala.");
+      // O erro completo (código, hint e detail do Postgres) fica no console:
+      // é o que diz se foi política de acesso, campo ou conexão.
+      console.error("[comunidade] falha ao salvar sala", e);
     } finally {
       setSalvandoSala(false);
     }
