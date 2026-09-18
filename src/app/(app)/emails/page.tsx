@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 import { EmailsClient } from "./emails-client";
 
 export default async function EmailsPage() {
@@ -15,14 +16,12 @@ export default async function EmailsPage() {
     .order("scheduled_date", { ascending: false });
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">E-mails</h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-        Gere e organize campanhas de e-mail vinculadas ao calendário, com sugestões de notícias financeiras.
-      </p>
-      <div className="mt-6">
-        <EmailsClient initialCampaigns={campaigns ?? []} currentUserId={user.id} />
-      </div>
-    </div>
+    <PageContainer largura="padrao">
+      <PageHeader
+        titulo="E-mails"
+        descricao="Escreve a campanha do dia a partir das notícias do calendário — assunto, preview e corpo — e guarda com status."
+      />
+      <EmailsClient initialCampaigns={campaigns ?? []} currentUserId={user.id} />
+    </PageContainer>
   );
 }

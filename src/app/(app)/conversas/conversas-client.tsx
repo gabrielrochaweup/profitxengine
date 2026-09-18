@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { SubTabs } from "@/components/ui/sub-tabs";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { ContentGrid, Field } from "@/components/ui/page";
 import { PhonePreview } from "./components/phone-preview";
 import { ExportCanvas } from "./components/export-canvas";
 import { ExportControls } from "./components/export-controls";
@@ -224,7 +225,7 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
   const active = versions[activeLocale];
 
   return (
-    <div className="mt-6">
+    <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <PlatformToggle platform={platform} onChange={setPlatform} />
@@ -249,12 +250,18 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título da conversa (opcional)" />
-        <Input value={tema} onChange={(e) => setTema(e.target.value)} placeholder="Tema/tag (ex: cripto, promoção)" />
-      </div>
+      {/* Estes dois campos só tinham placeholder. Placeholder some quando se
+          digita: dois minutos depois ninguém sabe qual caixa era qual. */}
+      <ContentGrid className="mt-4">
+        <Field label="Título da conversa" hint="(opcional)" span={6}>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: objeção de preço" />
+        </Field>
+        <Field label="Tema/tag" span={6}>
+          <Input value={tema} onChange={(e) => setTema(e.target.value)} placeholder="cripto, promoção..." />
+        </Field>
+      </ContentGrid>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_480px]">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_480px]">
         <div className="space-y-6">
           <Card className="p-4">
             <button
@@ -262,8 +269,12 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
               onClick={() => setHeaderOpen((v) => !v)}
               className="flex w-full items-center justify-between"
             >
-              <h3 className="text-base font-semibold text-text-primary">Cabeçalho</h3>
-              {headerOpen ? <ChevronUp size={16} className="text-text-muted" /> : <ChevronDown size={16} className="text-text-muted" />}
+              <h3 className="text-[15px] font-semibold text-text-primary">Cabeçalho</h3>
+              {headerOpen ? (
+                <ChevronUp size={16} className="text-text-tertiary" />
+              ) : (
+                <ChevronDown size={16} className="text-text-tertiary" />
+              )}
             </button>
             {headerOpen && (
               <div className="mt-3">
@@ -334,7 +345,7 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
             </Card>
 
             <Card className="h-fit p-4">
-              <h3 className="mb-3 text-base font-semibold text-text-primary">Mensagens</h3>
+              <h3 className="mb-3 text-[15px] font-semibold text-text-primary">Mensagens</h3>
               <MessageEditor
                 platform={platform}
                 messages={active.messages}

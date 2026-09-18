@@ -91,7 +91,7 @@ export function MessageEditor({ platform, messages, onChange }: MessageEditorPro
       />
 
       {messages.length === 0 && (
-        <p className="rounded-input border border-dashed border-border-strong px-3 py-6 text-center text-sm text-text-muted">
+        <p className="rounded-input border border-dashed border-border-strong px-3 py-6 text-center text-sm text-text-tertiary">
           Nenhuma mensagem ainda. Adicione manualmente ou gere com IA.
         </p>
       )}
@@ -241,7 +241,7 @@ function IconButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`flex h-6 w-6 items-center justify-center rounded-lg text-text-muted hover:bg-card-hover ${
+      className={`flex h-6 w-6 items-center justify-center rounded-lg text-text-tertiary hover:bg-card-hover ${
         danger ? "hover:text-danger" : "hover:text-text-primary"
       }`}
     >

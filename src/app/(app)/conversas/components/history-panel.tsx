@@ -51,7 +51,7 @@ export function HistoryPanel({ conversations, onSelect, onDelete }: HistoryPanel
         </div>
 
         {filtered.length === 0 ? (
-          <p className="py-8 text-center text-sm text-text-muted">Nenhuma conversa salva ainda.</p>
+          <p className="py-8 text-center text-sm text-text-tertiary">Nenhuma conversa salva ainda.</p>
         ) : (
           <div className="max-h-80 space-y-1.5 overflow-y-auto">
             {filtered.map((conversation) => (
@@ -79,7 +79,7 @@ export function HistoryPanel({ conversations, onSelect, onDelete }: HistoryPanel
                           : "CRM"}
                     </Badge>
                   </div>
-                  <p className="mt-0.5 text-xs text-text-muted">
+                  <p className="mt-0.5 text-xs text-text-tertiary">
                     {(conversation.messages as unknown[]).length} mensagens
                     {conversation.tema ? ` · ${conversation.tema}` : ""}
                   </p>
@@ -88,7 +88,7 @@ export function HistoryPanel({ conversations, onSelect, onDelete }: HistoryPanel
                   type="button"
                   onClick={() => onDelete(conversation)}
                   title="Excluir"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-card-hover hover:text-danger"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary hover:bg-card-hover hover:text-danger"
                 >
                   <Trash2 size={14} />
                 </button>

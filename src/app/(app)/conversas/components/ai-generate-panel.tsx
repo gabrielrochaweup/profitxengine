@@ -274,7 +274,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-text-primary">Gerar com IA</h3>
+        <h3 className="text-[15px] font-semibold text-text-primary">Gerar com IA</h3>
         {promptMode === "livre" && (
           <PromptPicker
             preferredSlug="conversa"
@@ -286,7 +286,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
         )}
       </div>
 
-      <p className="text-[11px] text-text-muted">Gera automaticamente em português, inglês e espanhol de uma vez.</p>
+      <p className="text-[11px] text-text-tertiary">Gera automaticamente em português, inglês e espanhol de uma vez.</p>
 
       <div className="flex gap-1.5">
         <PromptModeTab active={promptMode === "predefinido"} onClick={() => setPromptMode("predefinido")}>
@@ -308,15 +308,15 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
           placeholder="Ex: conversa entre cliente e vendedor negociando uma carteira de cripto, cliente com objeção de preço e depois fechando."
         />
       ) : (
-        <div className="space-y-2 rounded-lg bg-card-hover/50 p-2.5">
+        <div className="space-y-3 rounded-lg bg-card-hover/50 p-3">
           {templates.length === 0 ? (
-            <p className="text-[11px] text-text-muted">
+            <p className="text-[11px] text-text-tertiary">
               Nenhum cenário cadastrado ainda — cadastre em Simulador de Conversas → Modelos de prompt.
             </p>
           ) : (
             <>
               <div className="space-y-1">
-                <label className="text-[10px] text-text-secondary">Cenário</label>
+                <label className="text-[11px] font-medium text-text-secondary">Cenário</label>
                 <Select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="h-8 w-full text-[11px]">
                   {templates.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -328,7 +328,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-[10px] text-text-secondary">Qualidade do português</label>
+                  <label className="text-[11px] font-medium text-text-secondary">Qualidade do português</label>
                   <Select value={styleId} onChange={(e) => setStyleId(e.target.value)} className="h-8 text-[11px]">
                     {styles.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -338,7 +338,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] text-text-secondary">Com ou sem imagem</label>
+                  <label className="text-[11px] font-medium text-text-secondary">Com ou sem imagem</label>
                   <Select
                     value={imageVariantId}
                     onChange={(e) => setImageVariantId(e.target.value)}
@@ -354,7 +354,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] text-text-secondary">Variação de interação</label>
+                <label className="text-[11px] font-medium text-text-secondary">Variação de interação</label>
                 <Select value={variationId} onChange={(e) => setVariationId(e.target.value)} className="h-8 w-full text-[11px]">
                   {variations.map((v) => (
                     <option key={v.id} value={v.id}>
@@ -365,7 +365,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] text-text-secondary">Detalhe específico (opcional)</label>
+                <label className="text-[11px] font-medium text-text-secondary">Detalhe específico (opcional)</label>
                 <Input
                   value={detail}
                   onChange={(e) => setDetail(e.target.value)}
@@ -376,11 +376,11 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] text-text-secondary">Prompt montado</label>
+                  <label className="text-[11px] font-medium text-text-secondary">Prompt montado</label>
                   <button
                     type="button"
                     onClick={handleCopyPredefinido}
-                    className="flex items-center gap-1 text-[10px] text-accent hover:underline"
+                    className="flex items-center gap-1 text-[11px] text-accent hover:underline"
                   >
                     {copiedPredefinido ? <Check size={10} /> : <Copy size={10} />}
                     {copiedPredefinido ? "Copiado!" : "Copiar prompt"}
@@ -390,7 +390,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
                   value={assembledPrompt}
                   readOnly
                   rows={6}
-                  className="w-full bg-accent-soft font-mono text-[10px]"
+                  className="w-full bg-accent-soft font-mono text-[11px]"
                 />
               </div>
             </>
@@ -404,7 +404,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
         type="button"
         onClick={handleGenerate}
         disabled={loading || !(promptMode === "predefinido" ? assembledPrompt : prompt).trim()}
-        className="w-full"
+        className="w-full max-w-[280px]"
       >
         <Sparkles size={16} />
         {loading ? "Gerando..." : "Gerar conversa com IA"}

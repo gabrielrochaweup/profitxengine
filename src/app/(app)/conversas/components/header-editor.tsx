@@ -139,8 +139,8 @@ export function HeaderEditor({
             <Dices size={16} />
           </button>
         </div>
-        {uploading && <p className="text-xs text-text-muted">Enviando...</p>}
-        {drawing && <p className="text-xs text-text-muted">Sorteando...</p>}
+        {uploading && <p className="text-xs text-text-tertiary">Enviando...</p>}
+        {drawing && <p className="text-xs text-text-tertiary">Sorteando...</p>}
       </div>
 
       {isCrm ? (
@@ -183,7 +183,7 @@ export function HeaderEditor({
                 <Upload size={16} />
               </button>
             </div>
-            {uploadingAssignee && <p className="text-xs text-text-muted">Enviando...</p>}
+            {uploadingAssignee && <p className="text-xs text-text-tertiary">Enviando...</p>}
           </div>
 
           <div className="space-y-1.5">
