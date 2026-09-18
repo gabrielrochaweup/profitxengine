@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { ProductTabs } from "@/components/layout/product-tabs";
 import { ActiveProductProvider } from "@/components/layout/active-product-context";
 import { DEFAULT_PRODUCT_SLUG, isPathAccessible } from "@/lib/products";
-import { getAccessibleProducts } from "@/lib/products-server";
+import { getAccessibleProducts, iniciarBuscaDeProdutos } from "@/lib/products-server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const {
@@ -16,13 +16,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/login");
   }
 
-  const { data: profile } = await getProfile(user.id);
+  // Perfil e produtos ao mesmo tempo. A lista de produtos depende de saber se
+  // a pessoa é admin, mas a BUSCA não — então ela começa junto e o filtro
+  // acontece depois, já com o perfil em mãos. Enfileirar as duas custava uma
+  // viagem inteira ao banco (~200ms) em toda navegação.
+  const [{ data: profile }] = await Promise.all([getProfile(user.id), iniciarBuscaDeProdutos(user.id)]);
 
   if (profile?.status && profile.status !== "approved") {
     redirect("/pendente");
   }
 
   const isAdminUser = profile?.role === "admin";
+  // Já veio do cache da busca acima — não vai à rede de novo.
   const products = await getAccessibleProducts(user.id, isAdminUser);
 
   const pathname = headers().get("x-pathname") ?? "";
