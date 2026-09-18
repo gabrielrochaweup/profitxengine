@@ -211,17 +211,12 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
           collapsed ? "w-[64px]" : "w-56"
         )}
       >
-        <div className={cn("flex items-center gap-2 py-2", collapsed ? "justify-center" : "px-1")}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-icon.svg" alt="PROFITX Engine" className="h-8 w-8 shrink-0" />
-          {!collapsed && (
-            <span className="truncate text-sm font-semibold text-text-primary">PROFITX Engine</span>
-          )}
-        </div>
-
+        {/* Sem cabeçalho: a marca subiu pra barra de produtos, e o menu começa
+            no topo em vez de depois de um bloco que repetia o que já estava
+            logo acima. */}
         <nav
           className={cn(
-            "mt-3 flex flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden",
+            "flex flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden pt-1",
             collapsed ? "items-center" : "items-stretch"
           )}
         >

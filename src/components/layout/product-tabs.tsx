@@ -74,6 +74,17 @@ export function ProductTabs({ initialProducts, isAdmin }: ProductTabsProps) {
 
   return (
     <div className="flex items-center gap-1.5 rounded-panel bg-sidebar shadow-card p-1.5">
+      {/* A marca mora aqui, e não no topo da sidebar: eram dois blocos de
+          identidade empilhados no mesmo canto — o nome do app logo acima do
+          nome do app de novo. Aqui em cima ela também fica ao lado do
+          trocador de workspace, que é o que ela qualifica ("ProfitX Engine,
+          vendo o produto X"). */}
+      <div className="flex shrink-0 items-center gap-2 pl-1.5 pr-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-icon.svg" alt="" className="h-6 w-6 shrink-0" />
+        <span className="whitespace-nowrap text-[13px] font-semibold text-text-primary">PROFITX Engine</span>
+      </div>
+      <div className="h-5 w-px shrink-0 bg-border" />
       {products.map((p) => (
         <div
           key={p.id}
