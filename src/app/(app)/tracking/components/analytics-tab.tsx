@@ -13,13 +13,27 @@ import {
   Sparkles,
   FileSignature,
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
-import { SubTabs } from "@/components/ui/sub-tabs";
 import { AlunosPanel } from "./alunos-panel";
+import {
+  BarraDeFiltros,
+  Bloco,
+  Cartao,
+  CartaoDividido,
+  FiltroCampo,
+  MetadeCartao,
+  Ponto,
+  Segmentado,
+  Tabela,
+  TabelaWrap,
+  Td,
+  Th,
+  Tr,
+  Vazio,
+} from "./ui";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SimpleBarChart, ConversionFunnel, DynamicPieChart, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
@@ -148,20 +162,20 @@ function sumBy(rows: CampaignRow[], key: keyof CampaignRow): number {
   return rows.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
 }
 
+// A barra de sub-abas mora no TrackingClient (é uma barra só pro módulo
+// inteiro); aqui só chega qual delas está ativa.
 export function AnalyticsTab({
   productId,
   initialReport,
   initialEvents,
   isAdmin,
   subTab,
-  onSubTabChange,
 }: {
   productId: string;
   initialReport: CampaignRow[];
   initialEvents: RecentEvent[];
   isAdmin: boolean;
   subTab: AnalyticsSubTab;
-  onSubTabChange: (key: AnalyticsSubTab) => void;
 }) {
   const [period, setPeriod] = useState<Period>("90d");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
@@ -465,7 +479,6 @@ export function AnalyticsTab({
     [filteredReport]
   );
 
-  const subTabs = analyticsSubTabsVisiveis(isAdmin);
   const listaDeAlunos = subTab === "alunos";
 
   // Mesma janela que o resto da aba usa, só que aplicada por pessoa em vez
@@ -478,93 +491,23 @@ export function AnalyticsTab({
   }, [period]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* ── Barra de filtros ──
           Vale pra todas as sub-abas, inclusive a lista de alunos: o período
           recorta quem entrou naquela janela. Os filtros de tráfego ficam
           desligados lá — a lista é por pessoa, e uma pessoa não tem uma
           origem só (ela pode ter chegado por um anúncio e comprado depois de
           voltar pelo direto). Desligado é melhor do que sumido: some da tela,
-          e a impressão é de que a barra inteira parou de valer.  */}
-      <Card className="p-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-text-secondary">Período</label>
-              <div className="flex flex-wrap gap-1.5">
-                {PERIOD_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => changePeriod(opt.key)}
-                    disabled={loading}
-                    className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
-                      period === opt.key
-                        ? "bg-accent text-white"
-                        : "text-text-secondary hover:bg-card-hover"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+          e a impressão é de que a barra inteira parou de valer.
 
-            <div className="w-40">
-              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-secondary">
-                Fonte de tráfego
-                {listaDeAlunos && (
-                  <Tooltip text="Vale pros relatórios por campanha. A lista de alunos é por pessoa, e a mesma pessoa costuma passar por mais de uma origem antes de comprar." />
-                )}
-              </label>
-              <Select
-                value={listaDeAlunos ? "all" : sourceFilter}
-                disabled={listaDeAlunos}
-                onChange={(e) => setSourceFilter(e.target.value)}
-              >
-                <option value="all">Qualquer</option>
-                {sources.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="w-40">
-              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-secondary">
-                Plataforma
-                <Tooltip text="Disponível depois de conectar Meta Ads / Google Ads e sincronizar o gasto." />
-              </label>
-              <Select disabled value="all">
-                <option value="all">Qualquer</option>
-              </Select>
-            </div>
-
-            <div className="w-44">
-              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-secondary">
-                Conta de anúncio
-                <Tooltip text="Disponível depois de conectar Meta Ads / Google Ads e sincronizar o gasto." />
-              </label>
-              <Select disabled value="all">
-                <option value="all">Qualquer</option>
-              </Select>
-            </div>
-
-            <label className="flex items-center gap-2 pb-2.5 text-xs text-text-secondary">
-              <input
-                type="checkbox"
-                checked={hideUnattributed && !listaDeAlunos}
-                disabled={listaDeAlunos}
-                onChange={(e) => setHideUnattributed(e.target.checked)}
-                className="h-3.5 w-3.5 accent-accent"
-              />
-              Ocultar não atribuído
-            </label>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] text-text-muted">
+          Era um cartão de 110px de altura pra guardar quatro controles. Virou
+          uma faixa: rótulo ao lado do controle, tudo na mesma linha, e o
+          "Atualizar" — que é parte do mesmo assunto — na ponta direita dela
+          em vez de flutuando sozinho. */}
+      <BarraDeFiltros
+        direita={
+          <>
+            <span className="text-[11px] text-text-tertiary">
               {lastUpdated ? `Atualizado às ${lastUpdated.toLocaleTimeString("pt-BR")}` : "—"}
             </span>
             <Button
@@ -579,20 +522,74 @@ export function AnalyticsTab({
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
               Atualizar
             </Button>
-          </div>
-        </div>
-      </Card>
+          </>
+        }
+      >
+        <Segmentado opcoes={PERIOD_OPTIONS} ativo={period} onChange={changePeriod} disabled={loading} />
 
-      <SubTabs tabs={subTabs} active={subTab} onChange={onSubTabChange} />
+        <FiltroCampo
+          label="Fonte"
+          dica={
+            listaDeAlunos ? (
+              <Tooltip text="Vale pros relatórios por campanha. A lista de alunos é por pessoa, e a mesma pessoa costuma passar por mais de uma origem antes de comprar." />
+            ) : undefined
+          }
+        >
+          <Select
+            value={listaDeAlunos ? "all" : sourceFilter}
+            disabled={listaDeAlunos}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            className="h-8 w-36 text-xs"
+          >
+            <option value="all">Qualquer</option>
+            {sources.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </Select>
+        </FiltroCampo>
+
+        <FiltroCampo
+          label="Plataforma"
+          dica={<Tooltip text="Disponível depois de conectar Meta Ads / Google Ads e sincronizar o gasto." />}
+        >
+          <Select disabled value="all" className="h-8 w-32 text-xs">
+            <option value="all">Qualquer</option>
+          </Select>
+        </FiltroCampo>
+
+        <FiltroCampo
+          label="Conta"
+          dica={<Tooltip text="Disponível depois de conectar Meta Ads / Google Ads e sincronizar o gasto." />}
+        >
+          <Select disabled value="all" className="h-8 w-32 text-xs">
+            <option value="all">Qualquer</option>
+          </Select>
+        </FiltroCampo>
+
+        <label className="flex items-center gap-2 text-[11px] text-text-secondary">
+          <input
+            type="checkbox"
+            checked={hideUnattributed && !listaDeAlunos}
+            disabled={listaDeAlunos}
+            onChange={(e) => setHideUnattributed(e.target.checked)}
+            className="h-3.5 w-3.5 accent-accent"
+          />
+          Ocultar não atribuído
+        </label>
+      </BarraDeFiltros>
 
       {listaDeAlunos && isAdmin && (
         <AlunosPanel productId={productId} de={janela.de} ate={janela.ate} recarregar={recarregarAlunos} />
       )}
 
       {subTab === "visao" && (
-        <div className="space-y-4">
-          {/* ── Lucro em destaque ── */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-6">
+          {/* ── O que entrou, e o que sobrou ──
+              Os dois números que mandam ficam em destaque; gasto e cotação
+              são o rodapé deles, não outro par de cartões do mesmo tamanho. */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_200px]">
             <HeroStat
               label="Curso — faturamento (R$)"
               value={fmtBRL(kpis.purchaseRevenue)}
@@ -617,58 +614,64 @@ export function AnalyticsTab({
               roas={roasCorretora !== null ? `${roasCorretora.toFixed(1)}x` : null}
               roi={roiCorretora !== null ? `${roiCorretora >= 0 ? "+" : ""}${(roiCorretora * 100).toFixed(0)}%` : null}
             />
-          </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:max-w-md">
-            <FinanceTile
-              label="Gasto com anúncios"
-              value={hasSpend ? fmtBRL(kpis.spend) : "—"}
-              hint={hasSpend ? "Base dos ROIs acima" : "Sincronize o gasto em Contas Meta/Google"}
-            />
-            <FinanceTile
-              label="Cotação USD/BRL"
-              value={usdBrlRate !== null ? `R$ ${usdBrlRate.toFixed(2)}` : "—"}
-              hint={usdBrlRateUpdatedAt ? `Atualizada ${usdBrlRateUpdatedAt}` : "Carregando..."}
-            />
-          </div>
-
-          {/* ── Funil de conversão (visão rápida, todas as etapas juntas) ── */}
-          <Card className="p-5">
-            <h3 className="mb-3 text-base font-semibold text-text-primary">Funil de conversão</h3>
-            <div className="space-y-2">
-              {combinedFunnelStages.map((stage) => (
-                <div key={stage.label} className="flex items-center gap-3">
-                  <span className="w-40 shrink-0 text-xs text-text-secondary">{stage.label}</span>
-                  <div className="h-6 flex-1 overflow-hidden rounded-button bg-card-hover">
-                    <div
-                      className="h-full rounded-button bg-accent"
-                      style={{ width: `${Math.max(2, (stage.value / maxCombinedStage) * 100)}%` }}
-                    />
-                  </div>
-                  <span className="w-10 shrink-0 text-right text-xs font-medium text-text-primary">
-                    {stage.value}
-                  </span>
-                </div>
-              ))}
+            <div className="flex flex-col gap-3">
+              <FinanceTile
+                label="Gasto com anúncios"
+                value={hasSpend ? fmtBRL(kpis.spend) : "—"}
+                hint={hasSpend ? "Base dos ROIs ao lado" : "Sincronize em Contas Meta/Google"}
+              />
+              <FinanceTile
+                label="Cotação USD/BRL"
+                value={usdBrlRate !== null ? `R$ ${usdBrlRate.toFixed(2)}` : "—"}
+                hint={usdBrlRateUpdatedAt ? `Atualizada ${usdBrlRateUpdatedAt}` : "Carregando..."}
+              />
             </div>
-          </Card>
-
-          {/* ── Funil do curso + funil da corretora (detalhado, estilo Meta Ads) ── */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className="p-5">
-              <h3 className="mb-1 text-base font-semibold text-text-primary">Funil do curso</h3>
-              <ConversionFunnel data={courseFunnelData} color="var(--accent-text)" />
-            </Card>
-            <Card className="p-5">
-              <h3 className="mb-1 text-base font-semibold text-text-primary">Funil da corretora</h3>
-              <ConversionFunnel data={brokerFunnelData} color="var(--success)" />
-            </Card>
           </div>
+
+          {/* ── Funil de conversão ──
+              As oito etapas juntas e, ao lado, os dois funis detalhados: é a
+              mesma pergunta vista de perto e de longe, então é uma superfície
+              só com fio no meio — antes eram três cartões seguidos. */}
+          <Bloco titulo="Funil de conversão">
+            <CartaoDividido className="lg:grid-cols-[1.15fr_1fr]">
+              <MetadeCartao>
+                <div className="space-y-1.5">
+                  {combinedFunnelStages.map((stage) => (
+                    <div key={stage.label} className="flex items-center gap-3">
+                      <span className="w-36 shrink-0 truncate text-[11px] text-text-secondary">{stage.label}</span>
+                      <div className="h-4 flex-1 overflow-hidden rounded-[4px] bg-card-hover">
+                        <div
+                          className="h-full rounded-[4px] bg-accent"
+                          style={{ width: `${Math.max(2, (stage.value / maxCombinedStage) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="w-12 shrink-0 text-right text-xs font-semibold tabular-nums text-text-primary">
+                        {stage.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </MetadeCartao>
+
+              <MetadeCartao className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="min-w-0">
+                  <p className="mb-1 text-[11px] font-medium text-text-tertiary">Funil do curso</p>
+                  <ConversionFunnel data={courseFunnelData} color="var(--accent-text)" />
+                </div>
+                <div className="min-w-0">
+                  <p className="mb-1 text-[11px] font-medium text-text-tertiary">Funil da corretora</p>
+                  <ConversionFunnel data={brokerFunnelData} color="var(--success)" />
+                </div>
+              </MetadeCartao>
+            </CartaoDividido>
+          </Bloco>
 
           {/* ── KPIs do funil (dado real, já capturado) ──
-              São 8 cards: em 6 colunas sobrava uma segunda fileira com dois
-              cards soltos. 4 e 8 dividem certo. */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
+              Eram 8 cartões soltos com 12px de padding cada um, ocupando mais
+              tela do que os 8 números que carregam. Agora é uma faixa só,
+              dividida por fio: mesma informação, um terço da altura. */}
+          <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-card bg-card shadow-card sm:grid-cols-4 xl:grid-cols-8 xl:divide-y-0">
             <KpiTile
               icon={Users}
               label="Leads"
@@ -723,283 +726,332 @@ export function AnalyticsTab({
             />
           </div>
 
-          {/* ── Vendas por produto e por método de pagamento ── */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className="p-5">
-              <h3 className="mb-3 text-base font-semibold text-text-primary">Vendas por produto</h3>
-              <DynamicPieChart data={salesByOfferChart} innerRadius={55} unit="count" />
-            </Card>
-            <Card className="p-5">
-              <h3 className="mb-1 flex items-center gap-1.5 text-base font-semibold text-text-primary">
-                Vendas por método de pagamento
-                <Tooltip text="Só a Onprofit manda esse dado por enquanto (Cartão de crédito/Pix) — outras plataformas caem em '(não identificado)' até termos esse campo confirmado com elas também." />
-              </h3>
-              <DynamicPieChart data={salesByPaymentChart} innerRadius={55} unit="count" />
-            </Card>
-          </div>
+          {/* ── De onde vem a venda ──
+              Quatro recortes da mesma pergunta, dois a dois na mesma
+              superfície. */}
+          <Bloco titulo="De onde vem a venda">
+            <div className="space-y-4">
+              <CartaoDividido>
+                <MetadeCartao>
+                  <p className="mb-2 text-[11px] font-medium text-text-tertiary">Vendas por produto</p>
+                  <DynamicPieChart data={salesByOfferChart} innerRadius={50} unit="count" />
+                </MetadeCartao>
+                <MetadeCartao>
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
+                    Vendas por método de pagamento
+                    <Tooltip text="Só a Onprofit manda esse dado por enquanto (Cartão de crédito/Pix) — outras plataformas caem em '(não identificado)' até termos esse campo confirmado com elas também." />
+                  </p>
+                  <DynamicPieChart data={salesByPaymentChart} innerRadius={50} unit="count" />
+                </MetadeCartao>
+              </CartaoDividido>
 
-          {/* ── Vendas por tipo de página e por canal ── */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className="p-5">
-              <h3 className="mb-1 flex items-center gap-1.5 text-base font-semibold text-text-primary">
-                Vendas por tipo de página
-                <Tooltip text="Usa o utm_medium do link — preenche isso no Gerador de UTMs com o tipo de página (ex: quiz, remarketing, vsl) pra aparecer aqui. Só conta compra que bateu com um lead." />
-              </h3>
-              <DynamicPieChart data={salesByPageTypeChart} innerRadius={55} unit="count" />
-            </Card>
-            <Card className="p-5">
-              <h3 className="mb-1 flex items-center gap-1.5 text-base font-semibold text-text-primary">
-                Vendas por canal
-                <Tooltip text="Usa o utm_content do link — preenche isso no Gerador de UTMs com o canal onde postou (ex: bio instagram, descrição youtube) pra aparecer aqui. Só conta compra que bateu com um lead." />
-              </h3>
-              <HorizontalBarList data={salesByChannelChart} valueFormatter={(v) => fmtBRL(v)} colorFor={colorForLabel} />
-            </Card>
-          </div>
+              <CartaoDividido>
+                <MetadeCartao>
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
+                    Vendas por tipo de página
+                    <Tooltip text="Usa o utm_medium do link — preenche isso no Gerador de UTMs com o tipo de página (ex: quiz, remarketing, vsl) pra aparecer aqui. Só conta compra que bateu com um lead." />
+                  </p>
+                  <DynamicPieChart data={salesByPageTypeChart} innerRadius={50} unit="count" />
+                </MetadeCartao>
+                <MetadeCartao>
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
+                    Vendas por canal
+                    <Tooltip text="Usa o utm_content do link — preenche isso no Gerador de UTMs com o canal onde postou (ex: bio instagram, descrição youtube) pra aparecer aqui. Só conta compra que bateu com um lead." />
+                  </p>
+                  <HorizontalBarList
+                    data={salesByChannelChart}
+                    valueFormatter={(v) => fmtBRL(v)}
+                    colorFor={colorForLabel}
+                  />
+                </MetadeCartao>
+              </CartaoDividido>
+            </div>
+          </Bloco>
 
-          {/* ── Adoção do Pepe ── */}
-          <Card className="p-5">
-            <h3 className="mb-1 flex items-center gap-1.5 text-base font-semibold text-text-primary">
-              Pepe — cadastros por plano
-              <Tooltip text="Quantos alunos criaram conta na ferramenta e quantos realmente entraram. O plano é o que o próprio Pepe conhece da pessoa; se divergir da compra, é sinal de que os dois sistemas estão fora de sincronia." />
-            </h3>
-            {pepePorPlano.length === 0 ? (
-              <p className="mt-3 text-sm text-text-muted">
-                Nenhum cadastro no Pepe ainda neste período.
-              </p>
-            ) : (
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="text-xs text-text-muted">
-                    <tr>
-                      <th className="py-2 pr-3 font-medium">Plano</th>
-                      <th className="py-2 pr-3 font-medium">Cadastraram</th>
-                      <th className="py-2 pr-3 font-medium">Acessaram</th>
-                      <th className="py-2 font-medium">Nunca entraram</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-text-secondary">
-                    {pepePorPlano.map((r) => (
-                      <tr key={r.plano}>
-                        <td className="py-2 pr-3 text-text-primary">{r.plano}</td>
-                        <td className="py-2 pr-3">{r.cadastrados}</td>
-                        <td className="py-2 pr-3">{r.acessaram}</td>
-                        <td className="py-2">{Math.max(0, r.cadastrados - r.acessaram)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-
-          {/* ── Vendas por horário e por dia da semana ── */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className="p-5">
-              <h3 className="mb-3 text-base font-semibold text-text-primary">Vendas por horário</h3>
-              <SimpleBarChart data={salesByHourChart} valueLabel="Compras" color="var(--accent-text)" />
-            </Card>
-            <Card className="p-5">
-              <h3 className="mb-3 text-base font-semibold text-text-primary">Vendas por dia da semana</h3>
-              <SimpleBarChart data={salesByWeekdayChart} valueLabel="Compras" color="var(--accent-pink)" />
-            </Card>
-          </div>
+          {/* ── Quando a venda acontece ── */}
+          <Bloco titulo="Quando a venda acontece">
+            <CartaoDividido>
+              <MetadeCartao>
+                <p className="mb-2 text-[11px] font-medium text-text-tertiary">Por horário</p>
+                <SimpleBarChart data={salesByHourChart} valueLabel="Compras" color="var(--accent-text)" />
+              </MetadeCartao>
+              <MetadeCartao>
+                <p className="mb-2 text-[11px] font-medium text-text-tertiary">Por dia da semana</p>
+                <SimpleBarChart data={salesByWeekdayChart} valueLabel="Compras" color="var(--accent-pink)" />
+              </MetadeCartao>
+            </CartaoDividido>
+          </Bloco>
 
           {/* ── Por fonte ── */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className="p-5">
-              <h3 className="mb-3 text-base font-semibold text-text-primary">Leads por fonte</h3>
-              {bySource.length === 0 ? (
-                <p className="text-xs text-text-muted">Sem dados suficientes nesse período.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {bySource.map((s) => (
-                    <li key={s.source} className="flex items-center justify-between text-xs">
-                      <span className="text-text-secondary">{s.source}</span>
-                      <span className="font-medium text-text-primary">{s.leads}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
+          <Bloco titulo="Por fonte de tráfego">
+            <div className="space-y-4">
+              <CartaoDividido>
+                <MetadeCartao>
+                  <p className="mb-2 text-[11px] font-medium text-text-tertiary">Leads</p>
+                  {bySource.length === 0 ? (
+                    <Vazio>Sem dados suficientes nesse período.</Vazio>
+                  ) : (
+                    <ul className="divide-y divide-border/60">
+                      {bySource.map((s) => (
+                        <li key={s.source} className="flex items-center justify-between gap-3 py-1.5 text-xs">
+                          <span className="min-w-0 truncate text-text-secondary">{s.source}</span>
+                          <span className="shrink-0 font-medium tabular-nums text-text-primary">{s.leads}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </MetadeCartao>
+                <MetadeCartao>
+                  <p className="mb-2 text-[11px] font-medium text-text-tertiary">Depósitos</p>
+                  {bySource.length === 0 ? (
+                    <Vazio>Sem dados suficientes nesse período.</Vazio>
+                  ) : (
+                    <ul className="divide-y divide-border/60">
+                      {bySource.map((s) => (
+                        <li key={s.source} className="flex items-center justify-between gap-3 py-1.5 text-xs">
+                          <span className="min-w-0 truncate text-text-secondary">{s.source}</span>
+                          <span className="shrink-0 font-medium tabular-nums text-text-primary">
+                            {fmtUSD(s.depositsTotal)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </MetadeCartao>
+              </CartaoDividido>
 
-            <Card className="p-5">
-              <h3 className="mb-3 text-base font-semibold text-text-primary">Depósitos por fonte</h3>
-              {bySource.length === 0 ? (
-                <p className="text-xs text-text-muted">Sem dados suficientes nesse período.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {bySource.map((s) => (
-                    <li key={s.source} className="flex items-center justify-between text-xs">
-                      <span className="text-text-secondary">{s.source}</span>
-                      <span className="font-medium text-text-primary">{fmtUSD(s.depositsTotal)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </div>
+              <Cartao>
+                <p className="mb-2 text-[11px] font-medium text-text-tertiary">Depósitos por campanha (top 10)</p>
+                <HorizontalBarList
+                  data={depositsByCampaign}
+                  valueFormatter={(v) => fmtUSD(v)}
+                  colorFor={colorForLabel}
+                />
+              </Cartao>
+            </div>
+          </Bloco>
 
-          <Card className="p-5">
-            <h3 className="mb-3 text-base font-semibold text-text-primary">Depósitos por campanha (top 10)</h3>
-            <HorizontalBarList data={depositsByCampaign} valueFormatter={(v) => fmtUSD(v)} colorFor={colorForLabel} />
-          </Card>
+          {/* ── Adoção do Pepe ── */}
+          <Bloco
+            titulo="Pepe — cadastros por plano"
+            dica={
+              <Tooltip text="Quantos alunos criaram conta na ferramenta e quantos realmente entraram. O plano é o que o próprio Pepe conhece da pessoa; se divergir da compra, é sinal de que os dois sistemas estão fora de sincronia." />
+            }
+          >
+            <Cartao>
+              {pepePorPlano.length === 0 ? (
+                <Vazio>Nenhum cadastro no Pepe ainda neste período.</Vazio>
+              ) : (
+                <TabelaWrap>
+                  <Tabela>
+                    <thead>
+                      <tr className="border-b border-border">
+                        <Th>Plano</Th>
+                        <Th num>Cadastraram</Th>
+                        <Th num>Acessaram</Th>
+                        <Th num>Nunca entraram</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pepePorPlano.map((r) => (
+                        <Tr key={r.plano}>
+                          <Td forte>{r.plano}</Td>
+                          <Td num>{r.cadastrados}</Td>
+                          <Td num>{r.acessaram}</Td>
+                          <Td num>{Math.max(0, r.cadastrados - r.acessaram)}</Td>
+                        </Tr>
+                      ))}
+                    </tbody>
+                  </Tabela>
+                </TabelaWrap>
+              )}
+            </Cartao>
+          </Bloco>
         </div>
       )}
 
       {subTab === "campanhas" && (
-        <div className="space-y-4">
-          <Card className="p-5">
-            <h3 className="mb-3 text-base font-semibold text-text-primary">Vendas por UTM/campanha (top 10)</h3>
-            <HorizontalBarList data={salesByUtm} valueFormatter={(v) => fmtBRL(v)} colorFor={colorForLabel} />
-          </Card>
+        <div className="space-y-6">
+          <Bloco titulo="Vendas por UTM/campanha (top 10)">
+            <Cartao>
+              <HorizontalBarList data={salesByUtm} valueFormatter={(v) => fmtBRL(v)} colorFor={colorForLabel} />
+            </Cartao>
+          </Bloco>
 
           {/* ── Tabela com abas (Contas/Campanhas/Conjuntos/Anúncios) ── */}
-          <Card className="p-0">
-          <div className="flex gap-1 border-b border-border px-3 pt-2">
-            {TABLE_TABS.map((tab) => {
-              const enabled = tab.key === "campanhas";
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  disabled={!enabled}
-                  onClick={() => enabled && setTableTab(tab.key)}
-                  title={enabled ? undefined : "Disponível depois de conectar Meta Ads / Google Ads"}
-                  className={`rounded-t-lg px-3 py-2 text-xs font-medium transition-colors ${
-                    tableTab === tab.key
-                      ? "border-b-2 border-accent text-text-primary"
-                      : enabled
-                        ? "text-text-secondary hover:text-text-primary"
-                        : "cursor-not-allowed text-text-muted/50"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+          <div className="overflow-hidden rounded-card bg-card shadow-card">
+            <div className="flex gap-1 border-b border-border px-3">
+              {TABLE_TABS.map((tab) => {
+                const enabled = tab.key === "campanhas";
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    disabled={!enabled}
+                    onClick={() => enabled && setTableTab(tab.key)}
+                    title={enabled ? undefined : "Disponível depois de conectar Meta Ads / Google Ads"}
+                    className={cn(
+                      "-mb-px border-b-2 px-3 py-2.5 text-xs font-medium transition-colors duration-150",
+                      tableTab === tab.key
+                        ? "border-accent text-text-primary"
+                        : enabled
+                          ? "border-transparent text-text-secondary hover:text-text-primary"
+                          : "cursor-not-allowed border-transparent text-text-disabled"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
 
-          <div className="p-5">
-            {filteredReport.length === 0 ? (
-              <p className="text-xs text-text-muted">Sem dados suficientes nesse período.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-border text-text-muted">
-                      <th className="py-2 pr-3 font-medium">Origem</th>
-                      <th className="py-2 pr-3 font-medium">Campanha</th>
-                      <th className="py-2 pr-3 font-medium">Leads</th>
-                      <th className="py-2 pr-3 font-medium">Iniciou checkout</th>
-                      <th className="py-2 pr-3 font-medium">Compras curso</th>
-                      <th className="py-2 pr-3 font-medium">Receita curso</th>
-                      <th className="py-2 pr-3 font-medium">Área de membros</th>
-                      <th className="py-2 pr-3 font-medium">Corretora</th>
-                      <th className="py-2 pr-3 font-medium">Depósitos</th>
-                      <th className="py-2 pr-3 font-medium">Total depositado</th>
-                      <th className="py-2 pr-3 font-medium">Gasto</th>
-                      <th className="py-2 pr-3 font-medium">ROI curso</th>
-                      <th className="py-2 font-medium">ROI corretora</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredReport.map((r) => {
-                      const rowRoiCurso =
-                        r.spend_cents > 0 ? (r.purchase_revenue_cents - r.spend_cents) / r.spend_cents : null;
-                      const rowDepositsBRL = usdBrlRate !== null ? Math.round(r.deposits_total_cents * usdBrlRate) : null;
-                      const rowRoiCorretora =
-                        r.spend_cents > 0 && rowDepositsBRL !== null
-                          ? (rowDepositsBRL - r.spend_cents) / r.spend_cents
-                          : null;
-                      return (
-                        <tr
-                          key={`${r.utm_source}-${r.utm_campaign}`}
-                          className="border-b border-border/50 text-text-secondary"
-                        >
-                          <td className="py-2 pr-3 whitespace-nowrap">
-                            {isSpecialBucket(r.utm_source) ? (
-                              <span className="inline-flex items-center gap-1 italic text-text-muted">
-                                {r.utm_source}
-                                <Tooltip text={SPECIAL_BUCKET_HELP[r.utm_source]} />
+            <div className="p-4">
+              {filteredReport.length === 0 ? (
+                <Vazio>Sem dados suficientes nesse período.</Vazio>
+              ) : (
+                <TabelaWrap>
+                  <Tabela>
+                    <thead>
+                      {/* Ordem das colunas = ordem da decisão: quem é a
+                          campanha, quanto custou, quanto voltou. O resto do
+                          funil continua na linha, com menos peso. */}
+                      <tr className="border-b border-border">
+                        <Th>Campanha</Th>
+                        <Th num>Gasto</Th>
+                        <Th num>Leads</Th>
+                        <Th num>Compras</Th>
+                        <Th num>Receita</Th>
+                        <Th num>Depósitos</Th>
+                        <Th num>Total depositado</Th>
+                        <Th num>ROI curso</Th>
+                        <Th num>ROI corretora</Th>
+                        <Th num fraco>
+                          Checkout
+                        </Th>
+                        <Th num fraco>
+                          Membros
+                        </Th>
+                        <Th num fraco>
+                          Corretora
+                        </Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredReport.map((r) => {
+                        const rowRoiCurso =
+                          r.spend_cents > 0 ? (r.purchase_revenue_cents - r.spend_cents) / r.spend_cents : null;
+                        const rowDepositsBRL =
+                          usdBrlRate !== null ? Math.round(r.deposits_total_cents * usdBrlRate) : null;
+                        const rowRoiCorretora =
+                          r.spend_cents > 0 && rowDepositsBRL !== null
+                            ? (rowDepositsBRL - r.spend_cents) / r.spend_cents
+                            : null;
+                        return (
+                          <Tr key={`${r.utm_source}-${r.utm_campaign}`}>
+                            {/* Origem e campanha numa célula só, em duas
+                                linhas: era uma coluna inteira repetindo
+                                "facebook" trinta vezes e empurrando o
+                                dinheiro pra fora da tela. */}
+                            <Td className="max-w-[260px]">
+                              <span className="block truncate font-medium text-text-primary" title={r.utm_campaign}>
+                                {isSpecialBucket(r.utm_campaign) ? (
+                                  <span className="inline-flex items-center gap-1 italic text-text-tertiary">
+                                    {r.utm_campaign}
+                                    <Tooltip text={SPECIAL_BUCKET_HELP[r.utm_campaign]} />
+                                  </span>
+                                ) : (
+                                  r.utm_campaign
+                                )}
                               </span>
-                            ) : (
-                              r.utm_source
-                            )}
-                          </td>
-                          <td className="py-2 pr-3 whitespace-nowrap">
-                            {isSpecialBucket(r.utm_campaign) ? (
-                              <span className="inline-flex items-center gap-1 italic text-text-muted">
-                                {r.utm_campaign}
-                                <Tooltip text={SPECIAL_BUCKET_HELP[r.utm_campaign]} />
+                              <span className="block truncate text-[11px] text-text-tertiary" title={r.utm_source}>
+                                {isSpecialBucket(r.utm_source) ? (
+                                  <span className="inline-flex items-center gap-1 italic">
+                                    {r.utm_source}
+                                    <Tooltip text={SPECIAL_BUCKET_HELP[r.utm_source]} />
+                                  </span>
+                                ) : (
+                                  r.utm_source
+                                )}
                               </span>
-                            ) : (
-                              r.utm_campaign
-                            )}
-                          </td>
-                          <td className="py-2 pr-3 whitespace-nowrap">{r.leads}</td>
-                          <td className="py-2 pr-3 whitespace-nowrap">{r.initiate_checkouts}</td>
-                          <td className="py-2 pr-3 whitespace-nowrap">{r.purchases}</td>
-                          <td className="py-2 pr-3 whitespace-nowrap">{fmtBRL(r.purchase_revenue_cents)}</td>
-                          <td className="py-2 pr-3 whitespace-nowrap">{r.members_access}</td>
-                          <td className="py-2 pr-3 whitespace-nowrap">{r.broker_signups}</td>
-                          <td className="py-2 pr-3 whitespace-nowrap">{r.deposits}</td>
-                          <td className="py-2 pr-3 whitespace-nowrap font-medium text-text-primary">
-                            {fmtUSD(r.deposits_total_cents)}
-                          </td>
-                          <td className="py-2 pr-3 whitespace-nowrap">
-                            {r.spend_cents > 0 ? fmtBRL(r.spend_cents) : "—"}
-                          </td>
-                          <td className="py-2 pr-3 whitespace-nowrap">
-                            {rowRoiCurso !== null ? (
-                              <span className={rowRoiCurso >= 0 ? "text-success" : "text-danger"}>
-                                {rowRoiCurso >= 0 ? "+" : ""}
-                                {(rowRoiCurso * 100).toFixed(0)}%
-                              </span>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                          <td className="py-2 whitespace-nowrap">
-                            {rowRoiCorretora !== null ? (
-                              <span className={rowRoiCorretora >= 0 ? "text-success" : "text-danger"}>
-                                {rowRoiCorretora >= 0 ? "+" : ""}
-                                {(rowRoiCorretora * 100).toFixed(0)}%
-                              </span>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                            </Td>
+                            <Td num>{r.spend_cents > 0 ? fmtBRL(r.spend_cents) : "—"}</Td>
+                            <Td num>{r.leads}</Td>
+                            <Td num>{r.purchases}</Td>
+                            <Td num forte>
+                              {fmtBRL(r.purchase_revenue_cents)}
+                            </Td>
+                            <Td num>{r.deposits}</Td>
+                            <Td num forte>
+                              {fmtUSD(r.deposits_total_cents)}
+                            </Td>
+                            <Td num>
+                              {rowRoiCurso !== null ? (
+                                <span className={rowRoiCurso >= 0 ? "text-success" : "text-danger"}>
+                                  {rowRoiCurso >= 0 ? "+" : ""}
+                                  {(rowRoiCurso * 100).toFixed(0)}%
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </Td>
+                            <Td num>
+                              {rowRoiCorretora !== null ? (
+                                <span className={rowRoiCorretora >= 0 ? "text-success" : "text-danger"}>
+                                  {rowRoiCorretora >= 0 ? "+" : ""}
+                                  {(rowRoiCorretora * 100).toFixed(0)}%
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </Td>
+                            <Td num fraco>
+                              {r.initiate_checkouts}
+                            </Td>
+                            <Td num fraco>
+                              {r.members_access}
+                            </Td>
+                            <Td num fraco>
+                              {r.broker_signups}
+                            </Td>
+                          </Tr>
+                        );
+                      })}
+                    </tbody>
+                  </Tabela>
+                </TabelaWrap>
+              )}
+            </div>
           </div>
-          </Card>
         </div>
       )}
 
       {subTab === "eventos" && (
-        <Card className="p-5">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-base font-semibold text-text-primary">Eventos recentes</h3>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-text-muted">
-                Período: {PERIOD_OPTIONS.find((o) => o.key === period)?.label}
+        <Bloco
+          titulo="Eventos recentes"
+          acoes={
+            <>
+              <span className="text-[11px] text-text-tertiary">
+                {filteredEvents.length} evento{filteredEvents.length === 1 ? "" : "s"} ·{" "}
+                {PERIOD_OPTIONS.find((o) => o.key === period)?.label}
               </span>
-              <Select value={eventTypeFilter} onChange={(e) => setEventTypeFilter(e.target.value)} className="w-56">
+              <Select
+                value={eventTypeFilter}
+                onChange={(e) => setEventTypeFilter(e.target.value)}
+                className="h-8 w-52 text-xs"
+              >
                 {EVENT_TYPE_FILTER_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
               </Select>
-            </div>
-          </div>
-          <EventsTable events={filteredEvents} />
-        </Card>
+            </>
+          }
+        >
+          <Cartao>
+            <EventsTable events={filteredEvents} />
+          </Cartao>
+        </Bloco>
       )}
 
       {kpiDetailType && (
@@ -1009,7 +1061,7 @@ export function AnalyticsTab({
           title={KPI_DETAIL_LABEL[kpiDetailType] ?? kpiDetailType}
           className="max-w-5xl"
         >
-          <p className="mb-3 text-xs text-text-muted">
+          <p className="mb-3 text-xs text-text-tertiary">
             {kpiDetailEvents.length} evento{kpiDetailEvents.length === 1 ? "" : "s"} — mesmo filtro de fonte/atribuição
             da Visão geral, período {PERIOD_OPTIONS.find((o) => o.key === period)?.label}.
           </p>
@@ -1035,20 +1087,23 @@ function KpiTile({
   tone?: "accent" | "success";
   onClick?: () => void;
 }) {
+  // Célula de uma faixa, não cartão solto: o contorno vem do fio da grade.
+  // A hierarquia dentro dela é rótulo (11) → valor (17) → apoio (11).
   const content = (
     <>
-      <div className="mb-1 flex items-center gap-1.5 text-text-muted">
-        <Icon size={12} />
-        <p className="text-[11px]">{label}</p>
+      <div className="mb-1.5 flex items-center gap-1.5 text-text-tertiary">
+        <Icon size={12} className="shrink-0" />
+        <p className="truncate text-[11px]">{label}</p>
       </div>
       <p
-        className={`text-sm font-semibold ${
+        className={cn(
+          "text-[17px] font-semibold leading-none tabular-nums",
           tone === "accent" ? "text-accent-text" : tone === "success" ? "text-success" : "text-text-primary"
-        }`}
+        )}
       >
         {value}
       </p>
-      {sub && <p className="text-[11px] text-text-muted">{sub}</p>}
+      {sub && <p className="mt-1 truncate text-[11px] tabular-nums text-text-tertiary">{sub}</p>}
     </>
   );
 
@@ -1057,63 +1112,76 @@ function KpiTile({
       <button
         type="button"
         onClick={onClick}
-        className="rounded-xl bg-card-hover p-3 text-left shadow-card-sm transition-shadow hover:shadow-[0_0_0_1px_var(--accent)]"
+        className="min-w-0 px-3 py-3 text-left transition-colors duration-150 hover:bg-card-hover"
       >
         {content}
       </button>
     );
   }
 
-  return <div className="rounded-xl bg-card-hover p-3">{content}</div>;
+  return <div className="min-w-0 px-3 py-3">{content}</div>;
 }
 
 // Tabela de eventos compartilhada entre "Eventos recentes" e o popup de
 // detalhe de um KPI da Visão geral (mesmas colunas nos dois lugares).
 function EventsTable({ events }: { events: RecentEvent[] }) {
   if (events.length === 0) {
-    return <p className="text-xs text-text-muted">Nenhum evento nesse período/tipo.</p>;
+    return <Vazio>Nenhum evento nesse período/tipo.</Vazio>;
   }
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-xs">
+    <TabelaWrap>
+      <Tabela>
         <thead>
-          <tr className="border-b border-border text-text-muted">
-            <th className="py-2 pr-3 font-medium">Quando</th>
-            <th className="py-2 pr-3 font-medium">Tipo</th>
-            <th className="py-2 pr-3 font-medium">Origem</th>
-            <th className="py-2 pr-3 font-medium">E-mail</th>
-            <th className="py-2 pr-3 font-medium">Plano</th>
-            <th className="py-2 pr-3 font-medium">Valor</th>
-            <th className="py-2 pr-3 font-medium">Campanha</th>
-            <th className="py-2 font-medium">Lead</th>
+          <tr className="border-b border-border">
+            <Th>Quando</Th>
+            <Th>Tipo</Th>
+            <Th>Origem</Th>
+            <Th>E-mail</Th>
+            <Th>Plano</Th>
+            <Th num>Valor</Th>
+            <Th>Campanha</Th>
+            <Th>Lead</Th>
           </tr>
         </thead>
         <tbody>
           {events.map((e) => (
-            <tr key={e.id} className="border-b border-border/50 text-text-secondary">
-              <td className="py-2 pr-3 whitespace-nowrap">{new Date(e.occurred_at).toLocaleString("pt-BR")}</td>
-              <td className="py-2 pr-3 whitespace-nowrap">{EVENT_TYPE_LABEL[e.event_type] ?? e.event_type}</td>
-              <td className="py-2 pr-3 whitespace-nowrap">{e.source}</td>
-              <td className="py-2 pr-3 whitespace-nowrap">{e.email ?? "—"}</td>
-              <td className="py-2 pr-3 whitespace-nowrap">{e.offer_name ?? "—"}</td>
-              <td className="py-2 pr-3 whitespace-nowrap">
+            <Tr key={e.id}>
+              {/* Carimbo de hora em fonte de largura fixa: numa lista de 200
+                  linhas, é o que deixa varrer a coluna sem ler cada uma. */}
+              <Td fraco className="font-mono text-[11px]">
+                {new Date(e.occurred_at).toLocaleString("pt-BR")}
+              </Td>
+              <Td forte>{EVENT_TYPE_LABEL[e.event_type] ?? e.event_type}</Td>
+              <Td>{e.source}</Td>
+              <Td className="max-w-[220px] truncate" title={e.email ?? undefined}>
+                {e.email ?? "—"}
+              </Td>
+              <Td>{e.offer_name ?? "—"}</Td>
+              <Td num forte={e.amount_cents != null}>
                 {e.amount_cents != null
                   ? e.event_type === "broker_deposit"
                     ? fmtUSD(e.amount_cents)
                     : fmtBRL(e.amount_cents)
                   : "—"}
-              </td>
-              <td className="py-2 pr-3 whitespace-nowrap">
+              </Td>
+              <Td className="max-w-[240px] truncate" title={e.utm_source ? `${e.utm_source} · ${e.utm_campaign ?? "(sem campanha)"}` : undefined}>
                 {e.utm_source ? `${e.utm_source} · ${e.utm_campaign ?? "(sem campanha)"}` : "—"}
-              </td>
-              <td className="py-2 whitespace-nowrap">
-                {e.lead_id ? "Atribuído" : <span className="text-warning">Não atribuído</span>}
-              </td>
-            </tr>
+              </Td>
+              {/* Ponto em vez de selo: são 200 linhas, e 200 selos coloridos
+                  deixam de destacar qualquer coisa. */}
+              <Td>
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <Ponto tom={e.lead_id ? "ok" : "alerta"} />
+                  <span className={e.lead_id ? "text-text-tertiary" : "text-warning"}>
+                    {e.lead_id ? "Atribuído" : "Não atribuído"}
+                  </span>
+                </span>
+              </Td>
+            </Tr>
           ))}
         </tbody>
-      </table>
-    </div>
+      </Tabela>
+    </TabelaWrap>
   );
 }
 
@@ -1147,32 +1215,32 @@ function HeroStat({
   roi: string | null;
 }) {
   return (
-    <div className="rounded-xl bg-card-hover p-5 shadow-card-sm">
-      <p className="mb-1 text-xs font-medium text-text-muted">{label}</p>
-      <p className="text-3xl font-bold text-text-primary">{value}</p>
-      {sub && <div className="mt-1 text-[11px] text-text-muted">{sub}</div>}
+    // O bloco de lucro era um cartão dentro do cartão. Um fio separa igual e
+    // não desenha mais uma caixa em volta de três números.
+    <div className="rounded-card bg-card p-4 shadow-card">
+      <p className="mb-1.5 text-[11px] font-medium text-text-tertiary">{label}</p>
+      <p className="text-[30px] font-bold leading-none tabular-nums text-text-primary">{value}</p>
+      {sub && <div className="mt-1.5 text-[11px] text-text-tertiary">{sub}</div>}
 
       {lucro ? (
-        <div className="mt-4 rounded-lg bg-card p-3">
-          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-text-muted">Lucro</p>
-              <p className={cn("text-base font-bold", lucro.positivo ? "text-success" : "text-danger")}>
-                {lucro.valor}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-text-muted">ROAS</p>
-              <p className="text-base font-semibold text-text-primary">{roas ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-text-muted">ROI</p>
-              <p className="text-base font-semibold text-text-primary">{roi ?? "—"}</p>
-            </div>
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2 border-t border-border pt-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-text-tertiary">Lucro</p>
+            <p className={cn("text-[15px] font-bold tabular-nums", lucro.positivo ? "text-success" : "text-danger")}>
+              {lucro.valor}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-text-tertiary">ROAS</p>
+            <p className="text-[15px] font-semibold tabular-nums text-text-primary">{roas ?? "—"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-text-tertiary">ROI</p>
+            <p className="text-[15px] font-semibold tabular-nums text-text-primary">{roi ?? "—"}</p>
           </div>
         </div>
       ) : (
-        <p className="mt-4 text-[10px] text-text-muted/70">
+        <p className="mt-4 border-t border-border pt-3 text-[11px] text-text-muted">
           Lucro, ROAS e ROI entram aqui quando o gasto com anúncios for sincronizado.
         </p>
       )}
@@ -1180,15 +1248,16 @@ function HeroStat({
   );
 }
 
+/** Indicador de apoio: mesma família dos heróis, peso deliberadamente menor. */
 function FinanceTile({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
-    <div className="rounded-xl bg-card-hover p-3">
-      <div className="mb-1 flex items-center gap-1.5 text-text-muted">
-        <Percent size={12} />
-        <p className="text-[11px]">{label}</p>
+    <div className="flex-1 rounded-card bg-card px-3 py-2.5 shadow-card">
+      <div className="mb-1 flex items-center gap-1.5 text-text-tertiary">
+        <Percent size={12} className="shrink-0" />
+        <p className="truncate text-[11px]">{label}</p>
       </div>
-      <p className="text-sm font-semibold text-text-muted">{value}</p>
-      <p className="text-[10px] text-text-muted/70">{hint}</p>
+      <p className="text-[15px] font-semibold tabular-nums text-text-secondary">{value}</p>
+      <p className="mt-0.5 text-[10px] leading-snug text-text-muted">{hint}</p>
     </div>
   );
 }

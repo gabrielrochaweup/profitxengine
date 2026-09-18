@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { BarChart3, Webhook, Landmark, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SubTabs } from "@/components/ui/sub-tabs";
 import { AnalyticsTab, analyticsSubTabsVisiveis, type AnalyticsSubTab } from "./components/analytics-tab";
 import { WebhookEndpointsPanel, type WebhookEndpoint } from "./components/webhook-endpoints-panel";
 import { SendPulsePanel } from "./components/sendpulse-panel";
@@ -172,35 +171,70 @@ export function TrackingClient({
     gravarNaUrl(aba, subAtual(aba));
   };
 
-  function trocarSub<T extends string>(aba: TabKey, set: Dispatch<SetStateAction<T>>) {
-    return (sub: T) => {
-      set(sub);
-      gravarNaUrl(aba, sub);
-    };
-  }
+  // As sub-abas de cada aba moram aqui, e não dentro de cada painel: assim a
+  // barra do módulo é UMA barra com dois níveis, em vez de uma caixa de pílulas
+  // seguida de outra caixa de pílulas logo abaixo dela.
+  const subAbas: { key: string; label: string }[] =
+    tab === "analises"
+      ? [...analisesSubTabs]
+      : tab === "webhooks"
+        ? [...WEBHOOKS_SUB_TABS]
+        : tab === "contas"
+          ? [...CONTAS_SUB_TABS]
+          : [...UTMS_SUB_TABS];
+
+  const trocarSubDaAbaAtual = (sub: string) => {
+    if (tab === "analises") setAnalisesSubTab(sub as AnalyticsSubTab);
+    else if (tab === "webhooks") setWebhooksSubTab(sub as WebhooksSubTab);
+    else if (tab === "contas") setContasSubTab(sub as ContasSubTab);
+    else setUtmsSubTab(sub as UtmsSubTab);
+    gravarNaUrl(tab, sub);
+  };
 
   return (
-    <div className="mt-4">
-      <div className="mb-4 flex flex-wrap gap-1.5 rounded-panel bg-sidebar shadow-card p-1.5">
-        {visibleTabs.map((t) => {
-          const Icon = t.icon;
-          return (
+    <div>
+      <div className="mb-5 overflow-hidden rounded-panel bg-sidebar shadow-card">
+        <div className="flex flex-wrap gap-1 p-1.5">
+          {visibleTabs.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => trocarAba(t.key)}
+                className={cn(
+                  "flex h-8 items-center gap-1.5 rounded-button px-3 text-[13px] font-medium transition-colors duration-150",
+                  tab === t.key
+                    ? "bg-accent text-accent-contrast"
+                    : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                )}
+              >
+                <Icon size={14} />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Segundo nível dentro da mesma barra: o fio diz "ainda é a mesma
+            ferramenta", coisa que duas caixas empilhadas não diziam. */}
+        <div className="flex flex-wrap gap-0.5 border-t border-border px-2 py-1.5">
+          {subAbas.map((sub) => (
             <button
-              key={t.key}
+              key={sub.key}
               type="button"
-              onClick={() => trocarAba(t.key)}
+              onClick={() => trocarSubDaAbaAtual(sub.key)}
               className={cn(
-                "flex items-center gap-1.5 rounded-button px-3 py-1.5 text-sm font-medium transition-colors",
-                tab === t.key
-                  ? "bg-accent text-white"
-                  : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                "rounded-button px-2.5 py-1 text-[12px] font-medium transition-colors duration-150",
+                subAtual(tab) === sub.key
+                  ? "bg-card-hover text-accent-text"
+                  : "text-text-tertiary hover:bg-card-hover hover:text-text-primary"
               )}
             >
-              <Icon size={14} />
-              {t.label}
+              {sub.label}
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       {tab === "analises" && (
@@ -210,13 +244,11 @@ export function TrackingClient({
           initialEvents={initialEvents}
           isAdmin={isAdmin}
           subTab={analisesSubTab}
-          onSubTabChange={trocarSub("analises", setAnalisesSubTab)}
         />
       )}
 
       {tab === "webhooks" && isAdmin && (
         <div>
-          <SubTabs tabs={WEBHOOKS_SUB_TABS} active={webhooksSubTab} onChange={trocarSub("webhooks", setWebhooksSubTab)} />
           {webhooksSubTab === "guia" && <TrackingFlowGuide endpoints={endpoints} isAdmin={isAdmin} />}
           {webhooksSubTab === "endpoints" && (
             <WebhookEndpointsPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
@@ -227,8 +259,7 @@ export function TrackingClient({
 
       {tab === "contas" && isAdmin && (
         <div>
-          <SubTabs tabs={CONTAS_SUB_TABS} active={contasSubTab} onChange={trocarSub("contas", setContasSubTab)} />
-          <div className="space-y-4">
+          <div className="space-y-6">
             <BmsPanel productId={productId} platform={contasSubTab} />
             <AdAccountsPanel
               productId={productId}
@@ -243,10 +274,9 @@ export function TrackingClient({
 
       {tab === "utms" && (
         <div>
-          <SubTabs tabs={UTMS_SUB_TABS} active={utmsSubTab} onChange={trocarSub("utms", setUtmsSubTab)} />
           {utmsSubTab === "utm" && <UtmBuilder productId={productId} />}
           {utmsSubTab === "rastreamento" && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <TrackingScriptPanel productSlug={productSlug} />
               <LinkBuilder productSlug={productSlug} />
             </div>

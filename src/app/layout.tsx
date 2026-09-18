@@ -5,7 +5,7 @@ import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PROFITX Engine",
+  title: "ENGINE",
   description: "Content engine interna para geração de conversas, mensagens e e-mails",
 };
 

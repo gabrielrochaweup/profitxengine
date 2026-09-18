@@ -1,0 +1,392 @@
+"use client";
+
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { MoreHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/*
+  Peças de apresentação do módulo Tracking.
+
+  Existem porque a tela inteira era feita de `Card > h3 text-base > conteúdo`
+  repetido dezenas de vezes: cada gráfico, cada tabela e cada filtro ganhava a
+  própria caixa com o próprio padding, e o resultado era caixa dentro de caixa
+  com um ritmo diferente em cada aba.
+
+  A regra aqui é: a borda separa o que é semanticamente separado. Onde o que
+  separa é o assunto, separa espaço e título — não mais um contorno.
+
+  Nada aqui recebe ou transforma dado. São só invólucros.
+*/
+
+/** Título de bloco do módulo. 13px, não 16 — é rótulo de seção num painel denso. */
+export function BlocoTitulo({
+  titulo,
+  dica,
+  acoes,
+  className,
+}: {
+  titulo: ReactNode;
+  dica?: ReactNode;
+  acoes?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("mb-3 flex flex-wrap items-center justify-between gap-2", className)}>
+      <h3 className="flex items-center gap-1.5 text-[13px] font-semibold text-text-primary">
+        {titulo}
+        {dica}
+      </h3>
+      {acoes && <div className="flex shrink-0 flex-wrap items-center gap-2">{acoes}</div>}
+    </div>
+  );
+}
+
+/**
+ * Bloco sem caixa: título + conteúdo, direto sobre o fundo.
+ *
+ * É o padrão do módulo. Use `Cartao` só quando a área precisar de superfície
+ * própria (tabela longa, grupo que se lê como uma unidade).
+ */
+export function Bloco({
+  titulo,
+  dica,
+  acoes,
+  className,
+  children,
+}: {
+  titulo?: ReactNode;
+  dica?: ReactNode;
+  acoes?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={className}>
+      {titulo && <BlocoTitulo titulo={titulo} dica={dica} acoes={acoes} />}
+      {children}
+    </section>
+  );
+}
+
+/**
+ * Cartão do módulo: mesma superfície do resto do app, padding menor.
+ *
+ * p-4 e não p-5 — num painel de dados, 20px de respiro em volta de cada
+ * gráfico vira meia tela de nada quando são dez gráficos.
+ */
+export function Cartao({ className, children }: { className?: string; children: ReactNode }) {
+  return <div className={cn("rounded-card bg-card p-4 shadow-card", className)}>{children}</div>;
+}
+
+/**
+ * Dois (ou mais) blocos irmãos dentro de UMA superfície, separados por fio.
+ *
+ * Era aqui que nasciam as "caixas dentro de caixas": duas metades da mesma
+ * ideia — funil do curso e da corretora, vendas por horário e por dia —
+ * moravam em dois cartões idênticos lado a lado. O fio diz a mesma coisa que
+ * dois contornos diziam, com metade do ruído.
+ */
+export function CartaoDividido({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-1 divide-y divide-border rounded-card bg-card shadow-card lg:grid-cols-2 lg:divide-x lg:divide-y-0",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Uma metade do CartaoDividido. */
+export function MetadeCartao({ className, children }: { className?: string; children: ReactNode }) {
+  return <div className={cn("min-w-0 p-4", className)}>{children}</div>;
+}
+
+/**
+ * Barra de filtros do módulo.
+ *
+ * Antes era um cartão de 110px de altura só pra guardar quatro selects. Aqui
+ * é uma faixa: controles à esquerda, estado e ação à direita, um fio embaixo
+ * separando do conteúdo.
+ */
+export function BarraDeFiltros({
+  children,
+  direita,
+  className,
+}: {
+  children: ReactNode;
+  direita?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-3",
+        className
+      )}
+    >
+      {children}
+      {direita && <div className="ml-auto flex flex-wrap items-center gap-2">{direita}</div>}
+    </div>
+  );
+}
+
+/** Rótulo curto à esquerda de um controle da barra. Nível secundário, nunca "muted". */
+export function FiltroCampo({
+  label,
+  dica,
+  className,
+  children,
+}: {
+  label: string;
+  dica?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className={cn("flex items-center gap-1.5", className)}>
+      <span className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-text-secondary">
+        {label}
+        {dica}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+/** Grupo de botões que se lê como um controle só (período, por exemplo). */
+export function Segmentado<T extends string>({
+  opcoes,
+  ativo,
+  onChange,
+  disabled,
+}: {
+  opcoes: readonly { key: T; label: string }[];
+  ativo: T;
+  onChange: (key: T) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex h-8 items-center gap-0.5 rounded-input border border-border bg-input p-0.5">
+      {opcoes.map((o) => (
+        <button
+          key={o.key}
+          type="button"
+          onClick={() => onChange(o.key)}
+          disabled={disabled}
+          className={cn(
+            "h-7 rounded-[6px] px-2.5 text-[11px] font-medium transition-colors duration-150 disabled:opacity-50",
+            ativo === o.key
+              ? "bg-accent text-accent-contrast"
+              : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ─────────────────────────── tabelas ─────────────────────────── */
+
+/** Casca de tabela: rolagem horizontal quando não couber, sem quebrar o layout. */
+export function TabelaWrap({ className, children }: { className?: string; children: ReactNode }) {
+  return <div className={cn("-mx-4 overflow-x-auto px-4", className)}>{children}</div>;
+}
+
+export function Tabela({ className, children }: { className?: string; children: ReactNode }) {
+  return <table className={cn("w-full min-w-full text-left text-xs", className)}>{children}</table>;
+}
+
+/**
+ * Cabeçalho de coluna.
+ *
+ * `num` alinha à direita e liga tabular-nums: número que muda de largura a
+ * cada linha não dá pra comparar de bater o olho.
+ * `fraco` marca a coluna secundária — continua ali, com menos peso.
+ */
+export function Th({
+  children,
+  num,
+  fraco,
+  className,
+}: {
+  children: ReactNode;
+  num?: boolean;
+  fraco?: boolean;
+  className?: string;
+}) {
+  return (
+    <th
+      className={cn(
+        "whitespace-nowrap px-2 py-2 text-[10px] font-semibold uppercase tracking-wide first:pl-0 last:pr-0",
+        fraco ? "text-text-muted" : "text-text-tertiary",
+        num && "text-right",
+        className
+      )}
+    >
+      {children}
+    </th>
+  );
+}
+
+export function Td({
+  children,
+  num,
+  forte,
+  fraco,
+  className,
+  title,
+}: {
+  children: ReactNode;
+  num?: boolean;
+  forte?: boolean;
+  fraco?: boolean;
+  className?: string;
+  /** Texto cheio quando a célula trunca — o truncamento não pode esconder dado. */
+  title?: string;
+}) {
+  return (
+    <td
+      title={title}
+      className={cn(
+        "whitespace-nowrap px-2 py-2 first:pl-0 last:pr-0",
+        num && "text-right tabular-nums",
+        forte ? "font-medium text-text-primary" : fraco ? "text-text-tertiary" : "text-text-secondary",
+        className
+      )}
+    >
+      {children}
+    </td>
+  );
+}
+
+/** Linha de dados com hover — dá o rastro do olho em tabela larga. */
+export function Tr({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <tr className={cn("border-b border-border/60 transition-colors last:border-0 hover:bg-card-hover", className)}>
+      {children}
+    </tr>
+  );
+}
+
+/** Linha única de "não tem nada aqui" — sem cartão gigante em volta. */
+export function Vazio({ children }: { children: ReactNode }) {
+  return <p className="py-6 text-center text-xs text-text-tertiary">{children}</p>;
+}
+
+/* ─────────────────────────── menu "•••" ─────────────────────────── */
+
+/**
+ * Ações que existem mas não são do dia a dia.
+ *
+ * Cada endpoint tinha oito botões sempre visíveis; o que se usa toda hora
+ * (copiar, testar) some no meio do que se usa uma vez por ano (rotacionar
+ * token). Aqui o raro fica a um clique, não a zero — e a linha volta a ter
+ * uma ação óbvia.
+ */
+export function MenuMais({
+  children,
+  label = "Mais ações",
+  className,
+}: {
+  children: ReactNode | ((fechar: () => void) => ReactNode);
+  label?: string;
+  className?: string;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!aberto) return;
+    function aoClicarFora(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setAberto(false);
+    }
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === "Escape") setAberto(false);
+    }
+    document.addEventListener("mousedown", aoClicarFora);
+    document.addEventListener("keydown", aoTeclar);
+    return () => {
+      document.removeEventListener("mousedown", aoClicarFora);
+      document.removeEventListener("keydown", aoTeclar);
+    };
+  }, [aberto]);
+
+  const fechar = () => setAberto(false);
+
+  return (
+    <div ref={ref} className={cn("relative", className)}>
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        aria-label={label}
+        aria-expanded={aberto}
+        className={cn(
+          "flex h-7 w-7 items-center justify-center rounded-button text-text-tertiary transition-colors hover:bg-card-hover hover:text-text-primary",
+          aberto && "bg-card-hover text-text-primary"
+        )}
+      >
+        <MoreHorizontal size={15} />
+      </button>
+      {aberto && (
+        <div className="absolute right-0 top-full z-30 mt-1 min-w-[180px] overflow-hidden rounded-card bg-card py-1 shadow-popover">
+          {typeof children === "function" ? children(fechar) : children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Item do MenuMais. */
+export function ItemMenu({
+  onClick,
+  icone,
+  perigo,
+  children,
+}: {
+  onClick: () => void;
+  icone?: ReactNode;
+  perigo?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors",
+        perigo
+          ? "text-danger hover:bg-danger-soft"
+          : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+      )}
+    >
+      {icone}
+      {children}
+    </button>
+  );
+}
+
+/** Ponto de status: diz o estado sem virar mais um badge colorido na tela. */
+export function Ponto({ tom }: { tom: "ok" | "alerta" | "erro" | "neutro" }) {
+  return (
+    <span
+      className={cn(
+        "inline-block h-1.5 w-1.5 shrink-0 rounded-full",
+        tom === "ok" && "bg-success",
+        tom === "alerta" && "bg-warning",
+        tom === "erro" && "bg-danger",
+        tom === "neutro" && "bg-text-muted"
+      )}
+    />
+  );
+}

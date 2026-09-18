@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ALVO_LABEL, type SendPulseAlvo } from "@/lib/sendpulse/config-keys";
+import { Bloco, Cartao, Ponto, Tabela, TabelaWrap, Td, Th, Tr, Vazio } from "./ui";
 
 interface Aluno {
   email: string;
@@ -92,106 +91,122 @@ export function AlunosPanel({
   const semContrato = noPeriodo.filter((a) => !a.assinou).length;
   const semPepe = noPeriodo.filter((a) => !a.pepe).length;
 
-  if (loading) return <Card className="p-5 text-sm text-text-secondary">Carregando…</Card>;
+  if (loading) return <Cartao className="text-sm text-text-secondary">Carregando…</Cartao>;
 
   return (
-    <Card className="p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold text-text-primary">Alunos e contratos</h3>
-          <p className="mt-1 text-xs text-text-secondary">
-            Quem comprou, em que plano está, se já assinou e se já criou conta no Pepe. Sem assinatura o acesso
-            não abre — esta lista existe pra cobrar quem ficou pelo caminho.
-          </p>
+    <Bloco
+      titulo="Alunos e contratos"
+      acoes={
+        // Os três números são o resumo da lista: ficam na linha do título,
+        // em texto, em vez de três selos disputando atenção com os status
+        // que a tabela usa embaixo.
+        <div className="flex flex-wrap items-center gap-3 text-[11px]">
+          <span className="text-text-tertiary">
+            <span className="font-semibold tabular-nums text-text-primary">{noPeriodo.length}</span> alunos
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Ponto tom={semContrato > 0 ? "alerta" : "ok"} />
+            <span className="text-text-tertiary">
+              <span className="font-semibold tabular-nums text-text-primary">{semContrato}</span> sem contrato
+            </span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Ponto tom={semPepe > 0 ? "alerta" : "ok"} />
+            <span className="text-text-tertiary">
+              <span className="font-semibold tabular-nums text-text-primary">{semPepe}</span> sem Pepe
+            </span>
+          </span>
         </div>
-        <div className="flex gap-2 text-xs">
-          <Badge tone="neutral">{noPeriodo.length} alunos</Badge>
-          <Badge tone={semContrato > 0 ? "warning" : "success"}>{semContrato} sem contrato</Badge>
-          <Badge tone={semPepe > 0 ? "warning" : "success"}>{semPepe} sem Pepe</Badge>
-        </div>
-      </div>
+      }
+    >
+      <p className="-mt-1 mb-3 max-w-[80ch] text-[11px] text-text-tertiary">
+        Quem comprou, em que plano está, se já assinou e se já criou conta no Pepe. Sem assinatura o acesso não
+        abre — esta lista existe pra cobrar quem ficou pelo caminho.
+      </p>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar por nome, e-mail ou telefone"
-          className="max-w-xs"
-        />
-        <Button variant={soPendentes ? "primary" : "secondary"} onClick={() => setSoPendentes((v) => !v)}>
-          Só quem não assinou
-        </Button>
-        <Button variant={soSemPepe ? "primary" : "secondary"} onClick={() => setSoSemPepe((v) => !v)}>
-          Só quem não entrou no Pepe
-        </Button>
-      </div>
-
-      {filtrados.length === 0 ? (
-        <p className="mt-4 text-sm text-text-muted">
-          {alunos.length > 0 && noPeriodo.length === 0
-            ? "Ninguém entrou nesse período — troque o filtro de data acima."
-            : "Nenhum aluno encontrado."}
-        </p>
-      ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="text-text-muted">
-              <tr>
-                <th className="py-2 pr-3 font-medium">Aluno</th>
-                <th className="py-2 pr-3 font-medium">Telefone</th>
-                <th className="py-2 pr-3 font-medium">Plano</th>
-                <th className="py-2 pr-3 font-medium">Contrato</th>
-                <th className="py-2 pr-3 font-medium">Pepe</th>
-                <th className="py-2 pr-3 font-medium">1ª compra</th>
-                <th className="py-2 font-medium">Última compra</th>
-              </tr>
-            </thead>
-            <tbody className="text-text-secondary">
-              {filtrados.map((a) => {
-                const wa = linkWhatsapp(a.phone);
-                return (
-                  <tr key={a.email}>
-                    <td className="py-2 pr-3">
-                      <div className="text-text-primary">{a.nome || "—"}</div>
-                      <div className="text-text-muted">{a.email}</div>
-                    </td>
-                    <td className="py-2 pr-3 font-mono">
-                      {wa ? (
-                        <a href={wa} target="_blank" rel="noopener noreferrer" className="hover:text-text-primary">
-                          {a.phone}
-                        </a>
-                      ) : (
-                        <span className="text-text-muted">sem telefone</span>
-                      )}
-                    </td>
-                    <td className="py-2 pr-3">
-                      {a.plano ? (ALVO_LABEL[a.plano as SendPulseAlvo] ?? a.plano) : "—"}
-                    </td>
-                    <td className="py-2 pr-3">
-                      {a.assinou ? (
-                        <Badge tone="success">assinado</Badge>
-                      ) : (
-                        <Badge tone="warning">pendente</Badge>
-                      )}
-                    </td>
-                    <td className="py-2 pr-3">
-                      {a.pepe ? (
-                        <Badge tone="success" title={`Cadastrou em ${data(a.pepe_em)}`}>
-                          cadastrado
-                        </Badge>
-                      ) : (
-                        <Badge tone="neutral">pendente</Badge>
-                      )}
-                    </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">{data(a.primeira_compra)}</td>
-                    <td className="py-2 whitespace-nowrap">{data(a.ultima_compra)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <Cartao>
+        <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border pb-3">
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome, e-mail ou telefone"
+            className="h-8 max-w-xs text-xs"
+          />
+          <Button size="sm" variant={soPendentes ? "primary" : "secondary"} onClick={() => setSoPendentes((v) => !v)}>
+            Só quem não assinou
+          </Button>
+          <Button size="sm" variant={soSemPepe ? "primary" : "secondary"} onClick={() => setSoSemPepe((v) => !v)}>
+            Só quem não entrou no Pepe
+          </Button>
         </div>
-      )}
-    </Card>
+
+        {filtrados.length === 0 ? (
+          <Vazio>
+            {alunos.length > 0 && noPeriodo.length === 0
+              ? "Ninguém entrou nesse período — troque o filtro de data acima."
+              : "Nenhum aluno encontrado."}
+          </Vazio>
+        ) : (
+          <TabelaWrap>
+            <Tabela>
+              <thead>
+                <tr className="border-b border-border">
+                  <Th>Aluno</Th>
+                  <Th>Telefone</Th>
+                  <Th>Plano</Th>
+                  <Th>Contrato</Th>
+                  <Th>Pepe</Th>
+                  <Th num>1ª compra</Th>
+                  <Th num>Última compra</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtrados.map((a) => {
+                  const wa = linkWhatsapp(a.phone);
+                  return (
+                    <Tr key={a.email}>
+                      <Td className="max-w-[280px]">
+                        <span className="block truncate font-medium text-text-primary">{a.nome || "—"}</span>
+                        <span className="block truncate text-[11px] text-text-tertiary" title={a.email}>
+                          {a.email}
+                        </span>
+                      </Td>
+                      <Td className="font-mono text-[11px]">
+                        {wa ? (
+                          <a href={wa} target="_blank" rel="noopener noreferrer" className="hover:text-text-primary">
+                            {a.phone}
+                          </a>
+                        ) : (
+                          <span className="text-text-muted">sem telefone</span>
+                        )}
+                      </Td>
+                      <Td>{a.plano ? (ALVO_LABEL[a.plano as SendPulseAlvo] ?? a.plano) : "—"}</Td>
+                      {/* Status em ponto + palavra: numa lista de centenas de
+                          linhas, selo em toda célula vira textura, não sinal. */}
+                      <Td>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Ponto tom={a.assinou ? "ok" : "alerta"} />
+                          <span className={a.assinou ? "text-text-tertiary" : "font-medium text-warning"}>
+                            {a.assinou ? "assinado" : "pendente"}
+                          </span>
+                        </span>
+                      </Td>
+                      <Td title={a.pepe ? `Cadastrou em ${data(a.pepe_em)}` : undefined}>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Ponto tom={a.pepe ? "ok" : "neutro"} />
+                          <span className="text-text-tertiary">{a.pepe ? "cadastrado" : "pendente"}</span>
+                        </span>
+                      </Td>
+                      <Td num>{data(a.primeira_compra)}</Td>
+                      <Td num>{data(a.ultima_compra)}</Td>
+                    </Tr>
+                  );
+                })}
+              </tbody>
+            </Tabela>
+          </TabelaWrap>
+        )}
+      </Cartao>
+    </Bloco>
   );
 }
