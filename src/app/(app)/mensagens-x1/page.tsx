@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { LoadingState } from "@/components/ui/loading-state";
 import { X1Client } from "./x1-client";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 
 export default async function X1Page() {
   const supabase = createClient();
@@ -17,17 +18,14 @@ export default async function X1Page() {
     .order("scheduled_date", { ascending: false });
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Mensagens X1</h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-        Mensagens individuais para alunos, segmentadas por perfil, com geração por IA e histórico.
-      </p>
-
-      <div className="mt-6">
-        <Suspense fallback={<LoadingState />}>
-          <X1Client initialMessages={messages ?? []} currentUserId={user.id} />
-        </Suspense>
-      </div>
-    </div>
+    <PageContainer largura="padrao">
+      <PageHeader
+        titulo="Mensagens X1"
+        descricao="Mensagens individuais para alunos, segmentadas por perfil, com geração por IA e histórico."
+      />
+      <Suspense fallback={<LoadingState />}>
+        <X1Client initialMessages={messages ?? []} currentUserId={user.id} />
+      </Suspense>
+    </PageContainer>
   );
 }

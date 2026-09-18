@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/supabase/server";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 import { CriativosLivre } from "./components/criativos-livre";
 
 export default async function GeradorDeCriativosPage() {
@@ -9,11 +10,12 @@ export default async function GeradorDeCriativosPage() {
   if (!user) redirect("/login");
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Gerador de Criativos</h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">Gere criativos livres só com prompt.</p>
-
+    <PageContainer largura="focado">
+      <PageHeader
+        titulo="Gerador de Criativos"
+        descricao="Descreva o criativo e gere a imagem. Use uma referência quando quiser manter o estilo de algo que já existe."
+      />
       <CriativosLivre />
-    </div>
+    </PageContainer>
   );
 }

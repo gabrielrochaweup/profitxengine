@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sparkles, Copy, Trash2, Plus, ThumbsUp, ThumbsDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { Card } from "@/components/ui/card";
+import { ContentGrid, Field, Section } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -171,7 +171,7 @@ export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }:
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       {messages.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {messages.map((m) => (
@@ -202,44 +202,48 @@ export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }:
 
       <ApprovalContextPanel scope="direct" />
 
-      <Card className="p-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-text-secondary">Segmento do aluno</label>
-          <Select
-            value={form.segment}
-            onChange={(e) => setForm((prev) => ({ ...prev, segment: e.target.value as StudentSegment }))}
-          >
-            {Object.entries(SEGMENT_LABEL).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </Card>
+      {/* O segmento nao precisava de um cartao so pra ele, nem da largura
+          inteira: sao quatro palavras num select. */}
+      <Section titulo="Para quem" descricao="Define o tom que o modelo usa na mensagem.">
+        <ContentGrid>
+          <Field label="Segmento do aluno" span={4}>
+            <Select
+              value={form.segment}
+              onChange={(e) => setForm((prev) => ({ ...prev, segment: e.target.value as StudentSegment }))}
+            >
+              {Object.entries(SEGMENT_LABEL).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </ContentGrid>
+      </Section>
 
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-text-secondary">Prompt de texto</label>
+      <Section
+        titulo="Mensagem"
+        acoes={
           <PromptPicker
             preferredSlug="mensagem"
             onSelect={(p) => setForm((prev) => ({ ...prev, textPrompt: p.content, textPromptId: p.id }))}
           />
-        </div>
+        }
+      >
         <Textarea
           value={form.textPrompt}
           onChange={(e) => setForm((prev) => ({ ...prev, textPrompt: e.target.value, textPromptId: null }))}
           rows={4}
           placeholder="Prompt para gerar a mensagem individual"
         />
-      </div>
 
-      {genError && <p className="text-sm text-danger">{genError}</p>}
+        {genError && <p className="mt-2 text-sm text-danger">{genError}</p>}
 
-      <Button type="button" onClick={handleGenerate} disabled={generating} className="w-full">
-        <Sparkles size={16} />
-        {generating ? "Gerando..." : "Gerar mensagem"}
-      </Button>
+        {/* Texto longo merece a largura toda; o botao, nao. */}
+        <Button type="button" onClick={handleGenerate} disabled={generating} className="mt-3">
+          <Sparkles size={16} />
+          {generating ? "Gerando..." : "Gerar mensagem"}
+        </Button>
 
       {form.generatedText && (
         <div className="space-y-1.5">
@@ -258,6 +262,9 @@ export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }:
         </div>
       )}
 
+      </Section>
+
+      <Section titulo="Imagem" descricao="Opcional — nem toda mensagem direct precisa de uma.">
       <ImageGenerationPanel
         contextType="x1_message"
         contextId={form.id}
@@ -267,9 +274,11 @@ export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }:
         placeholder="Nem toda mensagem direct precisa de imagem"
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-text-secondary">Status</label>
+      </Section>
+
+      <Section titulo="Classificação" descricao="Como essa mensagem foi arquivada e o que ela rendeu.">
+      <ContentGrid>
+        <Field label="Status" span={3}>
           <Select
             value={form.status}
             onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as EngagementStatus }))}
@@ -278,19 +287,17 @@ export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }:
             <option value="aprovada">Aprovada</option>
             <option value="enviada">Enviada</option>
           </Select>
-        </div>
+        </Field>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-text-secondary">Tema/tag</label>
+        <Field label="Tema/tag" span={5}>
           <Input
             value={form.tema}
             onChange={(e) => setForm((prev) => ({ ...prev, tema: e.target.value }))}
             placeholder="reengajamento, upsell..."
           />
-        </div>
+        </Field>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-text-secondary">Resultado</label>
+        <Field label="Resultado" span={4}>
           <div className="flex gap-1">
             <button
               type="button"
@@ -317,18 +324,18 @@ export function X1Form({ dateKey, messages, currentUserId, onSaved, onDeleted }:
               <ThumbsDown size={15} />
             </button>
           </div>
-        </div>
-      </div>
+        </Field>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-text-secondary">Nota livre</label>
-        <Textarea
-          value={form.notes}
-          onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-          rows={2}
-          placeholder="O que funcionou ou não com esse aluno/segmento?"
-        />
-      </div>
+        <Field label="Nota livre" hint="(opcional)" span={12}>
+          <Textarea
+            value={form.notes}
+            onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+            rows={2}
+            placeholder="O que funcionou ou não com esse aluno/segmento?"
+          />
+        </Field>
+      </ContentGrid>
+      </Section>
 
       <div className="flex items-center justify-between border-t border-border pt-3">
         {form.id ? (

@@ -11,8 +11,11 @@ export function CriativosLivre() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   return (
-    <div className="mt-6 mx-auto max-w-xl">
-      <Card className="p-4">
+    // Alinhado a esquerda com o resto da pagina, nao centralizado. Um cartao
+    // de 576px boiando no meio de um canvas de 1400 parece um acidente; a
+    // largura agora vem do PageContainer "focado" da pagina.
+    <div>
+      <Card className="p-5">
         <ImageGenerationPanel
           contextType="criativo"
           contextId="gerador-criativos-livre"

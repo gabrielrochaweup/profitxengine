@@ -518,11 +518,14 @@ export function ImageGenerationPanel({
         </div>
       )}
 
-      <div className="mt-2 flex flex-wrap gap-2">
+      {/* Ajustes da geracao. Teto de 260px em cada: "Qualidade: Media" nao
+          precisa de meia tela pra ser lido, e um controle largo demais promete
+          um conteudo que nao existe. Em coluna estreita o flex-1 ainda manda. */}
+      <div className="mt-3 flex flex-wrap gap-2">
         <Select
           value={quality}
           onChange={(e) => setQuality(e.target.value as ImageQuality)}
-          className="h-8 flex-1 text-[11px]"
+          className="h-8 max-w-[260px] flex-1 text-[11px]"
         >
           {QUALITY_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -533,7 +536,7 @@ export function ImageGenerationPanel({
         <Select
           value={aspectRatio}
           onChange={(e) => setAspectRatio(e.target.value as ImageAspectRatio)}
-          className="h-8 flex-1 text-[11px]"
+          className="h-8 max-w-[260px] flex-1 text-[11px]"
         >
           {ASPECT_RATIO_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -543,10 +546,11 @@ export function ImageGenerationPanel({
         </Select>
       </div>
 
+      {/* Acao primaria com teto tambem: uma barra verde de 900px nao fica mais
+          clicavel, so mais barulhenta. Em coluna estreita ocupa a largura toda. */}
       <Button
         type="button"
-        size="sm"
-        className="mt-2 w-full"
+        className="mt-3 w-full max-w-[280px]"
         disabled={!(promptMode === "predefinido" ? assembledPrompt : prompt).trim() || generating}
         onClick={handleGenerate}
       >
