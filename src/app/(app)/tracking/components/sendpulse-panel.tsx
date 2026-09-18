@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { Bloco, Cartao, Ponto, Tabela, TabelaWrap, Td, Th, Tr, Vazio } from "./ui";
 import {
   SENDPULSE_TIPOS,
   SENDPULSE_ALVOS,
@@ -176,27 +175,31 @@ export function SendPulsePanel({ productId }: { productId: string }) {
     else toast.error("Falha ao salvar os endereços.");
   }
 
-  if (loading) return <Card className="p-5 text-sm text-text-secondary">Carregando…</Card>;
+  if (loading) return <Cartao className="text-sm text-text-secondary">Carregando…</Cartao>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Cada funil é um bloco: título, as quatro linhas de plano e nada
+          mais. As URLs são longas, então ficam em fonte de largura fixa e
+          altura de input compacta — elas não são o conteúdo da tela, são o
+          campo de um formulário. */}
       {SENDPULSE_TIPOS.map((t) => (
-        <Card key={t.tipo} className="p-5">
-          <h3 className="text-sm font-semibold text-text-primary">{t.titulo}</h3>
-          <p className="mt-1 text-xs text-text-secondary">{t.descricao}</p>
-
-          <div className="mt-4 space-y-3">
+        <Bloco key={t.tipo} titulo={t.titulo}>
+          <p className="-mt-1 mb-3 max-w-[80ch] text-[11px] text-text-tertiary">{t.descricao}</p>
+          <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
             {SENDPULSE_ALVOS.map((alvo) => {
               const key = sendpulseKey(t.tipo as SendPulseTipo, alvo);
               const row = rowFor(key);
               return (
-                <div key={key} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <label className="w-32 shrink-0 text-xs font-medium text-text-secondary">{ALVO_LABEL[alvo]}</label>
+                <div key={key} className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:gap-3">
+                  <label className="w-24 shrink-0 text-[11px] font-medium text-text-secondary">
+                    {ALVO_LABEL[alvo]}
+                  </label>
                   <Input
                     value={row.url}
                     onChange={(e) => update(key, { url: e.target.value })}
                     placeholder="https://events.sendpulse.com/events/id/..."
-                    className="flex-1 font-mono text-xs"
+                    className="h-8 flex-1 font-mono text-[11px]"
                   />
                   <Switch
                     checked={row.enabled}
@@ -207,143 +210,179 @@ export function SendPulsePanel({ productId }: { productId: string }) {
               );
             })}
           </div>
-        </Card>
+        </Bloco>
       ))}
 
-      <Card className="p-5">
-        <p className="text-xs text-text-secondary">
+      <Cartao>
+        <p className="max-w-[90ch] text-xs leading-relaxed text-text-secondary">
           Cole aqui o <strong>POST URL</strong> de cada evento do SendPulse (Automation360 → Gerenciador de eventos).
           O endereço já é a credencial do disparo — quem tem a URL dispara — então trate como senha. Enviamos{" "}
           <strong>phone</strong>, <strong>email</strong>, <strong>nome</strong>, <strong>plano</strong> e{" "}
           <strong>evento</strong>; no SendPulse, use <strong>phone</strong> pra achar o contato do WhatsApp (vai em
           formato internacional, +55…).
         </p>
-        <p className="mt-2 text-xs text-text-secondary">
+        <p className="mt-2 max-w-[90ch] text-xs leading-relaxed text-text-secondary">
           Desligar a linha de um plano silencia aquele plano de propósito — ela <strong>não</strong> cai no endereço
           geral, senão a pessoa receberia a mensagem errada.
         </p>
-        <div className="mt-4">
+        <div className="mt-3">
           <Button onClick={save} disabled={saving}>
             {saving ? "Salvando…" : "Salvar"}
           </Button>
         </div>
-      </Card>
+      </Cartao>
 
-      <Card className="p-5">
-        <h3 className="text-sm font-semibold text-text-primary">Testar</h3>
-        <p className="mt-1 text-xs text-text-secondary">
+      <Bloco titulo="Testar">
+        <p className="-mt-1 mb-3 max-w-[90ch] text-[11px] leading-relaxed text-text-tertiary">
           Dispara de verdade no SendPulse e inicia o fluxo — serve pra conferir a ligação sem comprar o curso de
-          novo. Ignora as travas de propósito: dá pra repetir à vontade, e testar com o e-mail de um aluno real
-          não queima a mensagem de verdade dele. Fica marcado como teste no histórico e fora dos contadores.
+          novo. Ignora as travas de propósito: dá pra repetir à vontade, e testar com o e-mail de um aluno real não
+          queima a mensagem de verdade dele. Fica marcado como teste no histórico e fora dos contadores.
         </p>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-text-secondary">Funil</label>
-            <Select value={testeTipo} onChange={(e) => setTesteTipo(e.target.value as "boas_vindas" | "contrato")}>
-              <option value="boas_vindas">Boas-vindas</option>
-              <option value="contrato">Pós-contrato</option>
-            </Select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-text-secondary">Plano</label>
-            <Select value={testePlano} onChange={(e) => setTestePlano(e.target.value)}>
-              <option value="">Descobrir pela compra do e-mail</option>
-              {PLANOS_TESTE.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-text-secondary">E-mail</label>
-            <Input value={testeEmail} onChange={(e) => setTesteEmail(e.target.value)} placeholder="aluno@email.com" />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-text-secondary">
-              Telefone <span className="text-text-muted/70">(vazio = usa o do aluno)</span>
-            </label>
-            <Input
-              value={testeTelefone}
-              onChange={(e) => setTesteTelefone(e.target.value)}
-              placeholder="(47) 99999-9999"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-text-secondary">
-              Nome <span className="text-text-muted/70">(opcional)</span>
-            </label>
-            <Input value={testeNome} onChange={(e) => setTesteNome(e.target.value)} placeholder="Nome do aluno" />
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <Button onClick={dispararTeste} disabled={testando}>
-            {testando ? "Disparando…" : "Disparar agora"}
-          </Button>
-        </div>
-      </Card>
-
-      <Card className="p-5">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text-primary">Disparos</h3>
-          <div className="flex gap-2 text-xs">
-            <Badge tone="success">{enviados} enviados</Badge>
-            <Badge tone={falhas > 0 ? "danger" : "neutral"}>{falhas} falharam</Badge>
-          </div>
-        </div>
-
-        {log.length === 0 ? (
-          <p className="mt-3 text-sm text-text-muted">Nenhum disparo ainda.</p>
-        ) : (
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="text-text-muted">
-                <tr>
-                  <th className="py-2 pr-3 font-medium">Quando</th>
-                  <th className="py-2 pr-3 font-medium">Funil</th>
-                  <th className="py-2 pr-3 font-medium">Aluno</th>
-                  <th className="py-2 pr-3 font-medium">Telefone</th>
-                  <th className="py-2 pr-3 font-medium">Plano</th>
-                  <th className="py-2 font-medium">Situação</th>
-                </tr>
-              </thead>
-              <tbody className="text-text-secondary">
-                {log.map((l) => (
-                  <tr key={l.id}>
-                    <td className="py-2 pr-3 whitespace-nowrap">
-                      {new Date(l.created_at).toLocaleString("pt-BR")}
-                    </td>
-                    <td className="py-2 pr-3">
-                      {l.tipo === "boas_vindas" ? "Boas-vindas" : "Pós-contrato"}
-                      {l.teste && (
-                        <Badge tone="neutral" className="ml-1">
-                          teste
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="py-2 pr-3">{l.email}</td>
-                    <td className="py-2 pr-3 font-mono">{l.phone || "—"}</td>
-                    <td className="py-2 pr-3">
-                      {l.plano || "—"}
-                      {l.destino === "geral" && <Badge tone="warning" className="ml-1">geral</Badge>}
-                    </td>
-                    <td className="py-2">
-                      <Badge
-                        tone={l.status === "enviado" ? "success" : l.status === "falhou" ? "danger" : "neutral"}
-                      >
-                        {l.status}
-                      </Badge>
-                      {l.erro && <div className="mt-1 text-[11px] text-danger">{l.erro}</div>}
-                    </td>
-                  </tr>
+        <Cartao>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
+            <div className="sm:col-span-3">
+              <label className="mb-1.5 block text-[11px] font-medium text-text-secondary">Funil</label>
+              <Select
+                value={testeTipo}
+                onChange={(e) => setTesteTipo(e.target.value as "boas_vindas" | "contrato")}
+                className="h-8 text-xs"
+              >
+                <option value="boas_vindas">Boas-vindas</option>
+                <option value="contrato">Pós-contrato</option>
+              </Select>
+            </div>
+            <div className="sm:col-span-3">
+              <label className="mb-1.5 block text-[11px] font-medium text-text-secondary">Plano</label>
+              <Select value={testePlano} onChange={(e) => setTestePlano(e.target.value)} className="h-8 text-xs">
+                <option value="">Descobrir pela compra do e-mail</option>
+                {PLANOS_TESTE.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
                 ))}
-              </tbody>
-            </table>
+              </Select>
+            </div>
+            <div className="sm:col-span-6">
+              <label className="mb-1.5 block text-[11px] font-medium text-text-secondary">E-mail</label>
+              <Input
+                value={testeEmail}
+                onChange={(e) => setTesteEmail(e.target.value)}
+                placeholder="aluno@email.com"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="sm:col-span-6">
+              <label className="mb-1.5 block text-[11px] font-medium text-text-secondary">
+                Telefone <span className="font-normal text-text-tertiary">(vazio = usa o do aluno)</span>
+              </label>
+              <Input
+                value={testeTelefone}
+                onChange={(e) => setTesteTelefone(e.target.value)}
+                placeholder="(47) 99999-9999"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="sm:col-span-6">
+              <label className="mb-1.5 block text-[11px] font-medium text-text-secondary">
+                Nome <span className="font-normal text-text-tertiary">(opcional)</span>
+              </label>
+              <Input
+                value={testeNome}
+                onChange={(e) => setTesteNome(e.target.value)}
+                placeholder="Nome do aluno"
+                className="h-8 text-xs"
+              />
+            </div>
           </div>
-        )}
-      </Card>
+
+          <div className="mt-4">
+            <Button onClick={dispararTeste} disabled={testando}>
+              {testando ? "Disparando…" : "Disparar agora"}
+            </Button>
+          </div>
+        </Cartao>
+      </Bloco>
+
+      <Bloco
+        titulo="Disparos"
+        acoes={
+          <div className="flex items-center gap-3 text-[11px]">
+            <span className="inline-flex items-center gap-1.5">
+              <Ponto tom="ok" />
+              <span className="text-text-tertiary">
+                <span className="font-semibold tabular-nums text-text-primary">{enviados}</span> enviados
+              </span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Ponto tom={falhas > 0 ? "erro" : "neutro"} />
+              <span className="text-text-tertiary">
+                <span className="font-semibold tabular-nums text-text-primary">{falhas}</span> falharam
+              </span>
+            </span>
+          </div>
+        }
+      >
+        <Cartao>
+          {log.length === 0 ? (
+            <Vazio>Nenhum disparo ainda.</Vazio>
+          ) : (
+            <TabelaWrap>
+              <Tabela>
+                <thead>
+                  <tr className="border-b border-border">
+                    <Th>Quando</Th>
+                    <Th>Funil</Th>
+                    <Th>Aluno</Th>
+                    <Th>Telefone</Th>
+                    <Th>Plano</Th>
+                    <Th>Situação</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {log.map((l) => (
+                    <Tr key={l.id}>
+                      <Td fraco className="font-mono text-[11px]">
+                        {new Date(l.created_at).toLocaleString("pt-BR")}
+                      </Td>
+                      <Td forte>
+                        {l.tipo === "boas_vindas" ? "Boas-vindas" : "Pós-contrato"}
+                        {l.teste && (
+                          <span className="ml-1.5 rounded-button bg-card-hover px-1.5 py-0.5 text-[10px] font-normal text-text-tertiary">
+                            teste
+                          </span>
+                        )}
+                      </Td>
+                      <Td className="max-w-[220px] truncate" title={l.email}>
+                        {l.email}
+                      </Td>
+                      <Td className="font-mono text-[11px]">{l.phone || "—"}</Td>
+                      <Td>
+                        {l.plano || "—"}
+                        {l.destino === "geral" && (
+                          <span className="ml-1.5 rounded-button bg-warning-soft px-1.5 py-0.5 text-[10px] text-warning">
+                            geral
+                          </span>
+                        )}
+                      </Td>
+                      <Td>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Ponto
+                            tom={l.status === "enviado" ? "ok" : l.status === "falhou" ? "erro" : "neutro"}
+                          />
+                          <span className={l.status === "falhou" ? "text-danger" : "text-text-tertiary"}>
+                            {l.status}
+                          </span>
+                        </span>
+                        {l.erro && <div className="mt-0.5 text-[11px] text-danger">{l.erro}</div>}
+                      </Td>
+                    </Tr>
+                  ))}
+                </tbody>
+              </Tabela>
+            </TabelaWrap>
+          )}
+        </Cartao>
+      </Bloco>
     </div>
   );
 }

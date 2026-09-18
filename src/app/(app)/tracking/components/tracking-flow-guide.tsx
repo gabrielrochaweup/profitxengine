@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Bloco } from "./ui";
 import type { WebhookEndpoint } from "./webhook-endpoints-panel";
 
 type StepKind = "landing" | "checkout" | "members_area" | "broker";
@@ -114,78 +114,88 @@ export function TrackingFlowGuide({ endpoints, isAdmin }: { endpoints: WebhookEn
   const doneCount = isAdmin ? STEPS.filter((s) => statusFor(s, endpoints, isAdmin).state === "done").length : null;
 
   return (
-    <Card className="p-5">
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-semibold text-text-primary">Como o lead_id viaja até a corretora</h3>
-        {doneCount !== null && (
-          <span className="text-[11px] font-medium text-text-muted">
-            {doneCount === STEPS.length ? "Tudo testado ✓" : `${doneCount} de ${STEPS.length} testados`}
-          </span>
-        )}
-      </div>
-      <p className="mb-3 text-xs text-text-secondary">
+    <Bloco
+      titulo="Como o lead_id viaja até a corretora"
+      acoes={
+        doneCount !== null ? (
+          // Progresso vira uma linha só: contagem + barra curta ao lado, em
+          // vez de uma faixa de largura total anunciando "2 de 4".
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-medium tabular-nums text-text-tertiary">
+              {doneCount === STEPS.length ? "Tudo testado" : `${doneCount} de ${STEPS.length} testados`}
+            </span>
+            <div className="h-1 w-24 overflow-hidden rounded-full bg-card-hover">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  doneCount === STEPS.length ? "bg-success" : "bg-accent"
+                )}
+                style={{ width: `${(doneCount / STEPS.length) * 100}%` }}
+              />
+            </div>
+          </div>
+        ) : undefined
+      }
+    >
+      <p className="-mt-1 mb-3 max-w-[80ch] text-[11px] text-text-tertiary">
         Clique numa etapa pra ver o que fazer — só fica verde depois de testada com sucesso.
       </p>
 
-      {doneCount !== null && (
-        <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-card-hover">
-          <div
-            className="h-full rounded-full bg-accent transition-all"
-            style={{ width: `${(doneCount / STEPS.length) * 100}%` }}
-          />
-        </div>
-      )}
-
-      <div className="space-y-2">
+      {/* As quatro etapas numa superfície só, separadas por fio: é uma lista
+          de passos, não quatro assuntos diferentes. Fechada, cada linha diz
+          número, nome e status; o resto aparece ao abrir. */}
+      <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
         {STEPS.map((step) => {
           const status = statusFor(step, endpoints, isAdmin);
           const isOpen = open === step.number;
           return (
-            <div key={step.number} className="rounded-xl bg-card-hover">
+            <div key={step.number}>
               <button
                 type="button"
                 onClick={() => setOpen((prev) => (prev === step.number ? null : step.number))}
-                className="flex w-full flex-wrap items-center gap-2 p-3 text-left"
+                className="flex w-full flex-wrap items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-card-hover"
               >
                 <span
                   className={cn(
-                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-button text-[10px] font-bold",
                     status.state === "done"
                       ? "bg-success text-white"
                       : status.state === "partial"
                         ? "bg-warning text-white"
-                        : "bg-accent text-white"
+                        : "bg-accent text-accent-contrast"
                   )}
                 >
-                  {status.state === "done" ? <Check size={13} /> : step.number}
+                  {status.state === "done" ? <Check size={12} /> : step.number}
                 </span>
-                <span className="text-sm font-medium text-text-primary">{step.title}</span>
+                <span className="text-[13px] font-medium text-text-primary">{step.title}</span>
                 {step.repeatable && (
-                  <span className="rounded-button bg-card px-1.5 py-0.5 text-[10px] text-text-muted">repetível</span>
+                  <span className="rounded-button bg-card-hover px-1.5 py-0.5 text-[10px] text-text-tertiary">
+                    repetível
+                  </span>
                 )}
-                <span className="text-[11px] text-text-muted">· {status.label}</span>
+                <span className="text-[11px] text-text-tertiary">· {status.label}</span>
                 <ChevronDown
                   size={15}
-                  className={cn("ml-auto shrink-0 text-text-muted transition-transform", isOpen && "rotate-180")}
+                  className={cn("ml-auto shrink-0 text-text-tertiary transition-transform", isOpen && "rotate-180")}
                 />
               </button>
 
               {isOpen && (
-                <div className="px-3 pb-3">
-                  <p className="text-xs leading-relaxed text-text-secondary">{step.description}</p>
+                <div className="border-t border-border bg-card-hover/40 px-4 py-3">
+                  <p className="max-w-[90ch] text-xs leading-relaxed text-text-secondary">{step.description}</p>
                   {step.contract && (
-                    <code className="mt-2 block overflow-x-auto whitespace-pre rounded-input bg-accent-soft px-3 py-2 text-[11px] text-text-muted">
+                    <code className="mt-2 block overflow-x-auto whitespace-pre rounded-input border border-border bg-input px-3 py-2 font-mono text-[11px] text-text-secondary">
                       {step.contract}
                     </code>
                   )}
                   {status.entries.length > 0 && (
                     <div className="mt-3">
-                      <p className="mb-1.5 text-[11px] font-medium text-text-muted">Endpoints criados:</p>
+                      <p className="mb-1.5 text-[11px] font-medium text-text-tertiary">Endpoints criados</p>
                       <div className="flex flex-wrap gap-1.5">
                         {status.entries.map((entry) => (
                           <span
                             key={entry.id}
-                            className="inline-flex items-center gap-1 rounded-button bg-card px-2 py-1 text-[11px] text-text-secondary"
+                            className="inline-flex items-center gap-1.5 rounded-button border border-border bg-card px-2 py-1 text-[11px] text-text-secondary"
                           >
                             {entry.last_test_ok === true ? (
                               <Check size={11} className="text-success" />
@@ -199,13 +209,13 @@ export function TrackingFlowGuide({ endpoints, isAdmin }: { endpoints: WebhookEn
                         ))}
                       </div>
                       <p className="mt-1.5 text-[11px] text-text-muted">
-                        Teste cada um na aba Webhooks — só conta como pronto depois de testado com sucesso.
+                        Teste cada um na aba Endpoints — só conta como pronto depois de testado com sucesso.
                       </p>
                     </div>
                   )}
                   {step.kind !== "landing" && status.entries.length === 0 && (
                     <p className="mt-3 text-[11px] text-text-muted">
-                      Nenhum endpoint desse tipo ainda — crie um na aba Webhooks.
+                      Nenhum endpoint desse tipo ainda — crie um na aba Endpoints.
                     </p>
                   )}
                 </div>
@@ -214,6 +224,6 @@ export function TrackingFlowGuide({ endpoints, isAdmin }: { endpoints: WebhookEn
           );
         })}
       </div>
-    </Card>
+    </Bloco>
   );
 }

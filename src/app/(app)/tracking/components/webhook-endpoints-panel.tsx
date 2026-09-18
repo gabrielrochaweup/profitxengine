@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { Card } from "@/components/ui/card";
+import { Pencil, RefreshCw, Power, Trash2, FileJson, Replace } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -14,6 +14,7 @@ import { MEMBERS_AREA_PLATFORMS } from "@/lib/tracking/members-area-adapters";
 import { BROKER_PLATFORMS } from "@/lib/tracking/broker-adapters";
 import { CONTRACT_PLATFORMS } from "@/lib/tracking/contract-adapters";
 import { TOOL_PLATFORMS } from "@/lib/tracking/tool-adapters";
+import { Bloco, Cartao, ItemMenu, MenuMais, Ponto, Vazio } from "./ui";
 
 export interface WebhookEndpoint {
   id: string;
@@ -235,148 +236,229 @@ export function WebhookEndpointsPanel({
   }
 
   return (
-    <Card className="p-5">
-      <div className="mb-1 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-text-primary">Webhooks</h3>
+    <Bloco
+      titulo="Endpoints"
+      acoes={
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           Gerar novo endpoint
         </Button>
-      </div>
-      <p className="mb-3 text-xs text-text-secondary">
+      }
+    >
+      <p className="-mt-1 mb-3 max-w-[80ch] text-[11px] text-text-tertiary">
         Um endpoint por página de vendas/plataforma — crie, renomeie ou troque quando precisar.
       </p>
 
       {endpoints.length === 0 ? (
-        <p className="text-xs text-text-muted">Nenhum endpoint configurado ainda.</p>
+        <Cartao>
+          <Vazio>Nenhum endpoint configurado ainda.</Vazio>
+        </Cartao>
       ) : (
-        <div className="space-y-2">
+        // Uma superfície com as linhas separadas por fio, em vez de um
+        // cartão por endpoint.
+        <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
           {endpoints.map((endpoint) => (
-            <div key={endpoint.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card-hover p-3">
-              <div className="min-w-0">
-                {renamingId === endpoint.id ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={labelDraft}
-                      onChange={(e) => setLabelDraft(e.target.value)}
-                      placeholder={endpointSubtitle(endpoint)}
-                      className="h-8 w-56 text-xs"
-                      autoFocus
-                    />
-                    <Button size="sm" onClick={() => saveLabel(endpoint)}>
-                      Salvar
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setRenamingId(null)}>
-                      Cancelar
-                    </Button>
-                  </div>
-                ) : editingPlatformId === endpoint.id ? (
-                  <div className="flex items-center gap-2">
-                    <Select value={platformDraft} onChange={(e) => setPlatformDraft(e.target.value)} className="h-8 w-48 text-xs">
-                      {platformsFor(endpoint.kind).map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </Select>
-                    <Button size="sm" onClick={() => savePlatform(endpoint)}>
-                      Salvar
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingPlatformId(null)}>
-                      Cancelar
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-text-primary">
-                      {endpoint.label || endpointSubtitle(endpoint)}
-                    </span>
-                    {endpoint.label && <span className="text-[11px] text-text-muted">· {endpointSubtitle(endpoint)}</span>}
-                    <Badge tone={endpoint.active ? "success" : "neutral"}>{endpoint.active ? "Ativo" : "Inativo"}</Badge>
-                    {endpoint.last_test_ok === true && <Badge tone="success">Testado ✓</Badge>}
-                    {endpoint.last_test_ok === false && <Badge tone="danger">Teste falhou</Badge>}
-                  </div>
-                )}
-                <p className="mt-1 truncate text-xs text-text-muted">{endpointUrl(endpoint)}</p>
-                {endpoint.last_test_ok === null && (
-                  <p className="mt-0.5 text-[11px] text-text-muted">Ainda não testado — clique em &quot;Testar&quot;.</p>
-                )}
-              </div>
-              {renamingId !== endpoint.id && editingPlatformId !== endpoint.id && (
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      setLabelDraft(endpoint.label ?? "");
-                      setRenamingId(endpoint.id);
-                    }}
+            <div key={endpoint.id} className="px-4 py-3">
+              {renamingId === endpoint.id ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={labelDraft}
+                    onChange={(e) => setLabelDraft(e.target.value)}
+                    placeholder={endpointSubtitle(endpoint)}
+                    className="h-8 w-56 text-xs"
+                    autoFocus
+                  />
+                  <Button size="sm" onClick={() => saveLabel(endpoint)}>
+                    Salvar
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setRenamingId(null)}>
+                    Cancelar
+                  </Button>
+                </div>
+              ) : editingPlatformId === endpoint.id ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    value={platformDraft}
+                    onChange={(e) => setPlatformDraft(e.target.value)}
+                    className="h-8 w-48 text-xs"
                   >
-                    Renomear
+                    {platformsFor(endpoint.kind).map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button size="sm" onClick={() => savePlatform(endpoint)}>
+                    Salvar
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      setPlatformDraft(endpoint.platform ?? platformsFor(endpoint.kind)[0] ?? "generic");
-                      setEditingPlatformId(endpoint.id);
-                    }}
-                  >
-                    Trocar plataforma
+                  <Button size="sm" variant="ghost" onClick={() => setEditingPlatformId(null)}>
+                    Cancelar
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => copy(endpointUrl(endpoint))}>
-                    Copiar URL
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => testEndpoint(endpoint)}
-                    disabled={testingId === endpoint.id}
-                  >
-                    {testingId === endpoint.id ? "Testando..." : "Testar"}
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => rotateSecret(endpoint)}>
-                    Rotacionar token
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => toggleLogs(endpoint)}>
-                    {logsOpenId === endpoint.id ? "Fechar payloads" : "Ver payloads"}
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => toggleActive(endpoint)}>
-                    {endpoint.active ? "Desativar" : "Ativar"}
-                  </Button>
-                  <Button size="sm" variant="danger" onClick={() => deleteEndpoint(endpoint)}>
-                    Excluir
-                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-[13px] font-medium text-text-primary">
+                        {endpoint.label || endpointSubtitle(endpoint)}
+                      </span>
+                      {endpoint.label && (
+                        <span className="text-[11px] text-text-tertiary">{endpointSubtitle(endpoint)}</span>
+                      )}
+                      {/* Estado em ponto + palavra: eram até três selos por
+                          linha, e com oito endpoints a lista virava um
+                          mosaico colorido onde nada saltava. */}
+                      <span className="inline-flex items-center gap-1.5 text-[11px]">
+                        <Ponto tom={endpoint.active ? "ok" : "neutro"} />
+                        <span className="text-text-tertiary">{endpoint.active ? "Ativo" : "Inativo"}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 text-[11px]">
+                        <Ponto
+                          tom={
+                            endpoint.last_test_ok === true
+                              ? "ok"
+                              : endpoint.last_test_ok === false
+                                ? "erro"
+                                : "neutro"
+                          }
+                        />
+                        <span
+                          className={
+                            endpoint.last_test_ok === false ? "text-danger" : "text-text-tertiary"
+                          }
+                        >
+                          {endpoint.last_test_ok === true
+                            ? "Testado"
+                            : endpoint.last_test_ok === false
+                              ? "Teste falhou"
+                              : "Nunca testado"}
+                        </span>
+                      </span>
+                    </div>
+                    <p className="mt-1 truncate font-mono text-[11px] text-text-tertiary" title={endpointUrl(endpoint)}>
+                      {endpointUrl(endpoint)}
+                    </p>
+                  </div>
+
+                  {/* Visível o que se usa toda hora; o resto a um clique. */}
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Button size="sm" variant="secondary" onClick={() => copy(endpointUrl(endpoint))}>
+                      Copiar URL
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => testEndpoint(endpoint)}
+                      disabled={testingId === endpoint.id}
+                    >
+                      {testingId === endpoint.id ? "Testando..." : "Testar"}
+                    </Button>
+                    <MenuMais>
+                      {(fechar) => (
+                        <>
+                          <ItemMenu
+                            icone={<FileJson size={13} />}
+                            onClick={() => {
+                              toggleLogs(endpoint);
+                              fechar();
+                            }}
+                          >
+                            {logsOpenId === endpoint.id ? "Fechar payloads" : "Ver payloads"}
+                          </ItemMenu>
+                          <ItemMenu
+                            icone={<Pencil size={13} />}
+                            onClick={() => {
+                              setLabelDraft(endpoint.label ?? "");
+                              setRenamingId(endpoint.id);
+                              fechar();
+                            }}
+                          >
+                            Renomear
+                          </ItemMenu>
+                          <ItemMenu
+                            icone={<Replace size={13} />}
+                            onClick={() => {
+                              setPlatformDraft(endpoint.platform ?? platformsFor(endpoint.kind)[0] ?? "generic");
+                              setEditingPlatformId(endpoint.id);
+                              fechar();
+                            }}
+                          >
+                            Trocar plataforma
+                          </ItemMenu>
+                          <ItemMenu
+                            icone={<RefreshCw size={13} />}
+                            onClick={() => {
+                              rotateSecret(endpoint);
+                              fechar();
+                            }}
+                          >
+                            Rotacionar token
+                          </ItemMenu>
+                          <ItemMenu
+                            icone={<Power size={13} />}
+                            onClick={() => {
+                              toggleActive(endpoint);
+                              fechar();
+                            }}
+                          >
+                            {endpoint.active ? "Desativar" : "Ativar"}
+                          </ItemMenu>
+                          <ItemMenu
+                            perigo
+                            icone={<Trash2 size={13} />}
+                            onClick={() => {
+                              deleteEndpoint(endpoint);
+                              fechar();
+                            }}
+                          >
+                            Excluir
+                          </ItemMenu>
+                        </>
+                      )}
+                    </MenuMais>
+                  </div>
                 </div>
               )}
 
               {logsOpenId === endpoint.id && (
-                <div className="mt-3 w-full border-t border-border pt-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-[11px] font-medium text-text-muted">
+                <div className="mt-3 border-t border-border pt-3">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[11px] font-medium text-text-tertiary">
                       Últimas chamadas reais recebidas (não inclui os cliques em &quot;Testar&quot;)
                     </p>
-                    <Button size="sm" variant="ghost" onClick={() => loadLogs(endpoint)} disabled={loadingLogsId === endpoint.id}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => loadLogs(endpoint)}
+                      disabled={loadingLogsId === endpoint.id}
+                    >
                       {loadingLogsId === endpoint.id ? "Atualizando..." : "Atualizar"}
                     </Button>
                   </div>
 
                   {loadingLogsId === endpoint.id && !logsById[endpoint.id] ? (
-                    <p className="text-xs text-text-muted">Carregando...</p>
+                    <p className="text-xs text-text-tertiary">Carregando...</p>
                   ) : (logsById[endpoint.id]?.length ?? 0) === 0 ? (
-                    <p className="text-xs text-text-muted">
+                    <p className="max-w-[80ch] text-xs text-text-tertiary">
                       Nenhuma chamada real chegou ainda nesse endpoint. Assim que a plataforma externa disparar algo,
                       aparece aqui — mesmo que seja rejeitado.
                     </p>
                   ) : (
                     <div className="max-h-80 space-y-2 overflow-y-auto">
                       {logsById[endpoint.id].map((log) => (
-                        <div key={log.id} className="rounded-input bg-card p-2.5">
-                          <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                            <Badge tone={log.accepted ? "success" : "danger"}>{log.accepted ? "Aceito" : "Rejeitado"}</Badge>
-                            <span className="text-[11px] text-text-muted">{new Date(log.received_at).toLocaleString("pt-BR")}</span>
+                        <div key={log.id} className="rounded-input border border-border bg-card-hover p-2.5">
+                          <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px]">
+                            <span className="inline-flex items-center gap-1.5">
+                              <Ponto tom={log.accepted ? "ok" : "erro"} />
+                              <span className={log.accepted ? "text-text-tertiary" : "text-danger"}>
+                                {log.accepted ? "Aceito" : "Rejeitado"}
+                              </span>
+                            </span>
+                            <span className="font-mono text-text-muted">
+                              {new Date(log.received_at).toLocaleString("pt-BR")}
+                            </span>
                           </div>
                           {log.error && <p className="mb-1.5 text-[11px] text-danger">{log.error}</p>}
-                          <pre className="overflow-x-auto whitespace-pre rounded-input bg-input px-2.5 py-2 text-[11px] text-text-secondary">
+                          <pre className="overflow-x-auto whitespace-pre rounded-input bg-input px-2.5 py-2 font-mono text-[11px] text-text-secondary">
                             {JSON.stringify(log.raw_payload, null, 2)}
                           </pre>
                         </div>
@@ -445,7 +527,7 @@ export function WebhookEndpointsPanel({
           </div>
         )}
       </Modal>
-    </Card>
+    </Bloco>
   );
 }
 
