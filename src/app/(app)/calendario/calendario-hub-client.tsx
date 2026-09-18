@@ -106,7 +106,7 @@ export function CalendarioHubClient({
         />
         <div className="mt-4 flex flex-wrap gap-4 text-[11px] text-text-muted">
           <span className="flex items-center gap-1.5">
-            <span className="rounded-button bg-accent/20 px-1.5 py-0.5 text-[9px] font-medium text-accent">G</span>
+            <span className="rounded-button bg-accent/20 px-1.5 py-0.5 text-[9px] font-medium text-accent-text">G</span>
             mensagens livres de Grupo
           </span>
           <span className="flex items-center gap-1.5">

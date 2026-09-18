@@ -95,20 +95,20 @@ export function CalendarGrid({
                 isToday && !isSelected && "shadow-[0_0_0_1px_var(--accent)]"
               )}
             >
-              <span className={cn("flex items-center gap-1 font-medium", isToday && !isSelected && "text-accent")}>
+              <span className={cn("flex items-center gap-1 font-medium", isToday && !isSelected && "text-accent-text")}>
                 {date.getDate()}
                 {indicator?.hasDynamic &&
                   (indicator.dynamicIcon ? (
                     <span className="text-[11px] leading-none">{indicator.dynamicIcon}</span>
                   ) : (
-                    <Sparkles size={10} className="text-accent" />
+                    <Sparkles size={10} className="text-accent-text" />
                   ))}
                 {indicator?.concluded && <span className="text-[10px] leading-none text-success">✓</span>}
               </span>
               {((indicator?.grupoCount ?? 0) > 0 || (indicator?.directCount ?? 0) > 0) && (
                 <div className="flex items-center gap-1">
                   {indicator.grupoCount > 0 && (
-                    <span className="flex items-center gap-0.5 rounded-button bg-accent/20 px-1 text-[10px] font-medium text-accent">
+                    <span className="flex items-center gap-0.5 rounded-button bg-accent/20 px-1 text-[10px] font-medium text-accent-text">
                       G{indicator.grupoCount}
                     </span>
                   )}

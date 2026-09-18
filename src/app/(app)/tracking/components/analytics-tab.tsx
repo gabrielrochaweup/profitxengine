@@ -657,7 +657,7 @@ export function AnalyticsTab({
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="p-5">
               <h3 className="mb-1 text-base font-semibold text-text-primary">Funil do curso</h3>
-              <ConversionFunnel data={courseFunnelData} color="var(--accent)" />
+              <ConversionFunnel data={courseFunnelData} color="var(--accent-text)" />
             </Card>
             <Card className="p-5">
               <h3 className="mb-1 text-base font-semibold text-text-primary">Funil da corretora</h3>
@@ -796,7 +796,7 @@ export function AnalyticsTab({
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="p-5">
               <h3 className="mb-3 text-base font-semibold text-text-primary">Vendas por horário</h3>
-              <SimpleBarChart data={salesByHourChart} valueLabel="Compras" color="var(--accent)" />
+              <SimpleBarChart data={salesByHourChart} valueLabel="Compras" color="var(--accent-text)" />
             </Card>
             <Card className="p-5">
               <h3 className="mb-3 text-base font-semibold text-text-primary">Vendas por dia da semana</h3>
@@ -1043,7 +1043,7 @@ function KpiTile({
       </div>
       <p
         className={`text-sm font-semibold ${
-          tone === "accent" ? "text-accent" : tone === "success" ? "text-success" : "text-text-primary"
+          tone === "accent" ? "text-accent-text" : tone === "success" ? "text-success" : "text-text-primary"
         }`}
       >
         {value}

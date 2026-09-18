@@ -242,7 +242,7 @@ export function ProductMetricsClient({
             <button
               type="button"
               onClick={() => setManagingFields((v) => !v)}
-              className="flex items-center gap-1.5 text-xs text-accent hover:underline"
+              className="flex items-center gap-1.5 text-xs text-accent-text hover:underline"
             >
               <Settings2 size={13} />
               {managingFields ? "Fechar gerenciar campos" : "Gerenciar campos"}
@@ -324,7 +324,7 @@ export function ProductMetricsClient({
               <button
                 type="button"
                 onClick={() => setAddingField(true)}
-                className="mt-1 flex items-center gap-1.5 text-xs text-accent hover:underline"
+                className="mt-1 flex items-center gap-1.5 text-xs text-accent-text hover:underline"
               >
                 <Plus size={13} />
                 Novo campo

@@ -73,7 +73,7 @@ export function DayNewsPreview({ dateKey }: DayNewsPreviewProps) {
                   }`}
                   title={coin.name}
                 >
-                  {coin.isMemecoinRelated && <Flame size={10} className="shrink-0 text-accent" />}
+                  {coin.isMemecoinRelated && <Flame size={10} className="shrink-0 text-accent-text" />}
                   {coin.symbol.toUpperCase()}
                   {coin.priceChangePercentage24h !== null && (
                     <span
@@ -118,7 +118,7 @@ export function DayNewsPreview({ dateKey }: DayNewsPreviewProps) {
                 }`}
               >
                 <span className="flex items-center gap-1 line-clamp-1">
-                  {item.highPotential && <Flame size={11} className="shrink-0 text-accent" />}
+                  {item.highPotential && <Flame size={11} className="shrink-0 text-accent-text" />}
                   {item.title}
                 </span>
                 <span className="text-[10px] text-text-muted">{item.source}</span>

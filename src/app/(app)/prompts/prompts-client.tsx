@@ -247,7 +247,7 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
               : "border-border bg-card"
         }`}
       >
-        <div className="-mx-3 -mt-3 mb-3 h-1.5 shrink-0 bg-success" />
+        <div className="-mx-3 -mt-3 mb-3 h-1.5 shrink-0 bg-accent" />
 
         <div className="mb-3 flex items-center justify-between gap-1 px-1">
           {renamingId === category.id ? (
@@ -272,7 +272,7 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
           ) : (
             <h2 className="flex min-w-0 items-center gap-2 text-sm font-medium text-text-primary">
               <span className="truncate">{category.name}</span>
-              <span className="shrink-0 rounded-button bg-success/15 px-1.5 py-0.5 text-[11px] font-medium text-success">
+              <span className="shrink-0 rounded-button bg-accent/15 px-1.5 py-0.5 text-[11px] font-medium text-accent-text">
                 {items.length}
               </span>
             </h2>
@@ -282,19 +282,19 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
             <div className="flex shrink-0 items-center gap-0.5">
               {isAdmin && (
                 <>
-                  <IconButton onClick={() => moveColumn(index, -1)} label="Mover pra esquerda" tone="success">
+                  <IconButton onClick={() => moveColumn(index, -1)} label="Mover pra esquerda" tone="accent">
                     <ChevronLeft size={13} />
                   </IconButton>
-                  <IconButton onClick={() => moveColumn(index, 1)} label="Mover pra direita" tone="success">
+                  <IconButton onClick={() => moveColumn(index, 1)} label="Mover pra direita" tone="accent">
                     <ChevronRight size={13} />
                   </IconButton>
-                  <IconButton onClick={() => startRename(category)} label="Renomear coluna" tone="success">
+                  <IconButton onClick={() => startRename(category)} label="Renomear coluna" tone="accent">
                     <Pencil size={13} />
                   </IconButton>
                   <IconButton onClick={() => handleDeleteColumn(category)} label="Excluir coluna" danger>
                     <Trash2 size={13} />
                   </IconButton>
-                  <IconButton onClick={() => openNew(category.id)} label={`Novo prompt de ${category.name}`} tone="success">
+                  <IconButton onClick={() => openNew(category.id)} label={`Novo prompt de ${category.name}`} tone="accent">
                     <Plus size={14} />
                   </IconButton>
                 </>
@@ -321,7 +321,7 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
                   setDraggingId(null);
                   setDragOverCategoryId(null);
                 }}
-                className={`border-success/20 p-3 transition-opacity ${canEdit() ? "cursor-grab active:cursor-grabbing" : ""} ${
+                className={`border-accent/20 p-3 transition-opacity ${canEdit() ? "cursor-grab active:cursor-grabbing" : ""} ${
                   draggingId === prompt.id ? "opacity-40" : ""
                 }`}
               >
@@ -491,7 +491,7 @@ function IconButton({
   onClick: () => void;
   label: string;
   danger?: boolean;
-  tone?: "success";
+  tone?: "accent";
 }) {
   return (
     <button
@@ -501,8 +501,8 @@ function IconButton({
       className={`flex h-7 w-7 items-center justify-center rounded-lg hover:bg-card-hover ${
         danger
           ? "text-text-tertiary hover:text-danger"
-          : tone === "success"
-            ? "text-success/70 hover:text-success"
+          : tone === "accent"
+            ? "text-accent-text/70 hover:text-accent-text"
             : "text-text-tertiary hover:text-text-primary"
       }`}
     >

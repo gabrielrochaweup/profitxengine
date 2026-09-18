@@ -280,7 +280,7 @@ function CredentialCard({
               <button
                 type="button"
                 onClick={() => setEditing(true)}
-                className="shrink-0 text-xs font-medium text-accent hover:underline"
+                className="shrink-0 text-xs font-medium text-accent-text hover:underline"
               >
                 Alterar
               </button>

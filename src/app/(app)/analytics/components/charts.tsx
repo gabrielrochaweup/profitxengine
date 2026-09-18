@@ -28,7 +28,7 @@ const TOOLTIP_STYLE = {
 };
 
 export const PIE_PALETTE = [
-  "var(--accent)",
+  "var(--accent-text)",
   "var(--accent-pink)",
   "var(--success)",
   "var(--warning)",
@@ -64,7 +64,7 @@ export function RevenueLineChart({ data }: { data: { label: string; bruto: numbe
         <YAxis tick={{ fontSize: 11, fill: AXIS_COLOR }} tickFormatter={fmtBRL} width={56} />
         <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `R$ ${fmtBRL(Number(v) || 0)}`} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="monotone" dataKey="bruto" name="Bruto" stroke="var(--accent)" strokeWidth={2} dot={false} />
+        <Line type="monotone" dataKey="bruto" name="Bruto" stroke="var(--accent-text)" strokeWidth={2} dot={false} />
         <Line type="monotone" dataKey="liquido" name="Líquido" stroke="var(--success)" strokeWidth={2} dot={false} />
       </LineChart>
     </ResponsiveContainer>
@@ -73,7 +73,7 @@ export function RevenueLineChart({ data }: { data: { label: string; bruto: numbe
 
 export function SimpleBarChart({
   data,
-  color = "var(--accent)",
+  color = "var(--accent-text)",
   valueLabel,
   isCurrency,
   currencyPrefix = "R$",
@@ -154,7 +154,7 @@ export function DynamicPieChart({
 // que o recharts desenha nativamente.
 export function ConversionFunnel({
   data,
-  color = "var(--accent)",
+  color = "var(--accent-text)",
 }: {
   data: { label: string; value: number }[];
   color?: string;

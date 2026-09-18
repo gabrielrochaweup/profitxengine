@@ -23,7 +23,7 @@ export default async function PendentePage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-app px-4">
       <Card className="w-full max-w-sm p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent-text">
           <Clock size={22} />
         </div>
         <h1 className="mt-4 text-lg font-semibold text-text-primary">

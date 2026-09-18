@@ -135,7 +135,7 @@ export function UtmBuilder({ productId }: { productId: string }) {
                 <button
                   type="button"
                   onClick={() => set("mcid", "{{campaign.id}}")}
-                  className="text-[11px] text-accent hover:underline"
+                  className="text-[11px] text-accent-text hover:underline"
                 >
                   usar {"{{campaign.id}}"}
                 </button>
@@ -148,7 +148,7 @@ export function UtmBuilder({ productId }: { productId: string }) {
                 <button
                   type="button"
                   onClick={() => set("gcid", "{campaignid}")}
-                  className="text-[11px] text-accent hover:underline"
+                  className="text-[11px] text-accent-text hover:underline"
                 >
                   usar {"{campaignid}"}
                 </button>

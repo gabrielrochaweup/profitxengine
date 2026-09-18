@@ -28,7 +28,7 @@ export function SubTabs<T extends string>({
           className={cn(
             "rounded-button px-3 py-1.5 text-xs font-medium transition-colors duration-150",
             active === t.key
-              ? "bg-card-hover text-accent"
+              ? "bg-card-hover text-accent-text"
               : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
           )}
         >

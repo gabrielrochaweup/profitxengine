@@ -419,7 +419,7 @@ export function ImageGenerationPanel({
                   <button
                     type="button"
                     onClick={handleCopyPredefinido}
-                    className="flex items-center gap-1 text-[10px] text-accent hover:underline"
+                    className="flex items-center gap-1 text-[10px] text-accent-text hover:underline"
                   >
                     {copiedPredefinido ? <Check size={10} /> : <Copy size={10} />}
                     {copiedPredefinido ? "Copiado!" : "Copiar prompt"}
@@ -491,7 +491,7 @@ export function ImageGenerationPanel({
               <button
                 type="button"
                 onClick={() => setGalleryOpen(true)}
-                className="text-[11px] text-accent hover:underline"
+                className="text-[11px] text-accent-text hover:underline"
               >
                 Ver tudo
               </button>

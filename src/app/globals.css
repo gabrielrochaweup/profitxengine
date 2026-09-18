@@ -9,7 +9,8 @@
     060507  fundo da aplicação
     181818  superfícies (sidebar, cards)
     4C4C4C  cinza de apoio
-    95CF0E  verde de destaque
+    006CB9  azul da marca
+    95CF0E  verde de "deu certo"
     D47865  vermelho/salmão
     F3DE7F  amarelo
     3E1014  vermelho profundo, usado como fundo de estado destrutivo
@@ -18,6 +19,11 @@
   texto: #95CF0E e #F3DE7F somem sobre branco. Onde a cor vira texto (selo,
   rótulo), o claro usa uma versão escurecida da mesma família; onde ela vira
   preenchimento (botão, fatia de gráfico), usa a cor original.
+
+  A cor da marca faz os dois papéis, e nenhum tom serve pros dois: #006CB9
+  preenchido aceita texto branco em cima (5,5:1), mas como TEXTO sobre o
+  fundo escuro ele mesmo cai pra 3,7:1. Por isso são dois tokens —
+  --accent preenche, --accent-text escreve — e cada tema define os seus.
 */
 :root {
   color-scheme: dark;
@@ -48,9 +54,14 @@
   --text-muted: #666666;
   --text-disabled: #505050;
 
-  --accent: #95cf0e;
-  --accent-hover: #a7e219;
+  /* Preenchimento: botão, pílula do produto, anel de foco. Branco em cima
+     dá 5,5:1 — o lime antigo dava 1,87:1 no mesmo papel. */
+  --accent: #006cb9;
+  --accent-hover: #0079cc;
   --accent-contrast: #ffffff;
+  /* O mesmo azul como texto/ícone no escuro daria 3,3:1 sobre o card. Este
+     clareia o suficiente pra ler (7:1) e continua sendo a mesma cor. */
+  --accent-text: #4aa8e8;
   --accent-pink: #d47865;
 
   --success: #95cf0e;
@@ -60,7 +71,9 @@
   --success-soft: rgba(149, 207, 14, 0.12);
   --warning-soft: rgba(243, 222, 127, 0.12);
   --danger-soft: #3e1014;
-  --accent-soft: rgba(149, 207, 14, 0.12);
+  /* 18% e não 12%: o azul é bem mais escuro que o lime, e a 12% o realce
+     sumia dentro do card. */
+  --accent-soft: rgba(0, 108, 185, 0.18);
 
   /* "shadow-card" deixou de ser sombra e virou a aresta de 1px. O nome
      continua porque o significado continua — dar contorno a uma superfície —
@@ -90,14 +103,13 @@
   --text-muted: #8a8a8a;
   --text-disabled: #a8a8a8;
 
-  /* O lime some no branco. Ele não é só preenchimento: vira TEXTO na aba
-     ativa, no rótulo de gráfico e em vários rótulos — e #95CF0E sobre branco
-     dá ~1,9:1, ilegível. No claro ele desce um tom, o suficiente pra
-     continuar lendo como a mesma cor de marca e passar a ser legível como
-     texto. No escuro segue exatamente #95CF0E. */
-  --accent: #6f9c0a;
-  --accent-hover: #5f8708;
+  /* No claro o azul da marca já serve nos dois papéis: preenchido leva
+     branco em cima (5,5:1) e escrito sobre branco também dá 5,5:1. O
+     --accent-text desce um tom só pra folgar em texto pequeno. */
+  --accent: #006cb9;
+  --accent-hover: #005694;
   --accent-contrast: #ffffff;
+  --accent-text: #005f9f;
   --accent-pink: #b0563f;
 
   /* Texto: escurecidos, senão desaparecem no branco. */
@@ -108,7 +120,7 @@
   --success-soft: #eef7dc;
   --warning-soft: #fbf3d9;
   --danger-soft: #f8e6e1;
-  --accent-soft: #eef7dc;
+  --accent-soft: #e2eef8;
 
   --shadow-card: 0 0 0 1px var(--border);
   --shadow-card-sm: 0 0 0 1px var(--border);

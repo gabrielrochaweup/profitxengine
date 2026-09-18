@@ -67,7 +67,7 @@ export default async function DashboardPage() {
           rel="noreferrer"
           className="mb-4 flex items-center gap-2.5 rounded-button border border-border-strong bg-card-hover px-4 py-2 text-xs text-text-secondary hover:border-accent hover:text-text-primary"
         >
-          <Newspaper size={14} className="shrink-0 text-accent" />
+          <Newspaper size={14} className="shrink-0 text-accent-text" />
           <span className="truncate">
             <span className="font-medium text-text-primary">Hoje em {data.newsLabel || "notícias"}:</span>{" "}
             {data.topNews.title}
@@ -103,7 +103,7 @@ export default async function DashboardPage() {
           >
             {/* Ícone num quadrado de raio 10, o mesmo do cartão que o contém.
                 Círculo era o único elemento 100% arredondado que sobrou. */}
-            <div className="flex h-11 w-11 items-center justify-center rounded-card bg-accent/15 text-accent">
+            <div className="flex h-11 w-11 items-center justify-center rounded-card bg-accent/15 text-accent-text">
               <shortcut.icon size={20} />
             </div>
             {/* O nome da ferramenta é o conteúdo do cartão, não uma legenda. */}

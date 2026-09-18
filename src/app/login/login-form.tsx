@@ -171,7 +171,11 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-sm p-8">
       <div className="mb-8 text-center">
-        <h1 className="text-2xl font-semibold text-text-primary">PROFITX Engine</h1>
+        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-card bg-accent">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-icon.svg" alt="" className="h-7 w-auto" />
+        </span>
+        <h1 className="text-2xl font-semibold tracking-wide text-text-primary">ENGINE</h1>
         <p className="mt-1 text-sm text-text-muted">
           {mode === "login" ? "Entre com sua conta para continuar" : "Crie sua conta para solicitar acesso"}
         </p>
@@ -219,7 +223,7 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={() => switchMode("forgot")}
-                className="text-xs font-medium text-accent hover:underline"
+                className="text-xs font-medium text-accent-text hover:underline"
               >
                 Esqueci minha senha
               </button>
@@ -286,14 +290,14 @@ export function LoginForm() {
         {mode === "login" ? (
           <>
             Não tem conta?{" "}
-            <button type="button" onClick={() => switchMode("signup")} className="font-medium text-accent hover:underline">
+            <button type="button" onClick={() => switchMode("signup")} className="font-medium text-accent-text hover:underline">
               Criar conta
             </button>
           </>
         ) : (
           <>
             Já tem conta?{" "}
-            <button type="button" onClick={() => switchMode("login")} className="font-medium text-accent hover:underline">
+            <button type="button" onClick={() => switchMode("login")} className="font-medium text-accent-text hover:underline">
               Entrar
             </button>
           </>

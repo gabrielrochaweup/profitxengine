@@ -141,7 +141,7 @@ export function MessageRow({
           <span
             className={`shrink-0 rounded-button px-2 py-0.5 text-[10px] font-medium ${
               isImageRecommendedTime(slot.time_label)
-                ? "bg-accent/15 text-accent"
+                ? "bg-accent/15 text-accent-text"
                 : "bg-card-hover text-text-muted"
             }`}
           >
@@ -151,7 +151,7 @@ export function MessageRow({
         <p className="mt-1 truncate text-xs text-text-secondary">{slot.role_label}</p>
         <p className="mt-1 line-clamp-2 text-[11px] text-text-muted">{activeText.split("\n")[0]}</p>
         {overrideText && (
-          <span className="mt-2 inline-block rounded-button bg-accent/15 px-2 py-0.5 text-[10px] text-accent">
+          <span className="mt-2 inline-block rounded-button bg-accent/15 px-2 py-0.5 text-[10px] text-accent-text">
             personalizada
           </span>
         )}
@@ -318,7 +318,7 @@ export function MessageRow({
 
             {preview && (
               <div className="mt-3 rounded-lg bg-accent-soft p-3 shadow-[0_0_0_1px_var(--accent)]">
-                <p className="mb-1.5 text-[11px] font-medium text-accent">Sugestão gerada</p>
+                <p className="mb-1.5 text-[11px] font-medium text-accent-text">Sugestão gerada</p>
                 <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-xs text-text-primary">{preview}</p>
                 <div className="mt-2 flex gap-2">
                   <Button

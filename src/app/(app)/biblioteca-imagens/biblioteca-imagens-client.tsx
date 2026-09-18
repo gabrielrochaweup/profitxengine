@@ -323,7 +323,7 @@ export function BibliotecaImagensClient({
             <h2 className="flex min-w-0 items-center gap-2 text-sm font-medium text-text-primary">
               {id === UNFILED_ID && <FolderOpen size={14} className="shrink-0 text-text-muted" />}
               <span className="truncate">{name}</span>
-              <span className="shrink-0 rounded-button bg-accent/15 px-1.5 py-0.5 text-[11px] font-medium text-accent">
+              <span className="shrink-0 rounded-button bg-accent/15 px-1.5 py-0.5 text-[11px] font-medium text-accent-text">
                 {hasChildren ? children.length : items.length}
               </span>
             </h2>
@@ -407,7 +407,7 @@ export function BibliotecaImagensClient({
                             className={cn("shrink-0 text-text-muted transition-transform", isOpen && "rotate-90")}
                           />
                           <span className="truncate">{child.name}</span>
-                          <span className="shrink-0 rounded-button bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-accent">
+                          <span className="shrink-0 rounded-button bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-accent-text">
                             {childItems.length}
                           </span>
                         </button>

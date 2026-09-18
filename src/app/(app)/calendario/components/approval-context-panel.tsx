@@ -51,7 +51,7 @@ export function ApprovalContextPanel({ scope }: { scope: "grupo" | "direct" }) {
           return (
             <div key={key} className="rounded-lg bg-card px-2 py-1.5 text-center">
               <p className="text-[10px] text-text-muted">{label}</p>
-              <p className="text-sm font-semibold text-accent">{w.total > 0 ? `${w.pct}%` : "—"}</p>
+              <p className="text-sm font-semibold text-accent-text">{w.total > 0 ? `${w.pct}%` : "—"}</p>
               <p className="text-[9px] text-text-muted">{w.total} msgs</p>
             </div>
           );

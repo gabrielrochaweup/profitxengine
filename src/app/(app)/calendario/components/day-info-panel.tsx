@@ -18,7 +18,7 @@ export function DayInfoPanel({ dateKey, indicator, hasDinamicas }: DayInfoPanelP
       <div className="flex flex-wrap gap-2 text-xs text-text-secondary">
         {hasDinamicas &&
           (indicator?.hasDynamic ? (
-            <span className="flex items-center gap-1 rounded-button bg-accent/15 px-2 py-1 text-accent">
+            <span className="flex items-center gap-1 rounded-button bg-accent/15 px-2 py-1 text-accent-text">
               {indicator.dynamicIcon ?? <Sparkles size={12} />}
               {indicator.dynamicName ?? "Dinâmica ativa nesse dia"}
               {indicator.concluded && <CheckCircle2 size={12} className="text-success" />}

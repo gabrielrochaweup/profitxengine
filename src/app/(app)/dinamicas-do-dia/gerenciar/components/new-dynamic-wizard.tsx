@@ -269,7 +269,7 @@ export function NewDynamicWizard({ open, onClose, dynamics, onCreated }: NewDyna
             onClick={() => setStep("duplicate")}
             className="flex flex-col items-start gap-2 rounded-card border border-border p-4 text-left transition-colors hover:border-accent hover:bg-card-hover"
           >
-            <Copy size={20} className="text-accent" />
+            <Copy size={20} className="text-accent-text" />
             <span className="text-sm font-medium text-text-primary">Duplicar uma existente</span>
             <span className="text-xs text-text-muted">
               Copia todas as mensagens de uma dinâmica pronta pra você ajustar a partir dela.
@@ -280,7 +280,7 @@ export function NewDynamicWizard({ open, onClose, dynamics, onCreated }: NewDyna
             onClick={() => setStep("new-name")}
             className="flex flex-col items-start gap-2 rounded-card border border-border p-4 text-left transition-colors hover:border-accent hover:bg-card-hover"
           >
-            <FilePlus size={20} className="text-accent" />
+            <FilePlus size={20} className="text-accent-text" />
             <span className="text-sm font-medium text-text-primary">Criar do zero</span>
             <span className="text-xs text-text-muted">
               Monta as mensagens por etapa (manhã, tarde, noite), com geração por IA.

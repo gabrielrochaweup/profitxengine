@@ -258,7 +258,7 @@ function Resumo({
   nota?: string;
   tom?: "accent" | "danger" | "success";
 }) {
-  const cor = tom === "accent" ? "text-accent" : tom === "danger" ? "text-danger" : tom === "success" ? "text-success" : "text-text-primary";
+  const cor = tom === "accent" ? "text-accent-text" : tom === "danger" ? "text-danger" : tom === "success" ? "text-success" : "text-text-primary";
   return (
     <div className="rounded-xl bg-card p-4 shadow-card-sm">
       <p className="text-[11px] font-medium text-text-muted">{label}</p>

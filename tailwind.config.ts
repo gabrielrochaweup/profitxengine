@@ -30,6 +30,9 @@ const config: Config = {
           DEFAULT: "var(--accent)",
           hover: "var(--accent-hover)",
           contrast: "var(--accent-contrast)",
+          // Usado como text-accent-text: a cor da marca quando ela escreve,
+          // em vez de preencher. Ver o comentário em globals.css.
+          text: "var(--accent-text)",
           pink: "var(--accent-pink)",
         },
         success: "var(--success)",

@@ -102,7 +102,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
               title={item.label}
               className={cn(
                 "flex flex-1 items-center justify-center rounded-xl px-2 py-2",
-                isActive ? "text-accent" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                isActive ? "text-accent-text" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
               )}
             >
               <Icon size={20} strokeWidth={1.75} />
@@ -118,9 +118,11 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
           <div className="fixed inset-y-3 left-3 z-50 flex w-[85vw] max-w-[300px] flex-col rounded-panel bg-sidebar shadow-popover p-4 md:hidden">
             <div className="flex items-center justify-between px-1 py-2">
               <div className="flex items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-icon.svg" alt="" className="h-8 w-8" />
-                <span className="text-sm font-semibold text-text-primary">PROFITX Engine</span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-button bg-accent">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo-icon.svg" alt="ENGINE" className="h-[20px] w-auto" />
+                </span>
+                <span className="text-sm font-semibold tracking-wide text-text-primary">ENGINE</span>
               </div>
               <button
                 type="button"
@@ -154,7 +156,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                             : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
                         )}
                       >
-                        <Icon size={16} strokeWidth={1.75} className={cn("shrink-0", isActive && "text-accent")} />
+                        <Icon size={16} strokeWidth={1.75} className={cn("shrink-0", isActive && "text-accent-text")} />
                         {item.label}
                       </Link>
                     );
@@ -256,7 +258,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                     <Icon
                       size={16}
                       strokeWidth={1.75}
-                      className={cn("shrink-0", isActive && "text-accent")}
+                      className={cn("shrink-0", isActive && "text-accent-text")}
                     />
                     {!collapsed && (
                       <span className="truncate whitespace-nowrap text-[13px]">{item.label}</span>

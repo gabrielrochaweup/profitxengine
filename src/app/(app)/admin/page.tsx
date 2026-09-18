@@ -43,7 +43,7 @@ export default async function AdminPage() {
       <PageHeader
         titulo={
           <span className="flex items-center gap-2">
-            <ShieldCheck size={22} className="text-accent" />
+            <ShieldCheck size={22} className="text-accent-text" />
             Admin
           </span>
         }

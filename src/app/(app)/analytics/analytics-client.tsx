@@ -259,7 +259,7 @@ function KpiTile({
       <p className="text-[11px] text-text-muted">{label}</p>
       <p
         className={`mt-1 text-sm font-semibold ${
-          tone === "accent" ? "text-accent" : tone === "success" ? "text-success" : "text-text-primary"
+          tone === "accent" ? "text-accent-text" : tone === "success" ? "text-success" : "text-text-primary"
         }`}
       >
         {value}

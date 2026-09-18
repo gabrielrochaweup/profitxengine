@@ -380,7 +380,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
                   <button
                     type="button"
                     onClick={handleCopyPredefinido}
-                    className="flex items-center gap-1 text-[11px] text-accent hover:underline"
+                    className="flex items-center gap-1 text-[11px] text-accent-text hover:underline"
                   >
                     {copiedPredefinido ? <Check size={10} /> : <Copy size={10} />}
                     {copiedPredefinido ? "Copiado!" : "Copiar prompt"}
