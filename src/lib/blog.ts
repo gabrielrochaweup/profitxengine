@@ -1,5 +1,17 @@
 export const CAMPOS_DOMINIO =
-  "id, dominio, caminho, nome, idioma, publico_alvo, tom, token_verificacao, verificado, verificado_em, ativo, created_at, updated_at";
+  "id, dominio, caminho, modo, nome, idioma, publico_alvo, tom, token_verificacao, verificado, verificado_em, ativo, created_at, updated_at";
+
+export const MODOS = ["subdiretorio", "subdominio"] as const;
+export type ModoBlog = (typeof MODOS)[number];
+
+export const MODO_LABEL: Record<ModoBlog, string> = {
+  subdiretorio: "Subdiretório (seudominio.com/blog)",
+  subdominio: "Subdomínio (blog.seudominio.com)",
+};
+
+export function ehModo(v: unknown): v is ModoBlog {
+  return typeof v === "string" && (MODOS as readonly string[]).includes(v);
+}
 
 export const CAMPOS_POST =
   "id, dominio_id, slug, titulo, meta_descricao, palavra_chave, conteudo_md, imagem_url, imagem_alt, status, publicado_em, tema, created_at, updated_at";
@@ -8,6 +20,7 @@ export interface BlogDominio {
   id: string;
   dominio: string;
   caminho: string;
+  modo: ModoBlog;
   nome: string | null;
   idioma: string;
   publico_alvo: string | null;
@@ -91,6 +104,11 @@ export function gerarSlug(valor: string): string {
  */
 export function temaDaSlug(slug: string): string {
   return slug.replace(/-/g, " ").trim();
+}
+
+/** Endereço interno que o proxy reverso do cliente deve chamar. */
+export function alvoDoProxy(appHost: string, dominio: string): string {
+  return `https://${appHost}/blog-publico/${dominio}`;
 }
 
 /** Nome do registro TXT que prova a posse do domínio. */

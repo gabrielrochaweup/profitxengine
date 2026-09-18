@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile, hasRole } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CAMPOS_DOMINIO, normalizarCaminho, normalizarDominio } from "@/lib/blog";
+import { CAMPOS_DOMINIO, ehModo, normalizarCaminho, normalizarDominio } from "@/lib/blog";
 
 export async function GET(request: Request) {
   const profile = await getSessionProfile();
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       product_id: productId,
       dominio,
       caminho: normalizarCaminho(body?.caminho),
+      modo: ehModo(body?.modo) ? body.modo : "subdiretorio",
       nome: texto(body?.nome),
       idioma: texto(body?.idioma) ?? "pt-BR",
       publico_alvo: texto(body?.publico_alvo),

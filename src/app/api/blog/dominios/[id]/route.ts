@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionProfile, hasRole } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
-import { CAMPOS_DOMINIO, normalizarCaminho, normalizarDominio } from "@/lib/blog";
+import { CAMPOS_DOMINIO, ehModo, normalizarCaminho, normalizarDominio } from "@/lib/blog";
 
 type DominioUpdate = Database["public"]["Tables"]["blog_dominios"]["Update"];
 
@@ -26,6 +26,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     update.verificado_em = null;
   }
   if (typeof body?.caminho === "string") update.caminho = normalizarCaminho(body.caminho);
+  if (ehModo(body?.modo)) update.modo = body.modo;
   for (const campo of ["nome", "publico_alvo", "tom"] as const) {
     if (typeof body?.[campo] === "string" || body?.[campo] === null) {
       update[campo] = typeof body[campo] === "string" && body[campo].trim() ? body[campo].trim() : null;

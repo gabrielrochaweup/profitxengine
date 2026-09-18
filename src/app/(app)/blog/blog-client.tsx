@@ -12,7 +12,21 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { SubTabs } from "@/components/ui/sub-tabs";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
-import { contarPalavras, gerarSlug, nomeRegistroTxt, type BlogDominio, type BlogPost } from "@/lib/blog";
+import {
+  MODOS,
+  MODO_LABEL,
+  contarPalavras,
+  gerarSlug,
+  nomeRegistroTxt,
+  type BlogDominio,
+  type BlogPost,
+  type ModoBlog,
+} from "@/lib/blog";
+
+// Host onde a Engine responde — é o alvo do proxy e do CNAME. Vem de env
+// porque muda entre o domínio da Vercel e um domínio próprio, e um valor
+// errado aqui manda o cliente configurar o servidor dele apontando pro nada.
+const APP_HOST = process.env.NEXT_PUBLIC_APP_HOST || "profitxengine-one.vercel.app";
 
 const ABAS = [
   { key: "posts", label: "Posts" },
@@ -504,6 +518,7 @@ function PainelDominios({
                     <Badge tone={d.verificado ? "success" : "warning"}>
                       {d.verificado ? "verificado" : "não verificado"}
                     </Badge>
+                    <Badge tone="neutral">{d.modo === "subdiretorio" ? "subdiretório" : "subdomínio"}</Badge>
                   </div>
                   <p className="mt-0.5 font-mono text-[11px] text-text-muted">
                     {d.dominio}
@@ -528,22 +543,43 @@ function PainelDominios({
               </div>
 
               {!d.verificado && (
-                <div className="mt-3 rounded-lg bg-card p-3">
-                  <p className="mb-2 text-[11px] text-text-secondary">
-                    Crie este registro TXT no DNS do domínio e clique em Verificar:
-                  </p>
-                  <div className="space-y-1 font-mono text-[11px]">
-                    <p>
-                      <span className="text-text-muted">Nome: </span>
-                      <span className="text-text-primary">{nomeRegistroTxt(d.dominio)}</span>
-                    </p>
-                    <p className="break-all">
-                      <span className="text-text-muted">Valor: </span>
-                      <span className="text-text-primary">{d.token_verificacao}</span>
-                    </p>
-                  </div>
-                </div>
+                <Bloco titulo="1. Prove que o domínio é seu — crie este TXT no DNS e clique em Verificar">
+                  <Linha rotulo="Nome" valor={nomeRegistroTxt(d.dominio)} />
+                  <Linha rotulo="Valor" valor={d.token_verificacao} />
+                </Bloco>
               )}
+
+              <Bloco
+                titulo={
+                  d.modo === "subdiretorio"
+                    ? `${d.verificado ? "" : "2. "}Aponte ${d.dominio}${d.caminho} pra cá no servidor do site`
+                    : `${d.verificado ? "" : "2. "}Aponte ${d.dominio} pra cá no DNS`
+                }
+              >
+                {d.modo === "subdiretorio" ? (
+                  <>
+                    <p className="mb-2 text-[11px] text-text-secondary">
+                      No nginx do site, dentro do server do domínio:
+                    </p>
+                    <pre className="overflow-x-auto whitespace-pre rounded bg-app p-2 font-mono text-[11px] text-text-primary">
+{`location ${d.caminho}/ {
+  proxy_pass https://${APP_HOST}/blog-publico/${d.dominio}/;
+  proxy_set_header Host ${APP_HOST};
+}`}
+                    </pre>
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-2 text-[11px] text-text-secondary">Registro CNAME no DNS:</p>
+                    <Linha rotulo="Nome" valor={d.dominio} />
+                    <Linha rotulo="Aponta para" valor={APP_HOST} />
+                    <p className="mt-2 text-[11px] text-warning">
+                      Esse domínio também precisa ser adicionado no projeto da Vercel, senão ela responde antes
+                      de chegar aqui.
+                    </p>
+                  </>
+                )}
+              </Bloco>
             </div>
           ))}
         </div>
@@ -563,6 +599,24 @@ function PainelDominios({
   );
 }
 
+function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-3 rounded-lg bg-card p-3">
+      <p className="mb-2 text-[11px] font-medium text-text-secondary">{titulo}</p>
+      {children}
+    </div>
+  );
+}
+
+function Linha({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <p className="break-all font-mono text-[11px]">
+      <span className="text-text-muted">{rotulo}: </span>
+      <span className="text-text-primary">{valor}</span>
+    </p>
+  );
+}
+
 function FormularioDominio({
   productId,
   onFechar,
@@ -576,6 +630,7 @@ function FormularioDominio({
   const [campos, setCampos] = useState({
     dominio: "",
     nome: "",
+    modo: "subdiretorio" as ModoBlog,
     caminho: "/blog",
     idioma: "pt-BR",
     publico_alvo: "",
@@ -583,7 +638,7 @@ function FormularioDominio({
   });
   const [salvando, setSalvando] = useState(false);
 
-  function set<K extends keyof typeof campos>(k: K, v: string) {
+  function set<K extends keyof typeof campos>(k: K, v: (typeof campos)[K]) {
     setCampos((prev) => ({ ...prev, [k]: v }));
   }
 
@@ -619,11 +674,29 @@ function FormularioDominio({
           </div>
         </div>
 
+        <div>
+          <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
+            Como o blog chega no site
+            <Tooltip text="Subdiretório concentra a autoridade no domínio principal, mas exige mexer no servidor do site. Subdomínio só precisa de um CNAME, e o Google trata o conteúdo como site vizinho. Use subdiretório onde você controla o servidor." />
+          </label>
+          <Select value={campos.modo} onChange={(e) => set("modo", e.target.value as ModoBlog)}>
+            {MODOS.map((m) => (
+              <option key={m} value={m}>
+                {MODO_LABEL[m]}
+              </option>
+            ))}
+          </Select>
+          <p className="mt-1 text-[11px] text-text-muted/70">
+            {campos.modo === "subdiretorio"
+              ? "Você vai colar um bloco no nginx do site. Melhor pro Google."
+              : "Você vai criar um CNAME. Mais fácil, mas o conteúdo não soma no domínio principal."}
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
-              Caminho do blog
-              <Tooltip text="Subdiretório (/blog) concentra a autoridade no domínio principal. Subdomínio é mais fácil de ligar, mas o Google trata como site vizinho." />
+            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+              {campos.modo === "subdiretorio" ? "Caminho do blog" : "Caminho (deixe / no subdomínio)"}
             </label>
             <Input value={campos.caminho} onChange={(e) => set("caminho", e.target.value)} placeholder="/blog" />
           </div>

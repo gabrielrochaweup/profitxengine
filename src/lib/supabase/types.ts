@@ -1196,6 +1196,7 @@ export interface Database {
           product_id: string;
           dominio: string;
           caminho: string;
+          modo: "subdiretorio" | "subdominio";
           nome: string | null;
           idioma: string;
           publico_alvo: string | null;
@@ -1212,6 +1213,7 @@ export interface Database {
           Database["public"]["Tables"]["blog_dominios"]["Row"],
           | "id"
           | "caminho"
+          | "modo"
           | "nome"
           | "idioma"
           | "publico_alvo"
@@ -1225,6 +1227,7 @@ export interface Database {
           | "updated_at"
         > & {
           caminho?: string;
+          modo?: "subdiretorio" | "subdominio";
           nome?: string | null;
           idioma?: string;
           publico_alvo?: string | null;
