@@ -97,7 +97,10 @@ export function UtmPresetsPanel({
       {presets.length === 0 ? (
         <p className="text-xs text-text-muted">Nenhum canal salvo ainda.</p>
       ) : (
-        <div className="space-y-1.5">
+        // Em coluna única cada linha ocupava a largura inteira da tela pra
+        // caber um nome e duas UTMs, e os 14 canais viravam uma rolagem
+        // longa. Em grade, a lista cabe quase toda numa tela só.
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-3">
           {presets.map((preset) => {
             const emUso =
               preset.utm_source === atual.source &&
@@ -107,7 +110,7 @@ export function UtmPresetsPanel({
               <div
                 key={preset.id}
                 className={
-                  "flex flex-wrap items-center justify-between gap-2 rounded-xl p-2.5 " +
+                  "flex items-center justify-between gap-2 rounded-xl p-2.5 " +
                   (emUso ? "bg-accent-soft" : "bg-card-hover")
                 }
               >
@@ -123,8 +126,8 @@ export function UtmPresetsPanel({
                     })
                   }
                 >
-                  <span className="text-sm font-medium text-text-primary">{preset.nome}</span>
-                  <span className="ml-2 font-mono text-[11px] text-text-muted">
+                  <span className="block truncate text-sm font-medium text-text-primary">{preset.nome}</span>
+                  <span className="block truncate font-mono text-[11px] text-text-muted">
                     {[preset.utm_source, preset.utm_medium, preset.utm_campaign, preset.utm_content]
                       .filter(Boolean)
                       .join(" · ")}

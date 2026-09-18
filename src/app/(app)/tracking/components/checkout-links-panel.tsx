@@ -87,22 +87,22 @@ export function CheckoutLinksPanel({
       {links.length === 0 ? (
         <p className="text-xs text-text-muted">Nenhum checkout salvo ainda.</p>
       ) : (
-        <div className="space-y-1.5">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-3">
           {links.map((link) => {
             const emUso = atual.trim() === link.url;
             return (
               <div
                 key={link.id}
                 className={
-                  "flex flex-wrap items-center justify-between gap-2 rounded-xl p-2.5 " +
+                  "flex items-center justify-between gap-2 rounded-xl p-2.5 " +
                   (emUso ? "bg-accent-soft" : "bg-card-hover")
                 }
               >
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onUsar(link.url)}>
-                  <span className="text-sm font-medium text-text-primary">
+                  <span className="block truncate text-sm font-medium text-text-primary">
                     {link.plano} — {link.checkout}
                   </span>
-                  <span className="ml-2 block truncate font-mono text-[11px] text-text-muted">{link.url}</span>
+                  <span className="block truncate font-mono text-[11px] text-text-muted">{link.url}</span>
                 </button>
                 <div className="flex items-center gap-1.5">
                   <Button size="sm" variant="ghost" onClick={() => setEditando(link)}>
