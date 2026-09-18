@@ -1,150 +1,39 @@
 "use client";
 
 import { useId, useState } from "react";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
+import dynamic from "next/dynamic";
+import { ChartSkeleton, EmptyChart, colorForLabel, fmtBRL } from "./chart-parts";
 
-const GRID_COLOR = "var(--border)";
-const AXIS_COLOR = "var(--text-muted)";
-const TOOLTIP_STYLE = {
-  backgroundColor: "var(--bg-card)",
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  fontSize: 12,
-  color: "var(--text-primary)",
-};
+export { PIE_PALETTE, colorForLabel } from "./chart-parts";
 
-export const PIE_PALETTE = [
-  "var(--accent-text)",
-  "var(--accent-pink)",
-  "var(--success)",
-  "var(--warning)",
-  "var(--danger)",
-  "#60a5fa",
-  "#f472b6",
-  "#facc15",
-];
+/*
+  Os gráficos de recharts entram só no navegador.
 
-function fmtBRL(n: number): string {
-  return n.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
-}
+  O ResponsiveContainer decide o tamanho do SVG medindo o elemento onde ele
+  está. No servidor não existe elemento pra medir, então o HTML que vinha de
+  lá era diferente do que o navegador desenhava — e o React descartava a
+  árvore inteira pra refazer, com um "Text content does not match
+  server-rendered HTML" no console a cada carga da página.
 
-// Hash simples (não-criptográfico) só pra dar sempre a mesma cor pra uma
-// mesma string (fonte/plataforma/produto) sem precisar de um mapa mantido
-// à mão — mesma origem sempre cai no mesmo índice da paleta.
-export function colorForLabel(label: string): string {
-  let hash = 0;
-  for (let i = 0; i < label.length; i++) {
-    hash = (hash << 5) - hash + label.charCodeAt(i);
-    hash |= 0;
-  }
-  return PIE_PALETTE[Math.abs(hash) % PIE_PALETTE.length];
-}
+  Desligar o SSR resolve na raiz: o servidor manda um espaço da altura certa
+  (ChartSkeleton) e o gráfico aparece nele. Como o dado já chega junto com a
+  página, a troca acontece no mesmo quadro — e nada abaixo pula de lugar,
+  porque a altura reservada é a mesma do gráfico.
+*/
+export const RevenueLineChart = dynamic(() => import("./charts-recharts").then((m) => m.RevenueLineChart), {
+  ssr: false,
+  loading: () => <ChartSkeleton height={260} />,
+});
 
-export function RevenueLineChart({ data }: { data: { label: string; bruto: number; liquido: number }[] }) {
-  if (data.length === 0) return <EmptyChart />;
-  return (
-    <ResponsiveContainer width="100%" height={260}>
-      <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
-        <XAxis dataKey="label" tick={{ fontSize: 11, fill: AXIS_COLOR }} />
-        <YAxis tick={{ fontSize: 11, fill: AXIS_COLOR }} tickFormatter={fmtBRL} width={56} />
-        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `R$ ${fmtBRL(Number(v) || 0)}`} />
-        <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="monotone" dataKey="bruto" name="Bruto" stroke="var(--accent-text)" strokeWidth={2} dot={false} />
-        <Line type="monotone" dataKey="liquido" name="Líquido" stroke="var(--success)" strokeWidth={2} dot={false} />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
+export const SimpleBarChart = dynamic(() => import("./charts-recharts").then((m) => m.SimpleBarChart), {
+  ssr: false,
+  loading: () => <ChartSkeleton height={220} />,
+});
 
-export function SimpleBarChart({
-  data,
-  color = "var(--accent-text)",
-  valueLabel,
-  isCurrency,
-  currencyPrefix = "R$",
-}: {
-  data: { label: string; value: number }[];
-  color?: string;
-  valueLabel: string;
-  isCurrency?: boolean;
-  currencyPrefix?: string;
-}) {
-  if (data.length === 0) return <EmptyChart />;
-  return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
-        <XAxis dataKey="label" tick={{ fontSize: 11, fill: AXIS_COLOR }} />
-        <YAxis tick={{ fontSize: 11, fill: AXIS_COLOR }} tickFormatter={fmtBRL} width={48} />
-        <Tooltip
-          contentStyle={TOOLTIP_STYLE}
-          formatter={(v) => {
-            const n = Number(v) || 0;
-            return [isCurrency ? `${currencyPrefix} ${fmtBRL(n)}` : fmtBRL(n), valueLabel] as [string, string];
-          }}
-        />
-        <Bar dataKey="value" name={valueLabel} fill={color} radius={[6, 6, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-export function DynamicPieChart({
-  data,
-  innerRadius = 0,
-  unit = "currency",
-}: {
-  data: { name: string; value: number }[];
-  /** Passa um valor > 0 (ex: 55) pra virar rosca/donut em vez de pizza cheia. */
-  innerRadius?: number;
-  /** "count" mostra o número puro (ex: vendas), sem prefixo de moeda. */
-  unit?: "currency" | "count";
-}) {
-  const withValue = data.filter((d) => d.value > 0);
-  if (withValue.length === 0) return <EmptyChart />;
-  const fmt = (n: number) => (unit === "currency" ? `R$ ${fmtBRL(n)}` : fmtBRL(n));
-  return (
-    <ResponsiveContainer width="100%" height={260}>
-      <PieChart>
-        <Pie
-          data={withValue}
-          dataKey="value"
-          nameKey="name"
-          cx="50%"
-          cy="50%"
-          innerRadius={innerRadius}
-          outerRadius={90}
-          label={(entry) => `${entry.name}: ${fmt(entry.value)}`}
-          labelLine={false}
-          /* O Recharts desenha contorno branco entre as fatias por padrão —
-             herança de gráfico feito pra fundo claro. Em fundo escuro isso
-             vira um risco luminoso separando as cores. */
-          stroke="none"
-        >
-          {withValue.map((entry) => (
-            <Cell key={entry.name} fill={colorForLabel(entry.name)} stroke="none" />
-          ))}
-        </Pie>
-        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => fmt(Number(v) || 0)} />
-      </PieChart>
-    </ResponsiveContainer>
-  );
-}
+export const DynamicPieChart = dynamic(() => import("./charts-recharts").then((m) => m.DynamicPieChart), {
+  ssr: false,
+  loading: () => <ChartSkeleton height={260} />,
+});
 
 // Funil "fluido" em SVG puro (colunas lado a lado, separadas por linha
 // tracejada, com % grande no meio e valor + variação embaixo de cada
@@ -329,14 +218,6 @@ export function HorizontalBarList({
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function EmptyChart() {
-  return (
-    <div className="flex h-[220px] items-center justify-center text-xs text-text-muted">
-      Sem dados suficientes nesse período.
     </div>
   );
 }
