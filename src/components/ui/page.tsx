@@ -53,7 +53,9 @@ export function PageHeader({
   descricao,
   acoes,
 }: {
-  titulo: string;
+  // ReactNode e não string porque algumas telas levam um ícone junto do nome
+  // (Admin, por exemplo) — e isso continua sendo um h1 só.
+  titulo: ReactNode;
   descricao?: ReactNode;
   acoes?: ReactNode;
 }) {

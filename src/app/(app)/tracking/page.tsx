@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
 import { TrackingClient } from "./tracking-client";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 
 export default async function TrackingPage() {
   const supabase = createClient();
@@ -16,10 +17,9 @@ export default async function TrackingPage() {
 
   if (!activeProduct) {
     return (
-      <div>
-        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Tracking</h1>
-        <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">Você não tem acesso a nenhum produto ainda.</p>
-      </div>
+      <PageContainer largura="padrao">
+        <PageHeader titulo="Tracking" descricao="Você não tem acesso a nenhum produto ainda." />
+      </PageContainer>
     );
   }
 
@@ -70,12 +70,12 @@ export default async function TrackingPage() {
   }));
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Tracking</h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-        Funil completo do lead: anúncio → landing → checkout → área de membros → corretora → depósito.
-      </p>
-
+    // Tabelas de campanha e funil lado a lado: é tela de dados.
+    <PageContainer largura="amplo">
+      <PageHeader
+        titulo="Tracking"
+        descricao="Funil completo do lead: anúncio → landing → checkout → área de membros → corretora → depósito."
+      />
       <TrackingClient
         productId={activeProduct.id}
         productSlug={activeProduct.slug}
@@ -85,6 +85,6 @@ export default async function TrackingPage() {
         initialAdCredentials={adCredentials ?? []}
         isAdmin={isAdmin}
       />
-    </div>
+    </PageContainer>
   );
 }

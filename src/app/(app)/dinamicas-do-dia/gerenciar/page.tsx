@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionProfile, hasRole } from "@/lib/auth";
 import { DinamicasClient } from "./dinamicas-client";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 
 export default async function DinamicasPage() {
   const profile = await getSessionProfile();
@@ -25,19 +26,17 @@ export default async function DinamicasPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Dinâmicas de Grupo</h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-        Temas de campanha do dia (Batalha, Bônus, Kamikaze...) com sua sequência de mensagens
-        calculadas. Criação e edição restritas a administradores.
-      </p>
-
+    <PageContainer largura="padrao">
+      <PageHeader
+        titulo="Dinâmicas de Grupo"
+        descricao="Temas de campanha do dia (Batalha, Bônus, Kamikaze...) com sua sequência de mensagens calculadas. Criação e edição restritas a administradores."
+      />
       <DinamicasClient
         initialDynamics={dynamics ?? []}
         slotCounts={slotCounts}
         initialSnapshots={snapshots ?? []}
         canEdit={hasRole(profile.role, "admin")}
       />
-    </div>
+    </PageContainer>
   );
 }

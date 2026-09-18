@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
 import { ModelosPromptClient } from "./modelos-prompt-client";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 
 export default async function ModelosDePromptPage() {
   const supabase = createClient();
@@ -30,13 +31,16 @@ export default async function ModelosDePromptPage() {
   ]);
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Modelos de Prompt (Imagem)</h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-        Templates com variáveis pra montar prompts de imagem sem reescrever tudo — combine um modelo com um
-        personagem e um tom. Usado no &ldquo;Prompt pré-definido&rdquo; do gerador de imagens.
-      </p>
-
+    <PageContainer largura="padrao">
+      <PageHeader
+        titulo="Modelos de Prompt (Imagem)"
+        descricao={
+          <>
+            Templates com variáveis pra montar prompts de imagem sem reescrever tudo — combine um modelo com um
+            personagem e um tom. Usado no &ldquo;Prompt pré-definido&rdquo; do gerador de imagens.
+          </>
+        }
+      />
       <ModelosPromptClient
         key={activeProduct?.id ?? "none"}
         initialTemplates={templates ?? []}
@@ -46,6 +50,6 @@ export default async function ModelosDePromptPage() {
         currentUserId={user.id}
         isAdmin={profile?.role === "admin"}
       />
-    </div>
+    </PageContainer>
   );
 }

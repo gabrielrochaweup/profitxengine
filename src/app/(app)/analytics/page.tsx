@@ -4,6 +4,7 @@ import { getActiveProduct } from "@/lib/products-server";
 import { productOwnsExclusiveRoute } from "@/lib/products";
 import { AnalyticsClient } from "./analytics-client";
 import { ProductMetricsClient } from "./product-metrics-client";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 
 export default async function AnalyticsPage() {
   const supabase = createClient();
@@ -35,12 +36,11 @@ export default async function AnalyticsPage() {
     ]);
 
     return (
-      <div>
-        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Analytics</h1>
-        <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-          Preencha o resultado de cada dia com os campos configurados pra esse produto.
-        </p>
-
+      <PageContainer largura="padrao">
+        <PageHeader
+          titulo="Analytics"
+          descricao="Preencha o resultado de cada dia com os campos configurados pra esse produto."
+        />
         <ProductMetricsClient
           key={activeProduct?.id ?? "none"}
           initialFields={fields ?? []}
@@ -49,7 +49,7 @@ export default async function AnalyticsPage() {
           currentUserId={user.id}
           isAdmin={isAdmin}
         />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -65,14 +65,12 @@ export default async function AnalyticsPage() {
   ]);
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Analytics</h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-        Resultado de cada dia marcado como concluído em Dinâmicas do Dia — faturamento, depósitos,
-        volume de Pepe/Live/Copy e qual dinâmica performou melhor.
-      </p>
-
+    <PageContainer largura="padrao">
+      <PageHeader
+        titulo="Analytics"
+        descricao="Resultado de cada dia marcado como concluído em Dinâmicas do Dia — faturamento, depósitos, volume de Pepe/Live/Copy e qual dinâmica performou melhor."
+      />
       <AnalyticsClient initialResults={results ?? []} dynamics={dynamics ?? []} />
-    </div>
+    </PageContainer>
   );
 }
