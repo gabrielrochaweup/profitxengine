@@ -121,14 +121,25 @@ function isSpecialBucket(value: string): boolean {
   return value in SPECIAL_BUCKET_HELP;
 }
 
-const TABLE_TABS = [
+/**
+ * Os quatro recortes de Performance, na hierarquia que o gestor de tráfego já
+ * usa: conta → campanha → conjunto → anúncio.
+ *
+ * Só "campanhas" tem dado hoje — os outros três dependem do gasto vindo do
+ * Meta/Google Ads. Continuam clicáveis: a tela explica o que falta, o que é
+ * mais útil do que um botão morto com tooltip. Sumir com eles esconderia a
+ * hierarquia inteira e faria parecer que o produto só sabe campanha.
+ */
+export const PERFORMANCE_SUB_TABS = [
   { key: "contas", label: "Contas" },
   { key: "campanhas", label: "Campanhas" },
   { key: "conjuntos", label: "Conjuntos" },
   { key: "anuncios", label: "Anúncios" },
 ] as const;
 
-type TableTab = (typeof TABLE_TABS)[number]["key"];
+export type TableTab = (typeof PERFORMANCE_SUB_TABS)[number]["key"];
+
+export const MOTIVO_SEM_DADO = "Disponível depois de conectar Meta Ads / Google Ads";
 
 // Exportado porque quem manda na sub-aba ativa é o TrackingClient (ele
 // guarda a escolha na URL) — a lista precisa ser a mesma nos dois lugares,
@@ -170,12 +181,15 @@ export function AnalyticsTab({
   initialEvents,
   isAdmin,
   subTab,
+  tableTab = "campanhas",
 }: {
   productId: string;
   initialReport: CampaignRow[];
   initialEvents: RecentEvent[];
   isAdmin: boolean;
   subTab: AnalyticsSubTab;
+  /** Qual recorte de Performance mostrar. Quem manda é a barra do módulo. */
+  tableTab?: TableTab;
 }) {
   const [period, setPeriod] = useState<Period>("90d");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
@@ -185,7 +199,6 @@ export function AnalyticsTab({
   const [events, setEvents] = useState<RecentEvent[]>(initialEvents);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [tableTab, setTableTab] = useState<TableTab>("campanhas");
   const [kpiDetailType, setKpiDetailType] = useState<string | null>(null);
   // Só o botão "Atualizar" remonta a busca da lista de alunos; trocar de
   // período não precisa, porque o recorte por data é feito aqui no cliente.
@@ -870,7 +883,20 @@ export function AnalyticsTab({
         </div>
       )}
 
-      {subTab === "campanhas" && (
+      {subTab === "campanhas" && tableTab !== "campanhas" && (
+        <Bloco titulo={PERFORMANCE_SUB_TABS.find((t) => t.key === tableTab)?.label ?? ""}>
+          <Cartao>
+            {/* Nada inventado: esse recorte só existe com o gasto vindo da
+                plataforma, e é isso que a tela diz. */}
+            <Vazio>
+              {MOTIVO_SEM_DADO}. Até lá, o resultado por campanha está em{" "}
+              <span className="text-text-secondary">Performance → Campanhas</span>.
+            </Vazio>
+          </Cartao>
+        </Bloco>
+      )}
+
+      {subTab === "campanhas" && tableTab === "campanhas" && (
         <div className="space-y-6">
           <Bloco titulo="Vendas por UTM/campanha (top 10)">
             <Cartao>
@@ -878,33 +904,8 @@ export function AnalyticsTab({
             </Cartao>
           </Bloco>
 
-          {/* ── Tabela com abas (Contas/Campanhas/Conjuntos/Anúncios) ── */}
-          <div className="overflow-hidden rounded-card bg-card shadow-card">
-            <div className="flex gap-1 border-b border-border px-3">
-              {TABLE_TABS.map((tab) => {
-                const enabled = tab.key === "campanhas";
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    disabled={!enabled}
-                    onClick={() => enabled && setTableTab(tab.key)}
-                    title={enabled ? undefined : "Disponível depois de conectar Meta Ads / Google Ads"}
-                    className={cn(
-                      "-mb-px border-b-2 px-3 py-2.5 text-xs font-medium transition-colors duration-150",
-                      tableTab === tab.key
-                        ? "border-accent text-text-primary"
-                        : enabled
-                          ? "border-transparent text-text-secondary hover:text-text-primary"
-                          : "cursor-not-allowed border-transparent text-text-disabled"
-                    )}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-
+          {/* A tabela do recorte escolhido lá em cima, na barra do módulo. */}
+          <div className="rounded-card bg-card shadow-card">
             <div className="p-4">
               {filteredReport.length === 0 ? (
                 <Vazio>Sem dados suficientes nesse período.</Vazio>
