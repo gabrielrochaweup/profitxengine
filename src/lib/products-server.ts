@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "./supabase/server";
 import { DEFAULT_PRODUCT_SLUG } from "./products";
@@ -11,7 +12,7 @@ type Product = Database["public"]["Tables"]["products"]["Row"];
 // (barra de abas + checagem de rota) quanto por qualquer página de
 // ferramenta compartilhada que precise saber de qual produto buscar dado
 // (ex: Tarefas).
-export async function getAccessibleProducts(userId: string, isAdmin: boolean): Promise<Product[]> {
+export const getAccessibleProducts = cache(async (userId: string, isAdmin: boolean): Promise<Product[]> => {
   const supabase = createClient();
 
   if (isAdmin) {
@@ -30,11 +31,18 @@ export async function getAccessibleProducts(userId: string, isAdmin: boolean): P
     .in("id", productIds)
     .order("position");
   return data ?? [];
-}
+});
 
-// Resolve o produto ativo a partir do cookie (setado pelo ActiveProductProvider
-// ao trocar de aba), caindo pro PROFITX ou pro primeiro produto acessível.
-export async function getActiveProduct(userId: string, isAdmin: boolean): Promise<Product | null> {
+/**
+ * Resolve o produto ativo a partir do cookie (setado pelo ActiveProductProvider
+ * ao trocar de aba), caindo pro PROFITX ou pro primeiro produto acessível.
+ *
+ * `cache()` aqui e no getAccessibleProducts porque layout e page pedem a MESMA
+ * lista em toda navegação: o layout pra desenhar a barra de produtos, a página
+ * pra saber de qual produto buscar dado. Sem o dedupe, era uma ida a mais ao
+ * banco por página — e nesse app a ida custa ~200ms, não a consulta.
+ */
+export const getActiveProduct = cache(async (userId: string, isAdmin: boolean): Promise<Product | null> => {
   const products = await getAccessibleProducts(userId, isAdmin);
   if (products.length === 0) return null;
 
@@ -44,4 +52,4 @@ export async function getActiveProduct(userId: string, isAdmin: boolean): Promis
     products.find((p) => p.slug === DEFAULT_PRODUCT_SLUG) ??
     products[0]
   );
-}
+});

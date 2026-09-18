@@ -69,6 +69,20 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Repassa a identidade JA VALIDADA aqui pro render, pra o layout nao
+  // repetir a mesma checagem em rede. auth.getUser() sempre vai ao Supabase
+  // (por design, nunca confia so no cookie), e nesse app cada ida custa
+  // ~200ms — pagar duas vezes pela mesma resposta, em toda navegacao, era
+  // ~20% do tempo de abrir qualquer pagina.
+  //
+  // Escrito SEMPRE, inclusive vazio: assim um header forjado que venha de
+  // fora e sobrescrito antes de chegar no render. Todas as rotas de pagina
+  // passam por aqui (o matcher so exclui asset estatico), e quem nao passar
+  // cai no caminho normal, que refaz a chamada de verdade.
+  requestHeaders.set("x-user-id", user?.id ?? "");
+  requestHeaders.set("x-user-email", user?.email ?? "");
+  supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
+
   const isPublicPath = PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
   if (!user && !isPublicPath) {

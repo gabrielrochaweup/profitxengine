@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import type { User } from "@supabase/supabase-js";
+import { cookies, headers } from "next/headers";
 import { cache } from "react";
 import type { Database } from "./types";
 
@@ -31,12 +32,24 @@ export function createClient() {
 
 /**
  * `auth.getUser()` sempre valida o JWT em rede contra o Supabase Auth (por
- * design, nunca confia só no cookie local). O layout e a page de cada rota
- * chamavam isso de forma independente, triplicando o round-trip por
- * navegação (middleware + layout + page). `cache()` do React dedupe pelo
- * mesmo request de RSC, então layout+page passam a pagar só 1 chamada.
+ * design, nunca confia só no cookie local). `cache()` dedupe layout+page
+ * dentro do mesmo render; o header cobre o pedaço que o cache não alcança.
+ *
+ * O middleware já validou a sessão nesta mesma requisição e escreveu o
+ * resultado em x-user-id. Reaproveitar isso evita uma segunda viagem ao
+ * Supabase por navegação. O header é sempre escrito pelo middleware (vazio
+ * quando não há sessão), então não dá pra forjar de fora; e se ele não
+ * existir — rota que não passou pelo middleware — cai na chamada real.
  */
 export const getUser = cache(async () => {
+  const cabecalhos = headers();
+  const id = cabecalhos.get("x-user-id");
+
+  if (id) {
+    const email = cabecalhos.get("x-user-email") || null;
+    return { data: { user: { id, email } as User }, error: null };
+  }
+
   const supabase = createClient();
   return supabase.auth.getUser();
 });

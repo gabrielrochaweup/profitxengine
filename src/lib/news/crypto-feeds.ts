@@ -58,6 +58,10 @@ async function fetchFeed(source: string, url: string): Promise<CryptoNewsItem[]>
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; PROFITXEngine/1.0)" },
       next: { revalidate: 600 },
+      // Sem teto, um feed externo lento segura a pagina inteira: o dashboard
+      // espera por eles antes de renderizar. Com teto, o pior caso e a pagina
+      // abrir sem a noticia.
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return [];
 
@@ -106,6 +110,10 @@ export async function getTrendingCoins(): Promise<TrendingCoin[]> {
     const res = await fetch("https://api.coingecko.com/api/v3/search/trending", {
       headers: { Accept: "application/json" },
       next: { revalidate: 600 },
+      // Sem teto, um feed externo lento segura a pagina inteira: o dashboard
+      // espera por eles antes de renderizar. Com teto, o pior caso e a pagina
+      // abrir sem a noticia.
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return trendingCache?.coins ?? [];
 

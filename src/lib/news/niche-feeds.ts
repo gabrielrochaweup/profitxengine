@@ -57,6 +57,10 @@ async function fetchGoogleNews(query: string, region: { hl: string; gl: string; 
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; PROFITXEngine/1.0)" },
       next: { revalidate: 600 },
+      // Sem teto, um feed externo lento segura a pagina inteira: o dashboard
+      // espera por eles antes de renderizar. Com teto, o pior caso e a pagina
+      // abrir sem a noticia.
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return [];
 
