@@ -306,7 +306,8 @@ export function TarefasClient({
   const openTask = openTaskId ? (tasks.find((t) => t.id === openTaskId) ?? null) : null;
 
   return (
-    <div className="mt-6">
+    // O respiro abaixo do título agora vem do PageHeader, igual em toda tela.
+    <div>
       <KanbanBoard
         columns={columns}
         tasks={tasks}

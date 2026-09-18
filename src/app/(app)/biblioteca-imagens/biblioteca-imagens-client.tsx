@@ -200,7 +200,7 @@ export function BibliotecaImagensClient({
   function renderImageGrid(dropId: string, items: GeneratedImage[]) {
     if (items.length === 0) {
       return (
-        <p className="rounded-input border border-dashed border-border-strong px-3 py-8 text-center text-[11px] text-text-muted">
+        <p className="rounded-input border border-dashed border-border-strong px-3 py-8 text-center text-[11px] text-text-tertiary">
           {dragOverFolderId === dropId ? "Solte aqui" : "Vazia."}
         </p>
       );
@@ -447,7 +447,7 @@ export function BibliotecaImagensClient({
   const mobileFolder = mobileColumns.find((c) => c.id === mobileFolderId) ?? mobileColumns[0];
 
   return (
-    <div className="mt-4">
+    <div>
       {isAdmin && (
         <div className="mb-3 flex justify-end">
           {addingFolder ? (
@@ -529,7 +529,7 @@ function IconButton({
       aria-label={label}
       className={cn(
         "flex h-6 w-6 items-center justify-center rounded-lg hover:bg-card-hover",
-        danger ? "text-text-muted hover:text-danger" : "text-text-muted hover:text-text-primary"
+        danger ? "text-text-tertiary hover:text-danger" : "text-text-tertiary hover:text-text-primary"
       )}
     >
       {children}

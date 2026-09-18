@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Settings2 } from "lucide-react";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 import { BibliotecaImagensClient } from "./biblioteca-imagens-client";
 
 export default async function BibliotecaImagensPage() {
@@ -30,24 +31,21 @@ export default async function BibliotecaImagensPage() {
   ]);
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Biblioteca de Imagens</h1>
-          <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-            Todas as imagens geradas por qualquer pessoa da equipe, em qualquer dispositivo — arraste pra
-            dentro das pastas pra organizar do seu jeito.
-          </p>
-        </div>
-        <Link
-          href="/biblioteca-imagens/modelos-de-prompt"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-button bg-card-hover px-3 py-1.5 text-xs text-text-secondary shadow-card-sm hover:brightness-95"
-        >
-          <Settings2 size={13} />
-          Modelos de prompt
-        </Link>
-      </div>
-
+    // Galeria: quanto mais colunas de miniatura couberem, melhor.
+    <PageContainer largura="amplo">
+      <PageHeader
+        titulo="Biblioteca de Imagens"
+        descricao="Todas as imagens geradas por qualquer pessoa da equipe, em qualquer dispositivo — arraste pra dentro das pastas pra organizar do seu jeito."
+        acoes={
+          <Link
+            href="/biblioteca-imagens/modelos-de-prompt"
+            className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-button border border-border bg-card-hover px-2.5 text-xs font-medium text-text-primary transition-colors duration-150 hover:border-border-strong hover:bg-input"
+          >
+            <Settings2 size={13} />
+            Modelos de prompt
+          </Link>
+        }
+      />
       <BibliotecaImagensClient
         key={activeProduct?.id ?? "none"}
         initialImages={images ?? []}
@@ -55,6 +53,6 @@ export default async function BibliotecaImagensPage() {
         currentUserId={user.id}
         isAdmin={profile?.role === "admin"}
       />
-    </div>
+    </PageContainer>
   );
 }

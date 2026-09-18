@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 import { PromptsClient } from "./prompts-client";
 
 export default async function PromptsPage() {
@@ -27,13 +28,11 @@ export default async function PromptsPage() {
   ]);
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Biblioteca de Prompts</h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-        Prompts reutilizáveis nos módulos de conversas, calendário de engajamento e e-mails. Colunas
-        totalmente personalizáveis por quem é admin.
-      </p>
-
+    <PageContainer largura="amplo">
+      <PageHeader
+        titulo="Biblioteca de Prompts"
+        descricao="Prompts reutilizáveis nos módulos de conversas, calendário de engajamento e e-mails. As colunas são personalizáveis por quem é admin."
+      />
       <PromptsClient
         key={activeProduct?.id ?? "none"}
         initialPrompts={prompts ?? []}
@@ -41,6 +40,6 @@ export default async function PromptsPage() {
         currentUserId={user.id}
         isAdmin={profile?.role === "admin"}
       />
-    </div>
+    </PageContainer>
   );
 }

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 import { TarefasClient } from "./tarefas-client";
 
 export default async function TarefasPage() {
@@ -17,12 +18,9 @@ export default async function TarefasPage() {
 
   if (!product) {
     return (
-      <div>
-        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Tarefas</h1>
-        <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-          Nenhum produto liberado ainda pra ver as tarefas.
-        </p>
-      </div>
+      <PageContainer largura="padrao">
+        <PageHeader titulo="Tarefas" descricao="Nenhum produto liberado ainda pra ver as tarefas." />
+      </PageContainer>
     );
   }
 
@@ -35,14 +33,13 @@ export default async function TarefasPage() {
   ]);
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">
-        {product.icon} Tarefas — {product.name}
-      </h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-        Quadro de tarefas do produto. Arraste os cards entre as colunas conforme for avançando.
-      </p>
-
+    // Quadro com colunas lado a lado: é uma das poucas telas que ganha de
+    // verdade com a largura inteira.
+    <PageContainer largura="amplo">
+      <PageHeader
+        titulo={`${product.icon} Tarefas — ${product.name}`}
+        descricao="Quadro de tarefas do produto. Arraste os cards entre as colunas conforme for avançando."
+      />
       <TarefasClient
         key={product.id}
         productId={product.id}
@@ -53,6 +50,6 @@ export default async function TarefasPage() {
         canEdit={canEdit}
         currentUserId={user.id}
       />
-    </div>
+    </PageContainer>
   );
 }

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { getNicheNews } from "@/lib/news/niche-feeds";
 import { getActiveProduct } from "@/lib/products-server";
 import { getNavItems } from "@/lib/products";
+import { PageContainer } from "@/components/ui/page";
 
 // getHours() usa o fuso do servidor (UTC na Vercel), não o do usuário — como
 // o app é só em português pra um público no Brasil, fixamos America/Sao_Paulo
@@ -58,7 +59,7 @@ export default async function DashboardPage() {
     : [];
 
   return (
-    <div>
+    <PageContainer largura="padrao">
       {data.topNews && (
         <a
           href={data.topNews.link}
@@ -71,7 +72,7 @@ export default async function DashboardPage() {
             <span className="font-medium text-text-primary">Hoje em {data.newsLabel || "notícias"}:</span>{" "}
             {data.topNews.title}
           </span>
-          <span className="ml-auto shrink-0 text-text-muted">{data.topNews.source}</span>
+          <span className="ml-auto shrink-0 text-text-tertiary">{data.topNews.source}</span>
         </a>
       )}
 
@@ -83,11 +84,14 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      <div className="flex flex-col items-center py-6 text-center sm:py-14">
-        <h1 className="text-3xl font-bold text-text-primary sm:text-5xl">
+      {/* A saudação ocupava a dobra inteira: 56px de texto e 112px de respiro
+          antes de aparecer a primeira coisa clicável. Ela continua sendo a
+          abertura da tela, só que sem empurrar os atalhos pra fora da vista. */}
+      <div className="flex flex-col items-center py-8 text-center sm:py-12">
+        <h1 className="text-[26px] font-bold leading-tight text-text-primary sm:text-[32px]">
           {greeting}{displayName ? `, ${displayName}` : ""}!
         </h1>
-        <p className="mt-2 text-sm text-text-secondary sm:mt-3 sm:text-base">Comece a criar.</p>
+        <p className="mt-1.5 text-[13px] text-text-secondary sm:text-sm">Comece a criar.</p>
       </div>
 
       <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
@@ -95,15 +99,18 @@ export default async function DashboardPage() {
           <Link
             key={shortcut.href}
             href={shortcut.href}
-            className="flex flex-col items-center gap-2 rounded-card bg-card p-3 text-center shadow-card transition-shadow hover:shadow-[0_0_0_2px_var(--accent)] sm:gap-3 sm:p-5"
+            className="flex flex-col items-center gap-2.5 rounded-card bg-card p-4 text-center shadow-card transition-colors duration-150 hover:bg-card-hover hover:shadow-[0_0_0_1px_var(--accent)] sm:p-5"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent sm:h-12 sm:w-12">
+            {/* Ícone num quadrado de raio 10, o mesmo do cartão que o contém.
+                Círculo era o único elemento 100% arredondado que sobrou. */}
+            <div className="flex h-11 w-11 items-center justify-center rounded-card bg-accent/15 text-accent">
               <shortcut.icon size={20} />
             </div>
-            <span className="text-xs font-medium text-text-secondary sm:text-sm">{shortcut.label}</span>
+            {/* O nome da ferramenta é o conteúdo do cartão, não uma legenda. */}
+            <span className="text-[13px] font-medium text-text-primary">{shortcut.label}</span>
           </Link>
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { ActionBar, EmptyState } from "@/components/ui/page";
 import { useActiveProduct } from "@/components/layout/active-product-context";
 import type { Database } from "@/lib/supabase/types";
 import { PromptForm } from "./prompt-form";
@@ -304,7 +305,7 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
 
         <div className="max-h-[calc(100vh-320px)] space-y-2.5 overflow-y-auto pr-0.5">
           {items.length === 0 ? (
-            <p className="rounded-input border border-dashed border-border-strong px-3 py-6 text-center text-xs text-text-muted">
+            <p className="rounded-input border border-dashed border-border-strong px-3 py-6 text-center text-xs text-text-tertiary">
               {dragOverCategoryId === category.id ? "Solte aqui" : "Nenhum prompt aqui ainda."}
             </p>
           ) : (
@@ -334,7 +335,7 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
                 {prompt.tags && prompt.tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {prompt.tags.map((tag) => (
-                      <span key={tag} className="rounded-button bg-card-hover px-1.5 py-0.5 text-[10px] text-text-muted">
+                      <span key={tag} className="rounded-button bg-card-hover px-1.5 py-0.5 text-[11px] text-text-tertiary">
                         #{tag}
                       </span>
                     ))}
@@ -376,19 +377,13 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
   const mobileCategory = categories[mobileIndex] ?? categories[0] ?? null;
 
   return (
-    <div className="mt-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative max-w-sm flex-1">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por título, conteúdo ou tag..."
-            className="h-10 w-full rounded-input bg-input pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--accent)]"
-          />
-        </div>
-
-        {isAdmin &&
+    <div>
+      {/* Busca à esquerda, ação primária à direita — o mesmo desenho de barra
+          das outras listas do app. Antes o botão de criar coluna ficava colado
+          na busca, no meio da tela. */}
+      <ActionBar
+        acoes={
+          isAdmin &&
           (addingColumn ? (
             <div className="flex items-center gap-1">
               <Input
@@ -414,13 +409,40 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
               <Plus size={14} />
               Nova coluna
             </Button>
-          ))}
-      </div>
+          ))
+        }
+        filtros={
+          // flex-1 com um piso: encolhe junto com a barra, mas nunca vira uma
+          // caixinha de 60px quando o botão da direita cresce.
+          <div className="relative min-w-[220px] max-w-sm flex-1">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por título, conteúdo ou tag..."
+              className="h-9 w-full rounded-input bg-input pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--accent)]"
+            />
+          </div>
+        }
+      />
 
       {categories.length === 0 ? (
-        <p className="mt-6 rounded-input border border-dashed border-border-strong px-3 py-10 text-center text-sm text-text-muted">
-          Nenhuma coluna ainda.{isAdmin ? " Crie a primeira com \"Nova coluna\"." : ""}
-        </p>
+        <EmptyState
+          titulo="Nenhuma coluna ainda"
+          descricao={
+            isAdmin
+              ? "As colunas organizam os prompts por assunto — conversas, e-mails, criativos. Crie a primeira pra começar a guardar."
+              : "Um admin precisa criar a primeira coluna pra esta biblioteca começar a receber prompts."
+          }
+          acao={
+            isAdmin ? (
+              <Button type="button" onClick={() => setAddingColumn(true)}>
+                <Plus size={14} />
+                Nova coluna
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <>
           {/* Mobile: uma categoria por vez, escolhida num dropdown */}
@@ -477,7 +499,11 @@ function IconButton({
       title={label}
       aria-label={label}
       className={`flex h-7 w-7 items-center justify-center rounded-lg hover:bg-card-hover ${
-        danger ? "text-text-muted hover:text-danger" : tone === "success" ? "text-success/70 hover:text-success" : "text-text-muted hover:text-text-primary"
+        danger
+          ? "text-text-tertiary hover:text-danger"
+          : tone === "success"
+            ? "text-success/70 hover:text-success"
+            : "text-text-tertiary hover:text-text-primary"
       }`}
     >
       {children}
