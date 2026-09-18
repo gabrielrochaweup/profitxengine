@@ -13,6 +13,7 @@ const MODULE_LABEL: Record<AiModule, string> = {
   mensagem: "Mensagem",
   imagem: "Imagem",
   email: "E-mail",
+  blog: "Blog",
 };
 
 const PROVIDER_LABEL: Record<string, string> = {

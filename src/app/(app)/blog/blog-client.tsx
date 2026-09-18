@@ -1,0 +1,665 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
+import { Tooltip } from "@/components/ui/tooltip";
+import { SubTabs } from "@/components/ui/sub-tabs";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
+import { contarPalavras, gerarSlug, nomeRegistroTxt, type BlogDominio, type BlogPost } from "@/lib/blog";
+
+const ABAS = [
+  { key: "posts", label: "Posts" },
+  { key: "dominios", label: "Domínios" },
+] as const;
+type Aba = (typeof ABAS)[number]["key"];
+
+export function BlogClient({ productId }: { productId: string }) {
+  const [aba, setAba] = useState<Aba>("posts");
+  const [dominios, setDominios] = useState<BlogDominio[]>([]);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [carregando, setCarregando] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`/api/blog/dominios?product_id=${productId}`).then((r) => r.json()),
+      fetch(`/api/blog/posts?product_id=${productId}`).then((r) => r.json()),
+    ])
+      .then(([d, p]) => {
+        setDominios(d.dominios ?? []);
+        setPosts(p.posts ?? []);
+      })
+      .finally(() => setCarregando(false));
+  }, [productId]);
+
+  if (carregando) return <Card className="mt-4 p-5 text-sm text-text-secondary">Carregando…</Card>;
+
+  return (
+    <div className="mt-4 space-y-4">
+      <SubTabs tabs={ABAS} active={aba} onChange={setAba} />
+      {aba === "posts" ? (
+        <PainelPosts productId={productId} dominios={dominios} posts={posts} setPosts={setPosts} />
+      ) : (
+        <PainelDominios productId={productId} dominios={dominios} setDominios={setDominios} />
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------ posts ------------------------------ */
+
+function PainelPosts({
+  productId,
+  dominios,
+  posts,
+  setPosts,
+}: {
+  productId: string;
+  dominios: BlogDominio[];
+  posts: BlogPost[];
+  setPosts: React.Dispatch<React.SetStateAction<BlogPost[]>>;
+}) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [tema, setTema] = useState("");
+  const [slug, setSlug] = useState("");
+  const [dominioId, setDominioId] = useState<string>(dominios[0]?.id ?? "");
+  const [comImagem, setComImagem] = useState(true);
+  const [etapa, setEtapa] = useState<null | "texto" | "imagem">(null);
+  const [aberto, setAberto] = useState<BlogPost | null>(null);
+
+  const nomeDominio = useMemo(
+    () => Object.fromEntries(dominios.map((d) => [d.id, d.nome || d.dominio])),
+    [dominios]
+  );
+
+  async function gerar() {
+    if (!tema.trim() && !slug.trim()) {
+      toast.error("Preencha o tema ou a slug.");
+      return;
+    }
+
+    setEtapa("texto");
+    const res = await fetch("/api/blog/gerar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id: productId, dominio_id: dominioId || null, tema, slug }),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.post) {
+      setEtapa(null);
+      toast.error(json?.error ?? "Falha ao gerar o post.");
+      return;
+    }
+
+    let post: BlogPost = json.post;
+    setPosts((prev) => [post, ...prev]);
+    setTema("");
+    setSlug("");
+
+    // A imagem entra depois e não derruba o post: se ela falhar, o texto já
+    // está salvo e dá pra gerar a capa de novo pelo editor.
+    if (comImagem && typeof json.imagem_prompt === "string") {
+      setEtapa("imagem");
+      const img = await gerarImagem(json.imagem_prompt);
+      if (img) {
+        const salvo = await salvarPost(post.id, { imagem_url: img });
+        if (salvo) {
+          post = salvo;
+          setPosts((prev) => prev.map((p) => (p.id === salvo.id ? salvo : p)));
+        }
+      } else {
+        toast.error("O texto ficou pronto, mas a imagem falhou. Dá pra gerar de novo no editor.");
+      }
+    }
+
+    setEtapa(null);
+    setAberto(post);
+    toast.success("Post gerado.");
+  }
+
+  async function excluir(post: BlogPost) {
+    const ok = await confirm({
+      title: `Excluir "${post.titulo}"?`,
+      description: "O texto e os dados de SEO somem. A imagem continua na Biblioteca de Imagens.",
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/blog/posts/${post.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("Falha ao excluir.");
+      return;
+    }
+    setPosts((prev) => prev.filter((p) => p.id !== post.id));
+  }
+
+  const ocupado = etapa !== null;
+
+  return (
+    <>
+      <Card className="p-5">
+        <div className="mb-1 flex items-center gap-1.5">
+          <h3 className="text-base font-semibold text-text-primary">Gerar post</h3>
+          <Tooltip text="Entregue o tema em linguagem normal, ou só a slug quando a URL já está decidida. Com a slug, ela é convertida em frase e o post é escrito para aquela página." />
+        </div>
+        <p className="mb-4 text-xs text-text-secondary">
+          Preencha um dos dois. O domínio escolhido define idioma, público e tom de voz do texto.
+        </p>
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-text-muted">Tema</label>
+              <Input
+                value={tema}
+                onChange={(e) => setTema(e.target.value)}
+                disabled={ocupado}
+                placeholder="Como declarar cripto no imposto de renda"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-text-muted">
+                Ou a slug <span className="text-text-muted/70">(a URL já decidida)</span>
+              </label>
+              <Input
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                onBlur={() => setSlug((s) => (s ? gerarSlug(s) : s))}
+                disabled={ocupado}
+                placeholder="como-declarar-cripto-no-imposto-de-renda"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-64">
+              <label className="mb-1 block text-[11px] font-medium text-text-muted">Domínio</label>
+              <Select value={dominioId} onChange={(e) => setDominioId(e.target.value)} disabled={ocupado}>
+                <option value="">Sem domínio definido</option>
+                {dominios.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nome || d.dominio}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <label className="flex items-center gap-2 pb-2.5 text-xs text-text-secondary">
+              <input
+                type="checkbox"
+                checked={comImagem}
+                onChange={(e) => setComImagem(e.target.checked)}
+                disabled={ocupado}
+                className="h-3.5 w-3.5 accent-accent"
+              />
+              Gerar imagem de capa
+            </label>
+            <Button onClick={gerar} disabled={ocupado}>
+              {etapa === "texto" ? "Escrevendo…" : etapa === "imagem" ? "Gerando a capa…" : "Gerar post"}
+            </Button>
+          </div>
+
+          {dominios.length === 0 && (
+            <p className="text-[11px] text-warning">
+              Nenhum domínio cadastrado ainda. Dá pra gerar assim mesmo, mas o texto sai sem contexto de público
+              e tom — cadastre na aba Domínios.
+            </p>
+          )}
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="mb-3 text-base font-semibold text-text-primary">
+          Posts {posts.length > 0 && <span className="text-text-muted">({posts.length})</span>}
+        </h3>
+
+        {posts.length === 0 ? (
+          <p className="text-xs text-text-muted">Nenhum post gerado ainda.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+            {posts.map((post) => (
+              <div key={post.id} className="flex items-start gap-3 rounded-xl bg-card-hover p-3">
+                {post.imagem_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={post.imagem_url}
+                    alt={post.imagem_alt ?? ""}
+                    className="h-14 w-20 shrink-0 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-lg bg-card text-[10px] text-text-muted">
+                    sem capa
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="truncate text-sm font-medium text-text-primary">{post.titulo}</span>
+                    <Badge tone={post.status === "publicado" ? "success" : "neutral"}>
+                      {post.status === "publicado" ? "publicado" : "rascunho"}
+                    </Badge>
+                  </div>
+                  <p className="mt-0.5 truncate font-mono text-[11px] text-text-muted">
+                    {post.dominio_id ? `${nomeDominio[post.dominio_id] ?? "?"} · ` : ""}
+                    /{post.slug}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-text-muted/70">
+                    {contarPalavras(post.conteudo_md)} palavras
+                    {post.palavra_chave && ` · ${post.palavra_chave}`}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setAberto(post)}>
+                    Abrir
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => excluir(post)}>
+                    Excluir
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {aberto && (
+        <EditorPost
+          post={aberto}
+          dominios={dominios}
+          onFechar={() => setAberto(null)}
+          onSalvo={(p) => {
+            setPosts((prev) => prev.map((x) => (x.id === p.id ? p : x)));
+            setAberto(p);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+async function gerarImagem(prompt: string): Promise<string | null> {
+  const res = await fetch("/api/ai/generate-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ module: "imagem", prompt, aspectRatio: "16:9", quality: "medium" }),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) return null;
+  return typeof json?.url === "string" ? json.url : typeof json?.imageUrl === "string" ? json.imageUrl : null;
+}
+
+async function salvarPost(id: string, campos: Record<string, unknown>): Promise<BlogPost | null> {
+  const res = await fetch(`/api/blog/posts/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(campos),
+  });
+  const json = await res.json().catch(() => null);
+  return res.ok && json?.post ? (json.post as BlogPost) : null;
+}
+
+function EditorPost({
+  post,
+  dominios,
+  onFechar,
+  onSalvo,
+}: {
+  post: BlogPost;
+  dominios: BlogDominio[];
+  onFechar: () => void;
+  onSalvo: (p: BlogPost) => void;
+}) {
+  const toast = useToast();
+  const [campos, setCampos] = useState({
+    titulo: post.titulo,
+    slug: post.slug,
+    meta_descricao: post.meta_descricao ?? "",
+    palavra_chave: post.palavra_chave ?? "",
+    conteudo_md: post.conteudo_md,
+    dominio_id: post.dominio_id ?? "",
+  });
+  const [salvando, setSalvando] = useState(false);
+
+  function set<K extends keyof typeof campos>(k: K, v: string) {
+    setCampos((prev) => ({ ...prev, [k]: v }));
+  }
+
+  async function salvar(status?: "rascunho" | "publicado") {
+    setSalvando(true);
+    const p = await salvarPost(post.id, {
+      ...campos,
+      dominio_id: campos.dominio_id || null,
+      ...(status ? { status } : {}),
+    });
+    setSalvando(false);
+    if (!p) {
+      toast.error("Falha ao salvar.");
+      return;
+    }
+    onSalvo(p);
+    toast.success(status === "publicado" ? "Post marcado como publicado." : "Salvo.");
+  }
+
+  // Limites do Google: título some no resultado acima de ~60, descrição
+  // acima de ~158. Mostrar a contagem evita descobrir isso depois de
+  // publicado.
+  const tituloLongo = campos.titulo.length > 60;
+  const metaFora = campos.meta_descricao.length > 0 && (campos.meta_descricao.length < 140 || campos.meta_descricao.length > 158);
+
+  return (
+    <Modal open onClose={onFechar} title="Editar post" className="max-w-3xl">
+      <div className="space-y-3">
+        {post.imagem_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={post.imagem_url} alt={post.imagem_alt ?? ""} className="h-40 w-full rounded-xl object-cover" />
+        )}
+
+        <div>
+          <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-muted">
+            <span>Título</span>
+            <span className={tituloLongo ? "text-warning" : ""}>{campos.titulo.length}/60</span>
+          </label>
+          <Input value={campos.titulo} onChange={(e) => set("titulo", e.target.value)} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-text-muted">Slug</label>
+            <Input
+              value={campos.slug}
+              onChange={(e) => set("slug", e.target.value)}
+              onBlur={() => set("slug", gerarSlug(campos.slug))}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-text-muted">Domínio</label>
+            <Select value={campos.dominio_id} onChange={(e) => set("dominio_id", e.target.value)}>
+              <option value="">Sem domínio definido</option>
+              {dominios.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nome || d.dominio}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-muted">
+            <span>Meta descrição</span>
+            <span className={metaFora ? "text-warning" : ""}>{campos.meta_descricao.length}/158</span>
+          </label>
+          <Textarea rows={2} value={campos.meta_descricao} onChange={(e) => set("meta_descricao", e.target.value)} />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-text-muted">Palavra-chave</label>
+          <Input value={campos.palavra_chave} onChange={(e) => set("palavra_chave", e.target.value)} />
+        </div>
+
+        <div>
+          <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-muted">
+            <span>Conteúdo (Markdown)</span>
+            <span>{contarPalavras(campos.conteudo_md)} palavras</span>
+          </label>
+          <Textarea
+            rows={16}
+            value={campos.conteudo_md}
+            onChange={(e) => set("conteudo_md", e.target.value)}
+            className="font-mono text-xs"
+          />
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-2 pt-1">
+          <Button variant="secondary" onClick={onFechar}>
+            Fechar
+          </Button>
+          <Button variant="secondary" onClick={() => salvar()} disabled={salvando}>
+            {salvando ? "Salvando…" : "Salvar"}
+          </Button>
+          <Button onClick={() => salvar("publicado")} disabled={salvando}>
+            Salvar e marcar como publicado
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ----------------------------- domínios ----------------------------- */
+
+function PainelDominios({
+  productId,
+  dominios,
+  setDominios,
+}: {
+  productId: string;
+  dominios: BlogDominio[];
+  setDominios: React.Dispatch<React.SetStateAction<BlogDominio[]>>;
+}) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [criando, setCriando] = useState(false);
+  const [verificando, setVerificando] = useState<string | null>(null);
+
+  async function verificar(d: BlogDominio) {
+    setVerificando(d.id);
+    const res = await fetch(`/api/blog/dominios/${d.id}/verificar`, { method: "POST" });
+    setVerificando(null);
+    const json = await res.json().catch(() => null);
+    if (json?.verificado && json.dominio) {
+      setDominios((prev) => prev.map((x) => (x.id === d.id ? json.dominio : x)));
+      toast.success("Domínio verificado.");
+      return;
+    }
+    toast.error(json?.erro ?? "Não foi possível verificar.");
+  }
+
+  async function excluir(d: BlogDominio) {
+    const ok = await confirm({
+      title: `Excluir ${d.dominio}?`,
+      description: "Os posts feitos para ele continuam guardados, mas ficam sem domínio.",
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/blog/dominios/${d.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("Falha ao excluir.");
+      return;
+    }
+    setDominios((prev) => prev.filter((x) => x.id !== d.id));
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-base font-semibold text-text-primary">Domínios</h3>
+          <Tooltip text="Cada domínio guarda o contexto que entra no prompt (idioma, público, tom) e prova de posse por registro TXT — a mesma prova que o Google Search Console pede." />
+        </div>
+        <Button size="sm" onClick={() => setCriando(true)}>
+          Novo domínio
+        </Button>
+      </div>
+      <p className="mb-4 text-xs text-text-secondary">
+        Onde os posts vão morar. A verificação por DNS prova que o domínio é seu antes de publicar nele.
+      </p>
+
+      {dominios.length === 0 ? (
+        <p className="text-xs text-text-muted">Nenhum domínio cadastrado ainda.</p>
+      ) : (
+        <div className="space-y-2">
+          {dominios.map((d) => (
+            <div key={d.id} className="rounded-xl bg-card-hover p-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-text-primary">{d.nome || d.dominio}</span>
+                    <Badge tone={d.verificado ? "success" : "warning"}>
+                      {d.verificado ? "verificado" : "não verificado"}
+                    </Badge>
+                  </div>
+                  <p className="mt-0.5 font-mono text-[11px] text-text-muted">
+                    {d.dominio}
+                    {d.caminho} · {d.idioma}
+                  </p>
+                  {(d.publico_alvo || d.tom) && (
+                    <p className="mt-0.5 text-[11px] text-text-muted/70">
+                      {[d.publico_alvo, d.tom].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {!d.verificado && (
+                    <Button size="sm" variant="secondary" onClick={() => verificar(d)} disabled={verificando === d.id}>
+                      {verificando === d.id ? "Checando…" : "Verificar"}
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => excluir(d)}>
+                    Excluir
+                  </Button>
+                </div>
+              </div>
+
+              {!d.verificado && (
+                <div className="mt-3 rounded-lg bg-card p-3">
+                  <p className="mb-2 text-[11px] text-text-secondary">
+                    Crie este registro TXT no DNS do domínio e clique em Verificar:
+                  </p>
+                  <div className="space-y-1 font-mono text-[11px]">
+                    <p>
+                      <span className="text-text-muted">Nome: </span>
+                      <span className="text-text-primary">{nomeRegistroTxt(d.dominio)}</span>
+                    </p>
+                    <p className="break-all">
+                      <span className="text-text-muted">Valor: </span>
+                      <span className="text-text-primary">{d.token_verificacao}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {criando && (
+        <FormularioDominio
+          productId={productId}
+          onFechar={() => setCriando(false)}
+          onSalvo={(d) => {
+            setDominios((prev) => [...prev, d]);
+            setCriando(false);
+          }}
+        />
+      )}
+    </Card>
+  );
+}
+
+function FormularioDominio({
+  productId,
+  onFechar,
+  onSalvo,
+}: {
+  productId: string;
+  onFechar: () => void;
+  onSalvo: (d: BlogDominio) => void;
+}) {
+  const toast = useToast();
+  const [campos, setCampos] = useState({
+    dominio: "",
+    nome: "",
+    caminho: "/blog",
+    idioma: "pt-BR",
+    publico_alvo: "",
+    tom: "",
+  });
+  const [salvando, setSalvando] = useState(false);
+
+  function set<K extends keyof typeof campos>(k: K, v: string) {
+    setCampos((prev) => ({ ...prev, [k]: v }));
+  }
+
+  async function salvar() {
+    setSalvando(true);
+    const res = await fetch("/api/blog/dominios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...campos, product_id: productId }),
+    });
+    setSalvando(false);
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.dominio) {
+      toast.error(json?.error ?? "Falha ao salvar.");
+      return;
+    }
+    onSalvo(json.dominio);
+  }
+
+  return (
+    <Modal open onClose={onFechar} title="Novo domínio">
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-text-muted">Domínio</label>
+            <Input value={campos.dominio} onChange={(e) => set("dominio", e.target.value)} placeholder="escolaprofitx.com" />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+              Nome <span className="text-text-muted/70">(opcional)</span>
+            </label>
+            <Input value={campos.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Escola ProfitX" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
+              Caminho do blog
+              <Tooltip text="Subdiretório (/blog) concentra a autoridade no domínio principal. Subdomínio é mais fácil de ligar, mas o Google trata como site vizinho." />
+            </label>
+            <Input value={campos.caminho} onChange={(e) => set("caminho", e.target.value)} placeholder="/blog" />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-text-muted">Idioma</label>
+            <Input value={campos.idioma} onChange={(e) => set("idioma", e.target.value)} placeholder="pt-BR" />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            Quem lê <span className="text-text-muted/70">(entra no prompt)</span>
+          </label>
+          <Input
+            value={campos.publico_alvo}
+            onChange={(e) => set("publico_alvo", e.target.value)}
+            placeholder="Iniciantes em trading, entre 25 e 45 anos, que nunca operaram"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            Tom de voz <span className="text-text-muted/70">(entra no prompt)</span>
+          </label>
+          <Input value={campos.tom} onChange={(e) => set("tom", e.target.value)} placeholder="Direto, sem jargão, sem promessa de ganho" />
+        </div>
+
+        <div className="flex justify-end gap-2 pt-1">
+          <Button variant="secondary" onClick={onFechar}>
+            Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={salvando}>
+            {salvando ? "Salvando…" : "Salvar"}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}

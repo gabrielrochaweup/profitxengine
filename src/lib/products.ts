@@ -12,6 +12,7 @@ import {
   KanbanSquare,
   Radar,
   KeyRound,
+  Newspaper,
   type LucideIcon,
 } from "lucide-react";
 
@@ -41,6 +42,7 @@ const SHARED_NAV_REST: NavItem[] = [
   { href: "/calendario", label: "Calendário", icon: CalendarDays },
   { href: "/prompts", label: "Biblioteca de Prompts", icon: Library },
   { href: "/biblioteca-imagens", label: "Biblioteca de Imagens", icon: Images },
+  { href: "/blog", label: "Blog", icon: Newspaper },
   { href: "/acessos", label: "Acessos", icon: KeyRound },
 ];
 

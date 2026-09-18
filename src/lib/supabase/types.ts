@@ -5,7 +5,7 @@ export type Platform = "whatsapp" | "instagram" | "crm";
 export type EngagementStatus = "rascunho" | "aprovada" | "enviada";
 export type EngagementResult = "funcionou" | "nao_funcionou" | null;
 export type EmailStatus = "rascunho" | "pronto" | "enviado";
-export type AiModule = "conversa" | "mensagem" | "imagem" | "email";
+export type AiModule = "conversa" | "mensagem" | "imagem" | "email" | "blog";
 export type ImageContextType = "dinamica_slot" | "livre_engagement" | "x1_message" | "email" | "criativo" | "carrossel";
 export type ImageAspectRatio = "1:1" | "3:2" | "4:3" | "9:16" | "16:9";
 export type ImageQuality = "low" | "medium" | "high";
@@ -1188,6 +1188,109 @@ export interface Database {
           synced_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["ad_campaign_spend"]["Insert"]>;
+        Relationships: [];
+      };
+      blog_dominios: {
+        Row: {
+          id: string;
+          product_id: string;
+          dominio: string;
+          caminho: string;
+          nome: string | null;
+          idioma: string;
+          publico_alvo: string | null;
+          tom: string | null;
+          token_verificacao: string;
+          verificado: boolean;
+          verificado_em: string | null;
+          ativo: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["blog_dominios"]["Row"],
+          | "id"
+          | "caminho"
+          | "nome"
+          | "idioma"
+          | "publico_alvo"
+          | "tom"
+          | "token_verificacao"
+          | "verificado"
+          | "verificado_em"
+          | "ativo"
+          | "created_by"
+          | "created_at"
+          | "updated_at"
+        > & {
+          caminho?: string;
+          nome?: string | null;
+          idioma?: string;
+          publico_alvo?: string | null;
+          tom?: string | null;
+          created_by?: string | null;
+          id?: string;
+          token_verificacao?: string;
+          verificado?: boolean;
+          verificado_em?: string | null;
+          ativo?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["blog_dominios"]["Insert"]>;
+        Relationships: [];
+      };
+      blog_posts: {
+        Row: {
+          id: string;
+          product_id: string;
+          dominio_id: string | null;
+          slug: string;
+          titulo: string;
+          meta_descricao: string | null;
+          palavra_chave: string | null;
+          conteudo_md: string;
+          imagem_url: string | null;
+          imagem_alt: string | null;
+          status: "rascunho" | "publicado";
+          publicado_em: string | null;
+          tema: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["blog_posts"]["Row"],
+          | "id"
+          | "dominio_id"
+          | "meta_descricao"
+          | "palavra_chave"
+          | "conteudo_md"
+          | "imagem_url"
+          | "imagem_alt"
+          | "status"
+          | "publicado_em"
+          | "tema"
+          | "created_by"
+          | "created_at"
+          | "updated_at"
+        > & {
+          id?: string;
+          dominio_id?: string | null;
+          meta_descricao?: string | null;
+          palavra_chave?: string | null;
+          conteudo_md?: string;
+          imagem_url?: string | null;
+          imagem_alt?: string | null;
+          status?: "rascunho" | "publicado";
+          publicado_em?: string | null;
+          tema?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["blog_posts"]["Insert"]>;
         Relationships: [];
       };
       acessos: {
