@@ -2,56 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg-app: #0a0a0c;
-  --bg-sidebar: #131316;
-  --bg-card: #131316;
-  --bg-card-hover: #1c1c21;
-  --bg-input: #1f1f24;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --text-primary: #f5f5f5;
-  --text-secondary: #a1a1aa;
-  --text-muted: #6b6b70;
-  --accent: #08c20f;
-  --accent-hover: #06a30c;
-  --accent-pink: #ff4fa3;
-  --success: #34d399;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --success-soft: rgba(52, 211, 153, 0.12);
-  --warning-soft: rgba(251, 191, 36, 0.12);
-  --danger-soft: rgba(248, 113, 113, 0.12);
-  --accent-soft: rgba(8, 194, 15, 0.14);
-  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.035), 0 14px 30px -14px rgba(0, 0, 0, 0.6);
-  --shadow-card-sm: 0 0 0 1px rgba(255, 255, 255, 0.035), 0 6px 16px -8px rgba(0, 0, 0, 0.55);
-  --shadow-popover: 0 20px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
-}
+/*
+  Paleta única, escura. O tema claro foi removido de propósito: manter dois
+  temas significa validar cada tela duas vezes, e na prática só o escuro era
+  usado. Se voltar algum dia, volta como um bloco [data-theme="light"] aqui —
+  o resto do app já fala só por token.
 
-[data-theme="light"] {
-  --bg-app: #eef0ec;
-  --bg-sidebar: #ffffff;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f1f2ee;
-  --bg-input: #f1f2ee;
-  --border: rgba(20, 20, 15, 0.08);
-  --border-strong: rgba(20, 20, 15, 0.16);
-  --text-primary: #18181b;
-  --text-secondary: #52525b;
-  --text-muted: #8b8b93;
-  --accent: #08c20f;
-  --accent-hover: #06a30c;
-  --accent-pink: #ff4fa3;
-  --success: #059669;
-  --warning: #b45309;
-  --danger: #dc2626;
-  --success-soft: #e3f8e9;
-  --warning-soft: #fdf1de;
-  --danger-soft: #fde8e8;
-  --accent-soft: #e3f8e4;
-  --shadow-card: 0 1px 2px rgba(20, 20, 15, 0.04), 0 10px 24px -12px rgba(20, 20, 15, 0.14);
-  --shadow-card-sm: 0 1px 2px rgba(20, 20, 15, 0.04), 0 4px 12px -6px rgba(20, 20, 15, 0.10);
-  --shadow-popover: 0 20px 50px -12px rgba(20, 20, 15, 0.18), 0 4px 16px rgba(20, 20, 15, 0.08);
+  As cores vêm da paleta definida pro produto:
+    060507  fundo da aplicação
+    181818  superfícies (sidebar, cards)
+    4C4C4C  cinza de apoio
+    95CF0E  verde de destaque
+    D47865  vermelho/salmão
+    F3DE7F  amarelo
+    3E1014  vermelho profundo, usado como fundo de estado destrutivo
+*/
+:root {
+  color-scheme: dark;
+
+  --bg-app: #060507;
+  --bg-sidebar: #0e0e0f;
+  --bg-card: #121212;
+  --bg-card-hover: #181818;
+  --bg-input: #1c1c1c;
+
+  /* A profundidade vem de borda + diferença de superfície, não de sombra:
+     é o que mantém a interface densa sem parecer que tudo flutua. */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
+
+  --text-primary: #f5f5f5;
+  --text-secondary: #8a8a8a;
+  --text-muted: #4c4c4c;
+
+  --accent: #95cf0e;
+  --accent-hover: #a7e219;
+  /* Texto sobre o verde: o lime é claro demais pra texto branco em cima. */
+  --accent-contrast: #101300;
+  --accent-pink: #d47865;
+
+  --success: #95cf0e;
+  --warning: #f3de7f;
+  --danger: #d47865;
+
+  --success-soft: rgba(149, 207, 14, 0.12);
+  --warning-soft: rgba(243, 222, 127, 0.12);
+  --danger-soft: #3e1014;
+  --accent-soft: rgba(149, 207, 14, 0.12);
+
+  /* "shadow-card" deixou de ser sombra e virou a aresta de 1px. O nome
+     continua porque o significado continua — dar contorno a uma superfície —
+     e o token está em dezenas de telas: trocar o nome seria varrer o app
+     inteiro pra chegar no mesmo lugar. Sombra de verdade só no que flutua
+     (modal, popover). */
+  --shadow-card: 0 0 0 1px var(--border);
+  --shadow-card-sm: 0 0 0 1px var(--border);
+  --shadow-popover: 0 16px 40px -12px rgba(0, 0, 0, 0.8);
 }
 
 * {
@@ -61,11 +67,13 @@
 body {
   color: var(--text-primary);
   background: var(--bg-app);
+  /* Densidade: o corpo do app trabalha em 14px, não 16. */
+  font-size: 14px;
 }
 
 ::selection {
   background: var(--accent);
-  color: white;
+  color: var(--accent-contrast);
 }
 
 ::-webkit-scrollbar {
@@ -79,7 +87,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

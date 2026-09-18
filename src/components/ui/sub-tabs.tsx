@@ -23,9 +23,9 @@ export function SubTabs<T extends string>({
           type="button"
           onClick={() => onChange(t.key)}
           className={cn(
-            "rounded-button px-3 py-1.5 text-xs font-medium transition-colors",
+            "rounded-button px-3 py-1.5 text-xs font-medium transition-colors duration-150",
             active === t.key
-              ? "bg-accent text-white"
+              ? "bg-card-hover text-accent"
               : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
           )}
         >

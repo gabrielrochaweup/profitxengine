@@ -19,9 +19,8 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "./theme-toggle";
 import { useActiveProduct } from "./active-product-context";
-import { getNavItems } from "@/lib/products";
+import { getNavSections } from "@/lib/products";
 
 // Menu inferior mobile (estilo Instagram): só os 4 destinos mais usados —
 // o resto (Calendário, E-mails, Perfil, Configurações, Admin) mora no drawer,
@@ -49,7 +48,7 @@ interface SidebarProps {
 export function Sidebar({ fullName, email, role }: SidebarProps) {
   const pathname = usePathname();
   const { activeProduct } = useActiveProduct();
-  const navItems = getNavItems(activeProduct);
+  const navSections = getNavSections(activeProduct);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
@@ -132,31 +131,40 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
               </button>
             </div>
 
-            <nav className="mt-2 flex flex-1 flex-col gap-1 overflow-y-auto">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
-                      isActive
-                        ? "bg-card-hover text-text-primary"
-                        : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
-                    )}
-                  >
-                    <Icon size={18} strokeWidth={1.75} className="shrink-0" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <nav className="mt-2 flex flex-1 flex-col gap-0.5 overflow-y-auto">
+              {navSections.map((secao, i) => (
+                <div key={secao.titulo || `inicio-${i}`} className={cn("flex flex-col gap-0.5", i > 0 && "mt-4")}>
+                  {secao.titulo && (
+                    <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wider text-text-muted">
+                      {secao.titulo}
+                    </p>
+                  )}
+                  {secao.itens.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-button px-3 py-2 text-[13px] transition-colors duration-150",
+                          isActive
+                            ? "bg-card-hover text-text-primary"
+                            : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                        )}
+                      >
+                        <Icon size={16} strokeWidth={1.75} className={cn("shrink-0", isActive && "text-accent")} />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
             </nav>
 
             <div className="border-t border-border pt-3">
               <div className="flex items-center gap-2 px-1 pb-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-white">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-accent-contrast">
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -178,17 +186,16 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                 <MenuLink href="/admin" icon={ShieldCheck} label="Admin" onNavigate={() => setMobileOpen(false)} />
               )}
 
-              <div className="mt-1 flex items-center justify-between border-t border-border pt-1">
+              <div className="mt-1 border-t border-border pt-1">
                 <form action="/auth/logout" method="post">
                   <button
                     type="submit"
-                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-danger hover:bg-card-hover"
+                    className="flex items-center gap-2 rounded-button px-3 py-2 text-left text-[13px] text-danger hover:bg-card-hover"
                   >
                     <LogOut size={16} />
                     Sair
                   </button>
                 </form>
-                <ThemeToggle />
               </div>
             </div>
           </div>
@@ -210,53 +217,79 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
           )}
         </div>
 
-        <nav className={cn("mt-3 flex flex-1 flex-col gap-1 overflow-hidden", collapsed ? "items-center" : "items-stretch")}>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={item.label}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl transition-colors",
-                  collapsed ? "h-10 w-10 justify-center" : "h-10 px-3",
-                  isActive
-                    ? "bg-card-hover text-text-primary"
-                    : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
-                )}
-              >
-                <Icon size={18} strokeWidth={1.75} className="shrink-0" />
-                {!collapsed && <span className="truncate whitespace-nowrap text-sm">{item.label}</span>}
-              </Link>
-            );
-          })}
+        <nav
+          className={cn(
+            "mt-3 flex flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden",
+            collapsed ? "items-center" : "items-stretch"
+          )}
+        >
+          {navSections.map((secao, i) => (
+            <div key={secao.titulo || `inicio-${i}`} className={cn("flex flex-col gap-0.5", i > 0 && "mt-4")}>
+              {/* Recolhida, a sidebar vira uma coluna de ícones: o rótulo da
+                  seção não caberia, então vira um traço separando os grupos. */}
+              {secao.titulo &&
+                (collapsed ? (
+                  <div className="mx-auto my-1 h-px w-5 bg-border" />
+                ) : (
+                  <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wider text-text-muted">
+                    {secao.titulo}
+                  </p>
+                ))}
+              {secao.itens.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={item.label}
+                    className={cn(
+                      "relative flex items-center gap-2.5 rounded-button transition-colors duration-150",
+                      collapsed ? "h-9 w-9 justify-center" : "h-8 px-3",
+                      isActive
+                        ? "bg-card-hover text-text-primary"
+                        : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                    )}
+                  >
+                    {/* Marca ativa discreta: um traço verde na borda, em vez
+                        de pintar o item inteiro. */}
+                    {isActive && (
+                      <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-accent" />
+                    )}
+                    <Icon
+                      size={16}
+                      strokeWidth={1.75}
+                      className={cn("shrink-0", isActive && "text-accent")}
+                    />
+                    {!collapsed && (
+                      <span className="truncate whitespace-nowrap text-[13px]">{item.label}</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className={cn("relative mt-2 flex flex-col gap-1.5 border-t border-border pt-3", collapsed ? "items-center" : "items-stretch")}>
           {collapsed ? (
-            <>
-              <button
-                type="button"
-                onClick={toggleCollapsed}
-                title="Expandir menu"
-                aria-label="Expandir menu"
-                className="flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary hover:bg-card-hover hover:text-text-primary"
-              >
-                <PanelLeftOpen size={16} />
-              </button>
-              <ThemeToggle />
-            </>
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              title="Expandir menu"
+              aria-label="Expandir menu"
+              className="flex h-8 w-8 items-center justify-center rounded-button text-text-secondary hover:bg-card-hover hover:text-text-primary"
+            >
+              <PanelLeftOpen size={16} />
+            </button>
           ) : (
-            <div className="flex items-center justify-between px-1">
-              <ThemeToggle />
+            <div className="flex items-center justify-end px-1">
               <button
                 type="button"
                 onClick={toggleCollapsed}
                 title="Recolher menu"
                 aria-label="Recolher menu"
-                className="flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                className="flex h-8 w-8 items-center justify-center rounded-button text-text-secondary hover:bg-card-hover hover:text-text-primary"
               >
                 <PanelLeftClose size={16} />
               </button>
@@ -272,7 +305,7 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
               collapsed ? "h-10 w-10 justify-center" : "h-10 px-2"
             )}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-accent-contrast">
               {initials}
             </div>
             {!collapsed && <span className="truncate whitespace-nowrap text-sm text-text-primary">{displayName}</span>}

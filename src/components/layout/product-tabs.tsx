@@ -81,7 +81,7 @@ export function ProductTabs({ initialProducts, isAdmin }: ProductTabsProps) {
             "group flex items-center gap-1 rounded-button py-1.5 pl-3 text-sm font-medium transition-colors",
             isAdmin ? "pr-1.5" : "pr-3",
             activeProduct === p.slug
-              ? "bg-accent text-white"
+              ? "bg-accent text-accent-contrast"
               : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
           )}
         >

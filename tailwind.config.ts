@@ -27,6 +27,7 @@ const config: Config = {
         accent: {
           DEFAULT: "var(--accent)",
           hover: "var(--accent-hover)",
+          contrast: "var(--accent-contrast)",
           pink: "var(--accent-pink)",
         },
         success: "var(--success)",
@@ -37,11 +38,13 @@ const config: Config = {
         "danger-soft": "var(--danger-soft)",
         "accent-soft": "var(--accent-soft)",
       },
+      // Nada de pílula. O raio grande fazia cada botão parecer um chip
+      // solto; em 8px o controle lê como controle e a tela ganha densidade.
       borderRadius: {
-        card: "20px",
-        panel: "24px",
-        button: "999px",
-        input: "12px",
+        card: "10px",
+        panel: "12px",
+        button: "8px",
+        input: "8px",
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "sans-serif"],

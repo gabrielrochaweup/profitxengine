@@ -22,29 +22,46 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
+/**
+ * O menu é agrupado por TIPO DE TRABALHO, não por ordem de chegada.
+ *
+ * Com 14 itens numa lista corrida, achar o que se quer virava leitura de
+ * cima a baixo toda vez. Separado, a pessoa pula direto pro bloco certo:
+ * quem vai escrever um post não passa os olhos por Tracking.
+ */
+export interface NavSection {
+  titulo: string;
+  itens: NavItem[];
+}
+
 // Ferramentas compartilhadas — aparecem no menu de TODO produto, inclusive
 // os criados depois pela UI (o dado de cada uma é isolado por produto, mas
-// o item de menu é o mesmo pra todo mundo). Dashboard e Tarefas sempre no
-// topo, o resto sempre no final — cada produto intercala seus itens
-// exclusivos (se tiver) entre os dois blocos.
-const SHARED_NAV_TOP: NavItem[] = [
+// o item de menu é o mesmo pra todo mundo).
+const NAV_INICIO: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tarefas", label: "Tarefas", icon: KanbanSquare },
+  { href: "/calendario", label: "Calendário", icon: CalendarDays },
 ];
 
-const SHARED_NAV_REST: NavItem[] = [
-  { href: "/conversas", label: "Simulador de Conversas", icon: MessageSquare },
+const NAV_CRIACAO: NavItem[] = [
   { href: "/gerador-de-criativos", label: "Gerador de Criativos", icon: Wand2 },
-  { href: "/mensagens-x1", label: "Mensagens X1", icon: UsersRound },
-  { href: "/emails", label: "E-mails", icon: Mail },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/tracking", label: "Tracking", icon: Radar },
-  { href: "/calendario", label: "Calendário", icon: CalendarDays },
-  { href: "/prompts", label: "Biblioteca de Prompts", icon: Library },
-  { href: "/biblioteca-imagens", label: "Biblioteca de Imagens", icon: Images },
   { href: "/blog", label: "Blog", icon: Newspaper },
-  { href: "/acessos", label: "Acessos", icon: KeyRound },
+  { href: "/emails", label: "E-mails", icon: Mail },
+  { href: "/conversas", label: "Simulador de Conversas", icon: MessageSquare },
+  { href: "/mensagens-x1", label: "Mensagens X1", icon: UsersRound },
 ];
+
+const NAV_DADOS: NavItem[] = [
+  { href: "/tracking", label: "Tracking", icon: Radar },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+];
+
+const NAV_BIBLIOTECA: NavItem[] = [
+  { href: "/prompts", label: "Prompts", icon: Library },
+  { href: "/biblioteca-imagens", label: "Imagens", icon: Images },
+];
+
+const NAV_OPERACAO: NavItem[] = [{ href: "/acessos", label: "Acessos", icon: KeyRound }];
 
 // Itens exclusivos de UM produto específico (não aparecem nos outros).
 // PROFITX é o único com um hoje — um produto novo criado pela UI não entra
@@ -53,8 +70,22 @@ const EXCLUSIVE_NAV_ITEMS: Record<string, NavItem[]> = {
   profitx: [{ href: "/dinamicas-do-dia", label: "Dinâmicas do Dia", icon: Zap }],
 };
 
+export function getNavSections(slug: string): NavSection[] {
+  const exclusivos = EXCLUSIVE_NAV_ITEMS[slug] ?? [];
+  return [
+    // Sem título: o começo do menu não precisa de rótulo pra ser entendido,
+    // e um "INÍCIO" ali só empurraria tudo pra baixo.
+    { titulo: "", itens: [...NAV_INICIO, ...exclusivos] },
+    { titulo: "Criação", itens: NAV_CRIACAO },
+    { titulo: "Dados", itens: NAV_DADOS },
+    { titulo: "Biblioteca", itens: NAV_BIBLIOTECA },
+    { titulo: "Operação", itens: NAV_OPERACAO },
+  ].filter((s) => s.itens.length > 0);
+}
+
+/** Lista corrida — usada por quem só precisa saber quais rotas existem. */
 export function getNavItems(slug: string): NavItem[] {
-  return [...SHARED_NAV_TOP, ...(EXCLUSIVE_NAV_ITEMS[slug] ?? []), ...SHARED_NAV_REST];
+  return getNavSections(slug).flatMap((s) => s.itens);
 }
 
 // Usado por telas compartilhadas (Calendário, Analytics) que mostram
@@ -90,7 +121,9 @@ export function nicheLabel(niche: string | null | undefined): string {
   return NICHE_OPTIONS.find((n) => n.value === niche)?.label ?? "Geral";
 }
 
-const SHARED_HREFS = new Set([...SHARED_NAV_TOP, ...SHARED_NAV_REST].map((item) => item.href));
+const SHARED_HREFS = new Set(
+  [...NAV_INICIO, ...NAV_CRIACAO, ...NAV_DADOS, ...NAV_BIBLIOTECA, ...NAV_OPERACAO].map((item) => item.href)
+);
 
 // Rotas fora de qualquer produto (perfil, configurações, admin, etc.) ficam
 // sempre acessíveis, sem checagem de produto. Rotas compartilhadas (menu

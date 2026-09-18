@@ -24,17 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // Tema escuro fixo. O script que lia localStorage saiu junto com o tema
+    // claro: sem ele, quem já tinha "light" salvo no navegador não fica preso
+    // num tema que não existe mais.
     <html lang="pt-BR" className="dark" data-theme="dark">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try {
-  const theme = localStorage.getItem("theme") || "dark";
-  document.documentElement.dataset.theme = theme;
-} catch (e) {}`,
-          }}
-        />
-      </head>
       <body className={`${GeistSans.variable} font-sans antialiased bg-app text-text-primary`}>
         <ToastProvider>
           <ConfirmProvider>{children}</ConfirmProvider>
