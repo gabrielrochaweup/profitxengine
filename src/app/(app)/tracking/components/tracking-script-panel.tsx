@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { Bloco, Cartao } from "./ui";
 
 // O produto vem de "vem de múltiplos sites" — em vez de eu colar o script
 // inline em cada HTML, o script fica hospedado (src/app/api/tracking/pixel.js)
@@ -20,19 +20,21 @@ export function TrackingScriptPanel({ productSlug }: { productSlug: string }) {
   }
 
   return (
-    <Card className="p-5">
-      <h3 className="mb-1 text-base font-semibold text-text-primary">Script de rastreamento</h3>
-      <p className="mb-3 text-xs text-text-secondary">
-        Cole em qualquer site que gere tráfego pra esse produto, antes do <code>&lt;/body&gt;</code>.
+    <Bloco titulo="Script de rastreamento">
+      <p className="-mt-1 mb-3 text-[11px] text-text-tertiary">
+        Cole em qualquer site que gere tráfego pra esse produto, antes do{" "}
+        <code className="font-mono text-text-secondary">&lt;/body&gt;</code>.
       </p>
-      <div className="flex items-center gap-2">
-        <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-accent-soft px-3 py-2 text-xs">
+      {/* Bloco de código com a ação colada nele: o botão de copiar é o que a
+          pessoa veio fazer aqui. */}
+      <Cartao className="flex items-center gap-2 p-2">
+        <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-input px-3 py-2 font-mono text-[11px] text-text-primary">
           {snippet}
         </code>
-        <Button size="sm" variant="secondary" onClick={copy}>
+        <Button size="sm" onClick={copy}>
           Copiar
         </Button>
-      </div>
-    </Card>
+      </Cartao>
+    </Bloco>
   );
 }

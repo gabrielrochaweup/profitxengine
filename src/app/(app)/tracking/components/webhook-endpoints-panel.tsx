@@ -255,7 +255,7 @@ export function WebhookEndpointsPanel({
       ) : (
         // Uma superfície com as linhas separadas por fio, em vez de um
         // cartão por endpoint.
-        <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
+        <div className="divide-y divide-border rounded-card bg-card shadow-card [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
           {endpoints.map((endpoint) => (
             <div key={endpoint.id} className="px-4 py-3">
               {renamingId === endpoint.id ? (

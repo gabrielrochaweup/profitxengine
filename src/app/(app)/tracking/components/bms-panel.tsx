@@ -138,7 +138,7 @@ export function BmsPanel({ productId, platform }: { productId: string; platform:
           <Vazio>Nenhuma {termo} cadastrada ainda.</Vazio>
         </Cartao>
       ) : (
-        <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
+        <div className="divide-y divide-border rounded-card bg-card shadow-card [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
           {daPlataforma.map((bm) => {
             const temDetalhe = !!(bm.contas.trim() || bm.paginas.trim() || bm.observacoes);
             const aberto = aberta === bm.id;

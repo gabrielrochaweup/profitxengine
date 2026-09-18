@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Bloco, Cartao, ItemMenu, MenuMais, Vazio } from "./ui";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -77,30 +78,33 @@ export function UtmPresetsPanel({
     setPresets((prev) => prev.filter((p) => p.id !== preset.id));
   }
 
-  if (carregando) return <Card className="p-5 text-sm text-text-secondary">Carregando…</Card>;
+  if (carregando) return <Cartao className="text-sm text-text-secondary">Carregando…</Cartao>;
 
   return (
-    <Card className="p-5">
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <h3 className="text-base font-semibold text-text-primary">UTMs por canal</h3>
-          <Tooltip text="Os canais que a operação usa, com a UTM já definida. Clicar joga os valores no gerador acima — é o que impede o mesmo canal de virar 'instagram' num dia e 'Instagram' no outro, o que partiria o número dele em duas linhas no relatório." />
-        </div>
-        <Button size="sm" onClick={() => setCriando(true)}>
+    <Bloco
+      titulo="UTMs por canal"
+      dica={
+        <Tooltip text="Os canais que a operação usa, com a UTM já definida. Clicar joga os valores no gerador acima — é o que impede o mesmo canal de virar 'instagram' num dia e 'Instagram' no outro, o que partiria o número dele em duas linhas no relatório." />
+      }
+      acoes={
+        <Button size="sm" variant="secondary" onClick={() => setCriando(true)}>
           Novo canal
         </Button>
-      </div>
-      <p className="mb-4 text-xs text-text-secondary">
+      }
+    >
+      <p className="-mt-1 mb-3 text-[11px] text-text-tertiary">
         Clique num canal pra preencher os campos acima. O link de destino continua sendo você quem escolhe.
       </p>
 
       {presets.length === 0 ? (
-        <p className="text-xs text-text-muted">Nenhum canal salvo ainda.</p>
+        <Cartao>
+          <Vazio>Nenhum canal salvo ainda.</Vazio>
+        </Cartao>
       ) : (
         // Em coluna única cada linha ocupava a largura inteira da tela pra
         // caber um nome e duas UTMs, e os 14 canais viravam uma rolagem
         // longa. Em grade, a lista cabe quase toda numa tela só.
-        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
           {presets.map((preset) => {
             const emUso =
               preset.utm_source === atual.source &&
@@ -110,8 +114,8 @@ export function UtmPresetsPanel({
               <div
                 key={preset.id}
                 className={
-                  "flex items-center justify-between gap-2 rounded-xl p-2.5 " +
-                  (emUso ? "bg-accent-soft" : "bg-card-hover")
+                  "flex items-center gap-1 rounded-card px-3 py-2 shadow-card transition-colors " +
+                  (emUso ? "bg-accent-soft" : "bg-card hover:bg-card-hover")
                 }
               >
                 <button
@@ -126,21 +130,38 @@ export function UtmPresetsPanel({
                     })
                   }
                 >
-                  <span className="block truncate text-sm font-medium text-text-primary">{preset.nome}</span>
-                  <span className="block truncate font-mono text-[11px] text-text-muted">
+                  <span className="block truncate text-[13px] font-medium text-text-primary">{preset.nome}</span>
+                  <span className="block truncate font-mono text-[11px] text-text-tertiary">
                     {[preset.utm_source, preset.utm_medium, preset.utm_campaign, preset.utm_content]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
                 </button>
-                <div className="flex items-center gap-1.5">
-                  <Button size="sm" variant="ghost" onClick={() => setEditando(preset)}>
-                    Editar
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => excluir(preset)}>
-                    Excluir
-                  </Button>
-                </div>
+                <MenuMais>
+                  {(fechar) => (
+                    <>
+                      <ItemMenu
+                        icone={<Pencil size={13} />}
+                        onClick={() => {
+                          setEditando(preset);
+                          fechar();
+                        }}
+                      >
+                        Editar
+                      </ItemMenu>
+                      <ItemMenu
+                        perigo
+                        icone={<Trash2 size={13} />}
+                        onClick={() => {
+                          excluir(preset);
+                          fechar();
+                        }}
+                      >
+                        Excluir
+                      </ItemMenu>
+                    </>
+                  )}
+                </MenuMais>
               </div>
             );
           })}
@@ -184,7 +205,7 @@ export function UtmPresetsPanel({
           }}
         />
       )}
-    </Card>
+    </Bloco>
   );
 }
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Bloco, Cartao, ItemMenu, MenuMais, Vazio } from "./ui";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -67,51 +68,73 @@ export function CheckoutLinksPanel({
     setLinks((prev) => prev.filter((l) => l.id !== link.id));
   }
 
-  if (carregando) return <Card className="p-5 text-sm text-text-secondary">Carregando…</Card>;
+  if (carregando) return <Cartao className="text-sm text-text-secondary">Carregando…</Cartao>;
 
   return (
-    <Card className="p-5">
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <h3 className="text-base font-semibold text-text-primary">Links de checkout</h3>
-          <Tooltip text="Os checkouts em uso hoje. Clicar joga o link no campo de destino acima — assim a UTM é montada em cima da oferta certa, sem depender de lembrar qual hash é de qual plano." />
-        </div>
-        <Button size="sm" onClick={() => setCriando(true)}>
+    <Bloco
+      titulo="Links de checkout"
+      dica={
+        <Tooltip text="Os checkouts em uso hoje. Clicar joga o link no campo de destino acima — assim a UTM é montada em cima da oferta certa, sem depender de lembrar qual hash é de qual plano." />
+      }
+      acoes={
+        <Button size="sm" variant="secondary" onClick={() => setCriando(true)}>
           Novo checkout
         </Button>
-      </div>
-      <p className="mb-4 text-xs text-text-secondary">
+      }
+    >
+      <p className="-mt-1 mb-3 text-[11px] text-text-tertiary">
         Guarde o link limpo, sem UTM. Quem pendura utm_source e companhia é o gerador aqui de cima.
       </p>
 
       {links.length === 0 ? (
-        <p className="text-xs text-text-muted">Nenhum checkout salvo ainda.</p>
+        <Cartao>
+          <Vazio>Nenhum checkout salvo ainda.</Vazio>
+        </Cartao>
       ) : (
-        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-3">
+        // Cartões menores e em grade: são atalhos pra preencher um campo, não
+        // registros pra ler.
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
           {links.map((link) => {
             const emUso = atual.trim() === link.url;
             return (
               <div
                 key={link.id}
                 className={
-                  "flex items-center justify-between gap-2 rounded-xl p-2.5 " +
-                  (emUso ? "bg-accent-soft" : "bg-card-hover")
+                  "flex items-center gap-1 rounded-card px-3 py-2 shadow-card transition-colors " +
+                  (emUso ? "bg-accent-soft" : "bg-card hover:bg-card-hover")
                 }
               >
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onUsar(link.url)}>
-                  <span className="block truncate text-sm font-medium text-text-primary">
+                  <span className="block truncate text-[13px] font-medium text-text-primary">
                     {link.plano} — {link.checkout}
                   </span>
-                  <span className="block truncate font-mono text-[11px] text-text-muted">{link.url}</span>
+                  <span className="block truncate font-mono text-[11px] text-text-tertiary">{link.url}</span>
                 </button>
-                <div className="flex items-center gap-1.5">
-                  <Button size="sm" variant="ghost" onClick={() => setEditando(link)}>
-                    Editar
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => excluir(link)}>
-                    Excluir
-                  </Button>
-                </div>
+                <MenuMais>
+                  {(fechar) => (
+                    <>
+                      <ItemMenu
+                        icone={<Pencil size={13} />}
+                        onClick={() => {
+                          setEditando(link);
+                          fechar();
+                        }}
+                      >
+                        Editar
+                      </ItemMenu>
+                      <ItemMenu
+                        perigo
+                        icone={<Trash2 size={13} />}
+                        onClick={() => {
+                          excluir(link);
+                          fechar();
+                        }}
+                      >
+                        Excluir
+                      </ItemMenu>
+                    </>
+                  )}
+                </MenuMais>
               </div>
             );
           })}
@@ -143,7 +166,7 @@ export function CheckoutLinksPanel({
           }}
         />
       )}
-    </Card>
+    </Bloco>
   );
 }
 

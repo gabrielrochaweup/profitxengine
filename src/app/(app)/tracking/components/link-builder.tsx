@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Bloco, Cartao } from "./ui";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/toast";
 
@@ -83,9 +83,9 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
   }
 
   return (
-    <Card className="p-5">
-      <div className="mb-1 flex items-center gap-1.5">
-        <h3 className="text-base font-semibold text-text-primary">Gerador de link com identificador</h3>
+    <Bloco
+      titulo="Gerador de link com identificador"
+      dica={
         <Tooltip
           text={
             "O nome do parâmetro muda por plataforma: corretora, área de membros e checkout genérico usam ref; " +
@@ -93,84 +93,92 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
             "muda sozinho pra sck — confira antes de usar."
           }
         />
-      </div>
-      <p className="mb-4 text-xs text-text-secondary">
+      }
+    >
+      <p className="-mt-1 mb-3 max-w-[80ch] text-[11px] text-text-tertiary">
         Cole o link de destino e receba pronto o link com o identificador do visitante — sem cadastro, use quantos
         quiser.
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-        <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Link de destino</label>
-          <Input value={url} onChange={(e) => handleUrlChange(e.target.value)} placeholder="https://corretora.com/cadastro" />
+      {/* Uma ferramenta de dois campos: cabe em uma linha, e o resultado
+          aparece logo abaixo dela. */}
+      <Cartao>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[240px] flex-1">
+            <label className="mb-1.5 block text-[11px] font-medium text-text-secondary">Link de destino</label>
+            <Input
+              value={url}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              placeholder="https://corretora.com/cadastro"
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="w-56">
+            <label className="mb-1.5 block text-[11px] font-medium text-text-secondary">Parâmetro</label>
+            <Select
+              value={paramName}
+              onChange={(e) => {
+                setParamTouched(true);
+                setParamName(e.target.value);
+              }}
+              className="h-8 text-xs"
+            >
+              {PARAM_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
-        <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Parâmetro</label>
-          <Select
-            value={paramName}
-            onChange={(e) => {
-              setParamTouched(true);
-              setParamName(e.target.value);
-            }}
-            className="sm:w-64"
-          >
-            {PARAM_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </div>
 
-      <label className="mt-3 flex w-fit items-center gap-2 text-xs text-text-secondary">
-        <input
-          type="checkbox"
-          checked={fireCheckoutEvent}
-          onChange={(e) => setFireCheckoutEvent(e.target.checked)}
-          className="h-3.5 w-3.5 accent-accent"
-        />
-        É um link de checkout — disparar InitiateCheckout (Meta/Google) no clique
-      </label>
+        <label className="mt-3 flex w-fit items-center gap-2 text-[11px] text-text-secondary">
+          <input
+            type="checkbox"
+            checked={fireCheckoutEvent}
+            onChange={(e) => setFireCheckoutEvent(e.target.checked)}
+            className="h-3.5 w-3.5 accent-accent"
+          />
+          É um link de checkout — disparar InitiateCheckout (Meta/Google) no clique
+        </label>
 
-      {url.trim() && !readyLink && (
-        <p className="mt-2 text-xs text-danger">Isso não parece um link válido (precisa começar com https://).</p>
-      )}
+        {url.trim() && !readyLink && (
+          <p className="mt-2 text-xs text-danger">Isso não parece um link válido (precisa começar com https://).</p>
+        )}
 
-      {readyLink && (
-        <div className="mt-4 space-y-4">
-          <div>
-            <p className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
+        {readyLink && (
+          <div className="mt-4 border-t border-border pt-3">
+            <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
               Link pra usar — cola em qualquer botão do site
               <Tooltip
                 text={`Já carrega um "${paramName}=" vazio no final — o script preenche sozinho no clique. Não precisa voltar aqui depois de copiar.`}
               />
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-accent-soft px-3 py-2 text-xs">
+              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input border border-border bg-input px-3 py-2 font-mono text-[11px] text-text-primary">
                 {readyLink}
               </code>
-              <Button size="sm" variant="secondary" onClick={() => copy(readyLink)}>
+              <Button size="sm" onClick={() => copy(readyLink)}>
                 Copiar
               </Button>
             </div>
-          </div>
 
-          <details className="text-xs text-text-secondary">
-            <summary className="cursor-pointer text-[11px] font-medium text-text-muted">
-              Alternativa: colar como código
-            </summary>
-            <div className="mt-2 flex items-start gap-2">
-              <pre className="flex-1 overflow-x-auto whitespace-pre rounded-input bg-accent-soft px-3 py-2 text-xs">
-                {snippet}
-              </pre>
-              <Button size="sm" variant="secondary" onClick={() => snippet && copy(snippet)}>
-                Copiar
-              </Button>
-            </div>
-          </details>
-        </div>
-      )}
-    </Card>
+            <details className="mt-3 text-xs text-text-secondary">
+              <summary className="cursor-pointer text-[11px] font-medium text-text-tertiary hover:text-text-primary">
+                Alternativa: colar como código
+              </summary>
+              <div className="mt-2 flex items-start gap-2">
+                <pre className="flex-1 overflow-x-auto whitespace-pre rounded-input border border-border bg-input px-3 py-2 font-mono text-[11px] text-text-secondary">
+                  {snippet}
+                </pre>
+                <Button size="sm" variant="secondary" onClick={() => snippet && copy(snippet)}>
+                  Copiar
+                </Button>
+              </div>
+            </details>
+          </div>
+        )}
+      </Cartao>
+    </Bloco>
   );
 }

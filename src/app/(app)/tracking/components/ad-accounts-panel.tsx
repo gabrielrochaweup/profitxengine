@@ -124,7 +124,7 @@ function PlatformSection({
           <Vazio>Nenhuma conta conectada ainda.</Vazio>
         </Cartao>
       ) : (
-        <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
+        <div className="divide-y divide-border rounded-card bg-card shadow-card [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
           {accounts.map((account) => (
             <AccountRow key={account.id} platform={platform} account={account} onUpsert={onUpsert} onRemove={onRemove} />
           ))}

@@ -87,7 +87,7 @@ function PlatformSection({
           </Vazio>
         </Cartao>
       ) : (
-        <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
+        <div className="divide-y divide-border rounded-card bg-card shadow-card [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
           {pixels.map((pixel) => (
             <PixelRow key={pixel.id} pixel={pixel} onUpsert={onUpsert} onRemove={onRemove} />
           ))}
