@@ -1190,6 +1190,35 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["ad_campaign_spend"]["Insert"]>;
         Relationships: [];
       };
+      acessos: {
+        Row: {
+          id: string;
+          product_id: string;
+          nome: string;
+          categoria: "rede" | "ferramenta" | "financeiro" | "outro";
+          url: string | null;
+          usuario: string | null;
+          encrypted_senha: string | null;
+          tem_2fa: boolean;
+          onde_2fa: string | null;
+          responsavel: string | null;
+          assinatura: boolean;
+          valor_cents: number;
+          moeda: "BRL" | "USD";
+          ciclo: "mensal" | "anual";
+          observacoes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["acessos"]["Row"], "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["acessos"]["Insert"]>;
+        Relationships: [];
+      };
       ad_business_managers: {
         Row: {
           id: string;
