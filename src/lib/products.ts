@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  MessagesSquare,
   MessageSquare,
   CalendarDays,
   Zap,
@@ -39,6 +40,10 @@ export interface NavSection {
 // o item de menu é o mesmo pra todo mundo).
 const NAV_INICIO: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  // Comunidade fica no topo, junto do Dashboard, porque é onde se volta
+  // várias vezes por dia — e porque não pertence a nenhum dos blocos
+  // seguintes: ela não é criação, nem dado, nem biblioteca.
+  { href: "/comunidade", label: "Comunidade", icon: MessagesSquare },
   { href: "/tarefas", label: "Tarefas", icon: KanbanSquare },
   { href: "/calendario", label: "Calendário", icon: CalendarDays },
 ];

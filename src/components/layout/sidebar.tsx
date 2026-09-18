@@ -19,6 +19,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BadgeComunidade } from "./badge-comunidade";
 import { ThemeToggle } from "./theme-toggle";
 import { useActiveProduct } from "./active-product-context";
 import { getNavSections } from "@/lib/products";
@@ -157,7 +158,8 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                         )}
                       >
                         <Icon size={16} strokeWidth={1.75} className={cn("shrink-0", isActive && "text-accent-text")} />
-                        {item.label}
+                        <span className="flex-1">{item.label}</span>
+                        {item.href === "/comunidade" && <BadgeComunidade />}
                       </Link>
                     );
                   })}
@@ -261,8 +263,11 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                       className={cn("shrink-0", isActive && "text-accent-text")}
                     />
                     {!collapsed && (
-                      <span className="truncate whitespace-nowrap text-[13px]">{item.label}</span>
+                      <span className="flex-1 truncate whitespace-nowrap text-[13px]">{item.label}</span>
                     )}
+                    {/* Recolhido, o número viraria um ponto sem explicação em
+                        cima do ícone; aberto, ele fica onde se lê o nome. */}
+                    {item.href === "/comunidade" && !collapsed && <BadgeComunidade />}
                   </Link>
                 );
               })}

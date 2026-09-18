@@ -1,4 +1,7 @@
 export type UserRole = "admin" | "editor" | "viewer";
+
+/** Papel dentro de UMA sala da comunidade — não confundir com o papel no app. */
+export type CommunityPapel = "admin" | "moderador" | "membro";
 export type UserStatus = "pending" | "approved" | "rejected";
 export type AiProvider = "openai" | "anthropic" | "google";
 export type Platform = "whatsapp" | "instagram" | "crm";
@@ -1452,9 +1455,93 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["tracking_webhook_log"]["Insert"]>;
         Relationships: [];
       };
+      community_rooms: {
+        Row: {
+          id: string;
+          nome: string;
+          descricao: string | null;
+          icone: string | null;
+          privada: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["community_rooms"]["Row"], "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["community_rooms"]["Insert"]>;
+        Relationships: [];
+      };
+      community_room_members: {
+        Row: {
+          room_id: string;
+          user_id: string;
+          papel: CommunityPapel;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["community_room_members"]["Row"], "created_at" | "papel"> & {
+          papel?: CommunityPapel;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["community_room_members"]["Insert"]>;
+        Relationships: [];
+      };
+      community_messages: {
+        Row: {
+          id: string;
+          room_id: string;
+          autor_id: string | null;
+          conteudo: string;
+          responde_a: string | null;
+          editada_em: string | null;
+          excluida_em: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["community_messages"]["Row"],
+          "id" | "created_at" | "editada_em" | "excluida_em" | "responde_a"
+        > & {
+          id?: string;
+          responde_a?: string | null;
+          editada_em?: string | null;
+          excluida_em?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["community_messages"]["Insert"]>;
+        Relationships: [];
+      };
+      community_reactions: {
+        Row: {
+          message_id: string;
+          user_id: string;
+          emoji: string;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["community_reactions"]["Row"], "created_at"> & {
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["community_reactions"]["Insert"]>;
+        Relationships: [];
+      };
+      community_read_states: {
+        Row: {
+          room_id: string;
+          user_id: string;
+          last_read_at: string;
+        };
+        Insert: Database["public"]["Tables"]["community_read_states"]["Row"];
+        Update: Partial<Database["public"]["Tables"]["community_read_states"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
+      community_nao_lidas: {
+        Args: Record<string, never>;
+        Returns: { room_id: string; nao_lidas: number }[];
+      };
       admin_list_users: {
         Args: Record<string, never>;
         Returns: {
