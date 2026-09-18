@@ -16,6 +16,25 @@ import { PAGINA, usePresenca, type MembroSala, type Mensagem, type Pessoa, type 
 import { useChamada } from "./lib-chamada";
 
 /**
+ * Texto de um erro, venha ele de onde vier.
+ *
+ * O Supabase devolve PostgrestError — um objeto simples com message/details/
+ * hint/code, que NÃO é instanceof Error. Testar só por Error fazia todo erro
+ * de banco cair no texto genérico, que é o mesmo para política de acesso,
+ * campo inválido e queda de rede.
+ */
+function mensagemDoErro(e: unknown): string {
+  if (!e) return "";
+  if (typeof e === "string") return e;
+  if (e instanceof Error) return e.message;
+  if (typeof e === "object") {
+    const o = e as { message?: string; details?: string; hint?: string; code?: string };
+    return [o.message, o.details, o.hint, o.code ? `(${o.code})` : ""].filter(Boolean).join(" · ");
+  }
+  return "";
+}
+
+/**
  * O módulo inteiro roda numa página só, com três áreas.
  *
  * Trocar de sala não navega: a lista de salas, a presença e as inscrições de
@@ -259,7 +278,7 @@ export function ComunidadeClient({
       .select()
       .single();
     if (error || !data) {
-      toast.error("A mensagem não foi enviada. Tente de novo.");
+      toast.error(`A mensagem não foi enviada: ${mensagemDoErro(error) || "tente de novo"}`);
       return;
     }
     setMensagens((atual) => (atual.some((x) => x.id === data.id) ? atual : [...atual, data]));
@@ -271,7 +290,7 @@ export function ComunidadeClient({
       .from("community_messages")
       .update({ conteudo, editada_em: new Date().toISOString() })
       .eq("id", id);
-    if (error) toast.error("Não deu pra editar a mensagem.");
+    if (error) toast.error(`Não deu pra editar: ${mensagemDoErro(error)}`);
   }
 
   async function excluir(id: string) {
@@ -279,7 +298,7 @@ export function ComunidadeClient({
       .from("community_messages")
       .update({ excluida_em: new Date().toISOString() })
       .eq("id", id);
-    if (error) toast.error("Não deu pra excluir a mensagem.");
+    if (error) toast.error(`Não deu pra excluir: ${mensagemDoErro(error)}`);
   }
 
   async function reagir(mensagemId: string, emoji: string) {
@@ -354,7 +373,7 @@ export function ComunidadeClient({
       setModalAberto(false);
       setEditandoSala(null);
     } catch (e) {
-      const detalhe = e instanceof Error ? e.message : typeof e === "string" ? e : "";
+      const detalhe = mensagemDoErro(e);
       toast.error(detalhe ? `Não deu pra salvar a sala: ${detalhe}` : "Não deu pra salvar a sala.");
       // O erro completo (código, hint e detail do Postgres) fica no console:
       // é o que diz se foi política de acesso, campo ou conexão.
@@ -395,7 +414,7 @@ export function ComunidadeClient({
     if (!ok) return;
     const { error } = await supabase.from("community_rooms").delete().eq("id", editandoSala.id);
     if (error) {
-      toast.error("Não deu pra excluir a sala.");
+      toast.error(`Não deu pra excluir a sala: ${mensagemDoErro(error)}`);
       return;
     }
     setSalas((atual) => atual.filter((s) => s.id !== editandoSala.id));
