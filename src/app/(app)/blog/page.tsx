@@ -3,6 +3,7 @@ import { getUser, getProfile } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
 import { hasRole } from "@/lib/auth";
 import type { UserRole } from "@/lib/supabase/types";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 import { BlogClient } from "./blog-client";
 
 export default async function BlogPage() {
@@ -17,31 +18,27 @@ export default async function BlogPage() {
 
   if (!activeProduct) {
     return (
-      <div>
-        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Blog</h1>
-        <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">Você não tem acesso a nenhum produto ainda.</p>
-      </div>
+      <PageContainer largura="padrao">
+        <PageHeader titulo="Blog" descricao="Você não tem acesso a nenhum produto ainda." />
+      </PageContainer>
     );
   }
 
   if (!hasRole(role, "editor")) {
     return (
-      <div>
-        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Blog</h1>
-        <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">Peça a um admin pra mudar seu nível de acesso.</p>
-      </div>
+      <PageContainer largura="padrao">
+        <PageHeader titulo="Blog" descricao="Peça a um admin pra mudar seu nível de acesso." />
+      </PageContainer>
     );
   }
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Blog</h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-        Gera o post a partir de um tema ou de uma slug — texto, imagem de capa e dados de SEO — e guarda pronto
-        no domínio escolhido.
-      </p>
-
+    <PageContainer largura="padrao">
+      <PageHeader
+        titulo="Blog"
+        descricao="Gera o post a partir de um tema ou de uma slug — texto, imagem de capa e dados de SEO — e guarda pronto no domínio escolhido."
+      />
       <BlogClient productId={activeProduct.id} />
-    </div>
+    </PageContainer>
   );
 }

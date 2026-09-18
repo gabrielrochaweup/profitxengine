@@ -3,6 +3,7 @@ import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
 import { productOwnsExclusiveRoute } from "@/lib/products";
 import { CalendarioHubClient } from "./calendario-hub-client";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 
 export default async function CalendarioPage() {
   const supabase = createClient();
@@ -27,13 +28,11 @@ export default async function CalendarioPage() {
     ]);
 
   return (
-    <div>
-      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Calendário</h1>
-      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
-        Veja o que está acontecendo em cada dia. Clique num dia pra ver a notícia do momento e ser
-        levado pra Dinâmicas do Dia ou Mensagens X1.
-      </p>
-
+    <PageContainer largura="padrao">
+      <PageHeader
+        titulo="Calendário"
+        descricao="Veja o que está acontecendo em cada dia. Clique num dia pra ver a notícia do momento e ser levado pra Dinâmicas do Dia ou Mensagens X1."
+      />
       <CalendarioHubClient
         initialMessages={messages ?? []}
         initialDirectMessages={directMessages ?? []}
@@ -41,6 +40,6 @@ export default async function CalendarioPage() {
         dynamics={dynamics ?? []}
         showDynamicsLegend={hasDinamicas}
       />
-    </div>
+    </PageContainer>
   );
 }

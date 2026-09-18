@@ -57,15 +57,18 @@ export function CalendarGrid({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-text-muted">
+      {/* Os nomes dos dias estavam em "muted", o nivel reservado pro que e
+          apagado de proposito. Sao o cabecalho da tabela: quem le "ter" pra
+          se achar na grade precisa enxergar. */}
+      <div className="grid grid-cols-7 gap-1.5 text-center text-[10px] font-medium uppercase tracking-wide text-text-tertiary">
         {WEEKDAY_LABELS.map((label) => (
-          <div key={label} className="py-1">
+          <div key={label} className="py-1.5">
             {label}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5">
         {weeks.flat().map((date, index) => {
           if (!date) return <div key={index} className="h-16" />;
 
@@ -80,14 +83,19 @@ export function CalendarGrid({
               type="button"
               onClick={() => onSelectDay(dateKey)}
               className={cn(
-                "flex h-16 flex-col items-center justify-center gap-1 rounded-xl text-sm transition-colors",
+                // Todo dia tem superficie propria. Antes so o selecionado
+                // tinha fundo, e o resto era um numero solto: nao dava pra ver
+                // onde comecava e terminava a area clicavel.
+                "flex h-16 flex-col items-center justify-center gap-1 rounded-xl text-sm transition-colors duration-150",
                 isSelected
                   ? "bg-accent-soft text-text-primary shadow-[0_0_0_1.5px_var(--accent)]"
-                  : "text-text-secondary hover:bg-card-hover",
-                isToday && !isSelected && "shadow-[0_0_0_1px_var(--border-strong)]"
+                  : "bg-card-hover text-text-primary hover:bg-input",
+                // Hoje se anuncia pela cor do numero, nao por um fio de 1px
+                // que se perde no meio de 30 celulas.
+                isToday && !isSelected && "shadow-[0_0_0_1px_var(--accent)]"
               )}
             >
-              <span className="flex items-center gap-1">
+              <span className={cn("flex items-center gap-1 font-medium", isToday && !isSelected && "text-accent")}>
                 {date.getDate()}
                 {indicator?.hasDynamic &&
                   (indicator.dynamicIcon ? (
@@ -95,17 +103,17 @@ export function CalendarGrid({
                   ) : (
                     <Sparkles size={10} className="text-accent" />
                   ))}
-                {indicator?.concluded && <span className="text-[9px] leading-none text-success">✓</span>}
+                {indicator?.concluded && <span className="text-[10px] leading-none text-success">✓</span>}
               </span>
               {((indicator?.grupoCount ?? 0) > 0 || (indicator?.directCount ?? 0) > 0) && (
                 <div className="flex items-center gap-1">
                   {indicator.grupoCount > 0 && (
-                    <span className="flex items-center gap-0.5 rounded-button bg-accent/20 px-1 text-[9px] font-medium text-accent">
+                    <span className="flex items-center gap-0.5 rounded-button bg-accent/20 px-1 text-[10px] font-medium text-accent">
                       G{indicator.grupoCount}
                     </span>
                   )}
                   {indicator.directCount > 0 && (
-                    <span className="flex items-center gap-0.5 rounded-button bg-accent-pink/20 px-1 text-[9px] font-medium text-accent-pink">
+                    <span className="flex items-center gap-0.5 rounded-button bg-accent-pink/20 px-1 text-[10px] font-medium text-accent-pink">
                       D{indicator.directCount}
                     </span>
                   )}

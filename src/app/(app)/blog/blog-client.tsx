@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/modal";
 import { Tooltip } from "@/components/ui/tooltip";
 import { SubTabs } from "@/components/ui/sub-tabs";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { ContentGrid, EmptyState, Field } from "@/components/ui/page";
 import { useToast } from "@/components/ui/toast";
 import {
   MODOS,
@@ -52,10 +53,10 @@ export function BlogClient({ productId }: { productId: string }) {
       .finally(() => setCarregando(false));
   }, [productId]);
 
-  if (carregando) return <Card className="mt-4 p-5 text-sm text-text-secondary">Carregando…</Card>;
+  if (carregando) return <Card className="p-5 text-sm text-text-secondary">Carregando…</Card>;
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="space-y-6">
       <SubTabs tabs={ABAS} active={aba} onChange={setAba} />
       {aba === "posts" ? (
         <PainelPosts productId={productId} dominios={dominios} posts={posts} setPosts={setPosts} />
@@ -167,21 +168,19 @@ function PainelPosts({
           Preencha um dos dois. O domínio escolhido define idioma, público e tom de voz do texto.
         </p>
 
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-text-secondary">Tema</label>
+        <div className="space-y-4">
+          {/* Tema e slug sao alternativas um do outro: mesma largura, lado a
+              lado, pra ficar visivel que se preenche UM dos dois. */}
+          <ContentGrid>
+            <Field label="Tema" span={6}>
               <Input
                 value={tema}
                 onChange={(e) => setTema(e.target.value)}
                 disabled={ocupado}
                 placeholder="Como declarar cripto no imposto de renda"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-text-secondary">
-                Ou a slug <span className="text-text-muted/70">(a URL já decidida)</span>
-              </label>
+            </Field>
+            <Field label="Ou a slug" hint="(a URL já decidida)" span={6}>
               <Input
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
@@ -189,12 +188,9 @@ function PainelPosts({
                 disabled={ocupado}
                 placeholder="como-declarar-cripto-no-imposto-de-renda"
               />
-            </div>
-          </div>
+            </Field>
 
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="w-64">
-              <label className="mb-1 block text-[11px] font-medium text-text-secondary">Domínio</label>
+            <Field label="Domínio" span={4}>
               <Select value={dominioId} onChange={(e) => setDominioId(e.target.value)} disabled={ocupado}>
                 <option value="">Sem domínio definido</option>
                 {dominios.map((d) => (
@@ -203,8 +199,14 @@ function PainelPosts({
                   </option>
                 ))}
               </Select>
-            </div>
-            <label className="flex items-center gap-2 pb-2.5 text-xs text-text-secondary">
+            </Field>
+          </ContentGrid>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <Button onClick={gerar} disabled={ocupado}>
+              {etapa === "texto" ? "Escrevendo…" : etapa === "imagem" ? "Gerando a capa…" : "Gerar post"}
+            </Button>
+            <label className="flex items-center gap-2 text-xs text-text-secondary">
               <input
                 type="checkbox"
                 checked={comImagem}
@@ -214,9 +216,6 @@ function PainelPosts({
               />
               Gerar imagem de capa
             </label>
-            <Button onClick={gerar} disabled={ocupado}>
-              {etapa === "texto" ? "Escrevendo…" : etapa === "imagem" ? "Gerando a capa…" : "Gerar post"}
-            </Button>
           </div>
 
           {dominios.length === 0 && (
@@ -234,7 +233,10 @@ function PainelPosts({
         </h3>
 
         {posts.length === 0 ? (
-          <p className="text-xs text-text-muted">Nenhum post gerado ainda.</p>
+          <EmptyState
+            titulo="Nenhum post gerado ainda"
+            descricao="Preencha o tema ali em cima e gere o primeiro. Ele nasce como rascunho — nada vai pro ar sem você marcar como publicado."
+          />
         ) : (
           <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
             {posts.map((post) => (
@@ -506,7 +508,11 @@ function PainelDominios({
       </p>
 
       {dominios.length === 0 ? (
-        <p className="text-xs text-text-muted">Nenhum domínio cadastrado ainda.</p>
+        <EmptyState
+          titulo="Nenhum domínio cadastrado"
+          descricao="O domínio guarda idioma, público e tom de voz — e o post sai com essa voz. Sem ele, o texto sai genérico."
+          acao={<Button onClick={() => setCriando(true)}>Cadastrar domínio</Button>}
+        />
       ) : (
         <div className="space-y-2">
           {dominios.map((d) => (
