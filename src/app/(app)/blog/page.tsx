@@ -18,8 +18,8 @@ export default async function BlogPage() {
   if (!activeProduct) {
     return (
       <div>
-        <h1 className="text-[28px] font-semibold text-text-primary">Blog</h1>
-        <p className="mt-1 text-sm text-text-secondary">Você não tem acesso a nenhum produto ainda.</p>
+        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Blog</h1>
+        <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">Você não tem acesso a nenhum produto ainda.</p>
       </div>
     );
   }
@@ -27,16 +27,16 @@ export default async function BlogPage() {
   if (!hasRole(role, "editor")) {
     return (
       <div>
-        <h1 className="text-[28px] font-semibold text-text-primary">Blog</h1>
-        <p className="mt-1 text-sm text-text-secondary">Peça a um admin pra mudar seu nível de acesso.</p>
+        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Blog</h1>
+        <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">Peça a um admin pra mudar seu nível de acesso.</p>
       </div>
     );
   }
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold text-text-primary">Blog</h1>
-      <p className="mt-1 text-sm text-text-secondary">
+      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Blog</h1>
+      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
         Gera o post a partir de um tema ou de uma slug — texto, imagem de capa e dados de SEO — e guarda pronto
         no domínio escolhido.
       </p>

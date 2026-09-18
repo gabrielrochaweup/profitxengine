@@ -26,8 +26,8 @@ export default async function DinamicasPage() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold text-text-primary">Dinâmicas de Grupo</h1>
-      <p className="mt-1 text-sm text-text-secondary">
+      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Dinâmicas de Grupo</h1>
+      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
         Temas de campanha do dia (Batalha, Bônus, Kamikaze...) com sua sequência de mensagens
         calculadas. Criação e edição restritas a administradores.
       </p>

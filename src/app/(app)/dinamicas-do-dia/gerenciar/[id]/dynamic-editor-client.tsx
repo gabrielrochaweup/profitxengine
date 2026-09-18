@@ -127,7 +127,7 @@ export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: D
           <h3 className="mb-3 text-sm font-medium text-text-primary">Metadados</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <div className="space-y-1">
-              <label className="text-xs text-text-muted">Ícone</label>
+              <label className="text-xs text-text-secondary">Ícone</label>
               <Input
                 value={dynamic.icon ?? ""}
                 disabled={!canEdit}
@@ -135,7 +135,7 @@ export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: D
               />
             </div>
             <div className="space-y-1 sm:col-span-3">
-              <label className="text-xs text-text-muted">Nome</label>
+              <label className="text-xs text-text-secondary">Nome</label>
               <Input
                 value={dynamic.name}
                 disabled={!canEdit}
@@ -144,7 +144,7 @@ export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: D
             </div>
           </div>
           <div className="mt-3 space-y-1">
-            <label className="text-xs text-text-muted">Subtítulo</label>
+            <label className="text-xs text-text-secondary">Subtítulo</label>
             <Input
               value={dynamic.subtitle ?? ""}
               disabled={!canEdit}
@@ -152,7 +152,7 @@ export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: D
             />
           </div>
           <div className="mt-3 space-y-1">
-            <label className="text-xs text-text-muted">Regras universais (uma por linha)</label>
+            <label className="text-xs text-text-secondary">Regras universais (uma por linha)</label>
             <Textarea rows={6} value={rulesText} disabled={!canEdit} onChange={(e) => setRulesText(e.target.value)} />
           </div>
           <label className="mt-3 flex items-center gap-2 text-xs text-text-secondary">
@@ -169,7 +169,7 @@ export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: D
         <Card className="p-5">
           <h3 className="mb-3 text-sm font-medium text-text-primary">Vagas por faixa</h3>
           <div className="mb-3 space-y-1">
-            <label className="text-xs text-text-muted">Modo</label>
+            <label className="text-xs text-text-secondary">Modo</label>
             <Select
               value={vagas.mode ?? "none"}
               disabled={!canEdit}
@@ -188,7 +188,7 @@ export function DynamicEditorClient({ initialDynamic, initialSlots, canEdit }: D
               <VagasField label="Lendária" value={vagas.lendaria ?? 0} disabled={!canEdit} onChange={(v) => updateVagas({ lendaria: v })} />
               <VagasField label="Galáctica" value={vagas.galactica ?? 0} disabled={!canEdit} onChange={(v) => updateVagas({ galactica: v })} />
               <div className="space-y-1">
-                <label className="text-xs text-text-muted">Curva</label>
+                <label className="text-xs text-text-secondary">Curva</label>
                 <Select
                   value={vagas.curva ?? "linear"}
                   disabled={!canEdit}
@@ -328,7 +328,7 @@ function VagasField({
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs text-text-muted">{label}</label>
+      <label className="text-xs text-text-secondary">{label}</label>
       <Input
         type="number"
         disabled={disabled}

@@ -16,8 +16,8 @@ export default async function EmailsPage() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold text-text-primary">E-mails</h1>
-      <p className="mt-1 text-sm text-text-secondary">
+      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">E-mails</h1>
+      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
         Gere e organize campanhas de e-mail vinculadas ao calendário, com sugestões de notícias financeiras.
       </p>
       <div className="mt-6">

@@ -28,8 +28,8 @@ export default async function CalendarioPage() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold text-text-primary">Calendário</h1>
-      <p className="mt-1 text-sm text-text-secondary">
+      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Calendário</h1>
+      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
         Veja o que está acontecendo em cada dia. Clique num dia pra ver a notícia do momento e ser
         levado pra Dinâmicas do Dia ou Mensagens X1.
       </p>

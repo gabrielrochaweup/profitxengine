@@ -18,8 +18,8 @@ export default async function TarefasPage() {
   if (!product) {
     return (
       <div>
-        <h1 className="text-[28px] font-semibold text-text-primary">Tarefas</h1>
-        <p className="mt-1 text-sm text-text-secondary">
+        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Tarefas</h1>
+        <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
           Nenhum produto liberado ainda pra ver as tarefas.
         </p>
       </div>
@@ -36,10 +36,10 @@ export default async function TarefasPage() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold text-text-primary">
+      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">
         {product.icon} Tarefas — {product.name}
       </h1>
-      <p className="mt-1 text-sm text-text-secondary">
+      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
         Quadro de tarefas do produto. Arraste os cards entre as colunas conforme for avançando.
       </p>
 

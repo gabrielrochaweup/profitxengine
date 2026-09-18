@@ -41,9 +41,9 @@ export default async function AdminPage() {
     <div>
       <div className="flex items-center gap-2">
         <ShieldCheck size={22} className="text-accent" />
-        <h1 className="text-[28px] font-semibold text-text-primary">Admin</h1>
+        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Admin</h1>
       </div>
-      <p className="mt-1 text-sm text-text-secondary">
+      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
         Aprove cadastros novos e gerencie os papéis da equipe.
       </p>
 

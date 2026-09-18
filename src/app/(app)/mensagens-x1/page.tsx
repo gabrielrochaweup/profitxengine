@@ -18,8 +18,8 @@ export default async function X1Page() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold text-text-primary">Mensagens X1</h1>
-      <p className="mt-1 text-sm text-text-secondary">
+      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Mensagens X1</h1>
+      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
         Mensagens individuais para alunos, segmentadas por perfil, com geração por IA e histórico.
       </p>
 

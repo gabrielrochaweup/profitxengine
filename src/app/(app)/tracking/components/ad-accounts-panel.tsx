@@ -394,7 +394,7 @@ function MetaFields({ value, onChange }: { value: MetaFieldsValue; onChange: (v:
   return (
     <>
       <div>
-        <label className="mb-1 block text-xs font-medium text-text-muted">Access token (System User)</label>
+        <label className="mb-1 block text-xs font-medium text-text-secondary">Access token (System User)</label>
         <Input
           type="password"
           value={value.access_token}
@@ -403,7 +403,7 @@ function MetaFields({ value, onChange }: { value: MetaFieldsValue; onChange: (v:
         />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-text-muted">ID da conta de anúncio</label>
+        <label className="mb-1 block text-xs font-medium text-text-secondary">ID da conta de anúncio</label>
         <Input
           value={value.ad_account_id}
           onChange={(e) => onChange({ ...value, ad_account_id: e.target.value })}
@@ -418,27 +418,27 @@ function GoogleFields({ value, onChange }: { value: GoogleFieldsValue; onChange:
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
-        <label className="mb-1 block text-xs font-medium text-text-muted">Developer token</label>
+        <label className="mb-1 block text-xs font-medium text-text-secondary">Developer token</label>
         <Input type="password" value={value.developer_token} onChange={(e) => onChange({ ...value, developer_token: e.target.value })} />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-text-muted">OAuth Client ID</label>
+        <label className="mb-1 block text-xs font-medium text-text-secondary">OAuth Client ID</label>
         <Input value={value.client_id} onChange={(e) => onChange({ ...value, client_id: e.target.value })} />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-text-muted">OAuth Client Secret</label>
+        <label className="mb-1 block text-xs font-medium text-text-secondary">OAuth Client Secret</label>
         <Input type="password" value={value.client_secret} onChange={(e) => onChange({ ...value, client_secret: e.target.value })} />
       </div>
       <div className="sm:col-span-2">
-        <label className="mb-1 block text-xs font-medium text-text-muted">Refresh token</label>
+        <label className="mb-1 block text-xs font-medium text-text-secondary">Refresh token</label>
         <Input type="password" value={value.refresh_token} onChange={(e) => onChange({ ...value, refresh_token: e.target.value })} />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-text-muted">Customer ID (conta)</label>
+        <label className="mb-1 block text-xs font-medium text-text-secondary">Customer ID (conta)</label>
         <Input value={value.customer_id} onChange={(e) => onChange({ ...value, customer_id: e.target.value })} placeholder="123-456-7890" />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-text-muted">
+        <label className="mb-1 block text-xs font-medium text-text-secondary">
           Login Customer ID <span className="text-text-muted/70">(conta gerenciadora — opcional)</span>
         </label>
         <Input value={value.login_customer_id} onChange={(e) => onChange({ ...value, login_customer_id: e.target.value })} />
@@ -517,7 +517,7 @@ function CreateAccountModal({
     >
       <div className="space-y-3">
         <div>
-          <label className="mb-1 block text-xs font-medium text-text-muted">
+          <label className="mb-1 block text-xs font-medium text-text-secondary">
             Nome da conta <span className="text-text-muted/70">(opcional, só pra identificar aqui)</span>
           </label>
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex: Conta principal" />

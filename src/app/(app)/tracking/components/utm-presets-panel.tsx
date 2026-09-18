@@ -249,7 +249,7 @@ function FormularioPreset({
     <Modal open onClose={onFechar} title={titulo}>
       <div className="space-y-3">
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">
             Nome do canal <span className="text-text-muted/70">(só pra você achar na lista)</span>
           </label>
           <Input
@@ -261,15 +261,15 @@ function FormularioPreset({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">utm_source</label>
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">utm_source</label>
             <Input value={campos.utm_source} onChange={(e) => set("utm_source", e.target.value)} placeholder="instagram" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">utm_medium</label>
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">utm_medium</label>
             <Input value={campos.utm_medium} onChange={(e) => set("utm_medium", e.target.value)} placeholder="bio" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">
               utm_campaign <span className="text-text-muted/70">(opcional)</span>
             </label>
             <Input
@@ -279,7 +279,7 @@ function FormularioPreset({
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">
               utm_content <span className="text-text-muted/70">(opcional)</span>
             </label>
             <Input value={campos.utm_content} onChange={(e) => set("utm_content", e.target.value)} placeholder="video_1" />

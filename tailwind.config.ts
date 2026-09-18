@@ -22,7 +22,9 @@ const config: Config = {
         text: {
           primary: "var(--text-primary)",
           secondary: "var(--text-secondary)",
+          tertiary: "var(--text-tertiary)",
           muted: "var(--text-muted)",
+          disabled: "var(--text-disabled)",
         },
         accent: {
           DEFAULT: "var(--accent)",

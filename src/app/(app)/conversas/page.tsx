@@ -20,8 +20,8 @@ export default async function ConversasPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-semibold text-text-primary">Simulador de Conversas</h1>
-          <p className="mt-1 text-sm text-text-secondary">
+          <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Simulador de Conversas</h1>
+          <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
             Monte conversas fictícias de WhatsApp ou Instagram Direct, gere com IA e exporte como imagem.
           </p>
         </div>

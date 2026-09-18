@@ -354,7 +354,7 @@ export function ImageGenerationPanel({
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {ITEM_LABELS.map((itemLabel, i) => (
                   <div key={i} className="space-y-1">
-                    <label className="text-[10px] text-text-muted">
+                    <label className="text-[10px] text-text-secondary">
                       Item {i + 1} — {itemLabel}
                     </label>
                     {i === 3 && ctas.length > 0 && (
@@ -392,7 +392,7 @@ export function ImageGenerationPanel({
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-[10px] text-text-muted">Personagem</label>
+                  <label className="text-[10px] text-text-secondary">Personagem</label>
                   <Select value={characterId} onChange={(e) => setCharacterId(e.target.value)} className="h-8 text-[11px]">
                     {characters.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -402,7 +402,7 @@ export function ImageGenerationPanel({
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] text-text-muted">Cor predominante</label>
+                  <label className="text-[10px] text-text-secondary">Cor predominante</label>
                   <Select value={toneId} onChange={(e) => setToneId(e.target.value)} className="h-8 text-[11px]">
                     {tones.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -415,7 +415,7 @@ export function ImageGenerationPanel({
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] text-text-muted">Prompt montado</label>
+                  <label className="text-[10px] text-text-secondary">Prompt montado</label>
                   <button
                     type="button"
                     onClick={handleCopyPredefinido}

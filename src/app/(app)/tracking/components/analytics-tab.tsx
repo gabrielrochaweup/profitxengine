@@ -490,7 +490,7 @@ export function AnalyticsTab({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="mb-1 block text-[11px] font-medium text-text-muted">Período</label>
+              <label className="mb-1 block text-[11px] font-medium text-text-secondary">Período</label>
               <div className="flex flex-wrap gap-1.5">
                 {PERIOD_OPTIONS.map((opt) => (
                   <button
@@ -511,7 +511,7 @@ export function AnalyticsTab({
             </div>
 
             <div className="w-40">
-              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
+              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-secondary">
                 Fonte de tráfego
                 {listaDeAlunos && (
                   <Tooltip text="Vale pros relatórios por campanha. A lista de alunos é por pessoa, e a mesma pessoa costuma passar por mais de uma origem antes de comprar." />
@@ -532,7 +532,7 @@ export function AnalyticsTab({
             </div>
 
             <div className="w-40">
-              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
+              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-secondary">
                 Plataforma
                 <Tooltip text="Disponível depois de conectar Meta Ads / Google Ads e sincronizar o gasto." />
               </label>
@@ -542,7 +542,7 @@ export function AnalyticsTab({
             </div>
 
             <div className="w-44">
-              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
+              <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-secondary">
                 Conta de anúncio
                 <Tooltip text="Disponível depois de conectar Meta Ads / Google Ads e sincronizar o gasto." />
               </label>

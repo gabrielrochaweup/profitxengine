@@ -488,7 +488,7 @@ function CreateEndpointModal({
     >
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-xs font-medium text-text-muted">Origem</label>
+          <label className="mb-1 block text-xs font-medium text-text-secondary">Origem</label>
           <Select value={kind} onChange={(e) => changeKind(e.target.value as WebhookEndpoint["kind"])}>
             <option value="checkout">Checkout</option>
             <option value="members_area">Área de membros</option>
@@ -506,7 +506,7 @@ function CreateEndpointModal({
 
         {platformOptions.length > 0 && (
           <div>
-            <label className="mb-1 block text-xs font-medium text-text-muted">Plataforma</label>
+            <label className="mb-1 block text-xs font-medium text-text-secondary">Plataforma</label>
             <Select value={platform} onChange={(e) => setPlatform(e.target.value)}>
               {platformOptions.map((p) => (
                 <option key={p} value={p}>
@@ -518,7 +518,7 @@ function CreateEndpointModal({
         )}
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-text-muted">
+          <label className="mb-1 block text-xs font-medium text-text-secondary">
             Nome <span className="text-text-muted/70">(opcional, só pra identificar aqui — ex: &quot;Curso X — Hotmart&quot;)</span>
           </label>
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex: Método TRIAD — Onprofit" />

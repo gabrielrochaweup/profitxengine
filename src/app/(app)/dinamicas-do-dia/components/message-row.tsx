@@ -283,7 +283,7 @@ export function MessageRow({
             )}
 
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <label className="text-[11px] text-text-muted">Ou descreva a variação que você quer</label>
+              <label className="text-[11px] text-text-secondary">Ou descreva a variação que você quer</label>
               <PromptPicker
                 preferredSlug="mensagem"
                 onSelect={(p) => {

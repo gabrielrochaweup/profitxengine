@@ -296,7 +296,7 @@ function FormularioBm({
       <div className="space-y-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">Nome</label>
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">Nome</label>
             <Input
               value={campos.nome}
               onChange={(e) => set("nome", e.target.value)}
@@ -304,7 +304,7 @@ function FormularioBm({
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">
               ID <span className="text-text-muted/70">(opcional)</span>
             </label>
             <Input
@@ -316,7 +316,7 @@ function FormularioBm({
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">Status</label>
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Status</label>
           <Select value={campos.status} onChange={(e) => set("status", e.target.value as StatusBm)}>
             {STATUS_BM.map((s) => (
               <option key={s} value={s}>
@@ -327,7 +327,7 @@ function FormularioBm({
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">
             Contas de anúncio <span className="text-text-muted/70">(uma por linha)</span>
           </label>
           <Textarea
@@ -339,7 +339,7 @@ function FormularioBm({
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">
             Páginas <span className="text-text-muted/70">(uma por linha)</span>
           </label>
           <Textarea
@@ -351,7 +351,7 @@ function FormularioBm({
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">
             Observações <span className="text-text-muted/70">(opcional)</span>
           </label>
           <Textarea

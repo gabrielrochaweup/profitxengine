@@ -75,7 +75,7 @@ export function UtmBuilder({ productId }: { productId: string }) {
 
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">Link da página de destino</label>
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Link da página de destino</label>
           <Input
             value={fields.baseUrl}
             onChange={(e) => set("baseUrl", e.target.value)}
@@ -85,19 +85,19 @@ export function UtmBuilder({ productId }: { productId: string }) {
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">
               utm_source <span className="text-text-muted/70">(de onde veio o clique)</span>
             </label>
             <Input value={fields.source} onChange={(e) => set("source", e.target.value)} placeholder="meta" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">
               utm_medium <span className="text-text-muted/70">(tipo de mídia)</span>
             </label>
             <Input value={fields.medium} onChange={(e) => set("medium", e.target.value)} placeholder="cpc" />
           </div>
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">
               utm_campaign <span className="text-text-muted/70">(nome da campanha — aparece nos relatórios)</span>
             </label>
             <Input
@@ -107,13 +107,13 @@ export function UtmBuilder({ productId }: { productId: string }) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">
               utm_content <span className="text-text-muted/70">(opcional — qual criativo)</span>
             </label>
             <Input value={fields.content} onChange={(e) => set("content", e.target.value)} placeholder="video_1" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">
               utm_term <span className="text-text-muted/70">(opcional — palavra-chave)</span>
             </label>
             <Input
@@ -131,7 +131,7 @@ export function UtmBuilder({ productId }: { productId: string }) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <label className="text-[11px] text-text-muted">mcid (Meta Ads)</label>
+                <label className="text-[11px] text-text-secondary">mcid (Meta Ads)</label>
                 <button
                   type="button"
                   onClick={() => set("mcid", "{{campaign.id}}")}
@@ -144,7 +144,7 @@ export function UtmBuilder({ productId }: { productId: string }) {
             </div>
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <label className="text-[11px] text-text-muted">gcid (Google Ads)</label>
+                <label className="text-[11px] text-text-secondary">gcid (Google Ads)</label>
                 <button
                   type="button"
                   onClick={() => set("gcid", "{campaignid}")}

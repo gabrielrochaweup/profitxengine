@@ -191,7 +191,7 @@ export function SendPulsePanel({ productId }: { productId: string }) {
               const row = rowFor(key);
               return (
                 <div key={key} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <label className="w-32 shrink-0 text-xs font-medium text-text-muted">{ALVO_LABEL[alvo]}</label>
+                  <label className="w-32 shrink-0 text-xs font-medium text-text-secondary">{ALVO_LABEL[alvo]}</label>
                   <Input
                     value={row.url}
                     onChange={(e) => update(key, { url: e.target.value })}
@@ -239,14 +239,14 @@ export function SendPulsePanel({ productId }: { productId: string }) {
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-medium text-text-muted">Funil</label>
+            <label className="mb-1 block text-xs font-medium text-text-secondary">Funil</label>
             <Select value={testeTipo} onChange={(e) => setTesteTipo(e.target.value as "boas_vindas" | "contrato")}>
               <option value="boas_vindas">Boas-vindas</option>
               <option value="contrato">Pós-contrato</option>
             </Select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-text-muted">Plano</label>
+            <label className="mb-1 block text-xs font-medium text-text-secondary">Plano</label>
             <Select value={testePlano} onChange={(e) => setTestePlano(e.target.value)}>
               <option value="">Descobrir pela compra do e-mail</option>
               {PLANOS_TESTE.map((p) => (
@@ -257,11 +257,11 @@ export function SendPulsePanel({ productId }: { productId: string }) {
             </Select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-text-muted">E-mail</label>
+            <label className="mb-1 block text-xs font-medium text-text-secondary">E-mail</label>
             <Input value={testeEmail} onChange={(e) => setTesteEmail(e.target.value)} placeholder="aluno@email.com" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-text-muted">
+            <label className="mb-1 block text-xs font-medium text-text-secondary">
               Telefone <span className="text-text-muted/70">(vazio = usa o do aluno)</span>
             </label>
             <Input
@@ -271,7 +271,7 @@ export function SendPulsePanel({ productId }: { productId: string }) {
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-text-muted">
+            <label className="mb-1 block text-xs font-medium text-text-secondary">
               Nome <span className="text-text-muted/70">(opcional)</span>
             </label>
             <Input value={testeNome} onChange={(e) => setTesteNome(e.target.value)} placeholder="Nome do aluno" />

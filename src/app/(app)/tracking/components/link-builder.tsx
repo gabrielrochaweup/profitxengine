@@ -101,11 +101,11 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
 
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">Link de destino</label>
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Link de destino</label>
           <Input value={url} onChange={(e) => handleUrlChange(e.target.value)} placeholder="https://corretora.com/cadastro" />
         </div>
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">Parâmetro</label>
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Parâmetro</label>
           <Select
             value={paramName}
             onChange={(e) => {

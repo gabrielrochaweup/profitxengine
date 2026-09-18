@@ -207,17 +207,17 @@ function FormularioLink({
       <div className="space-y-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">Plano</label>
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">Plano</label>
             <Input value={campos.plano} onChange={(e) => set("plano", e.target.value)} placeholder="Starter" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">Checkout</label>
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">Checkout</label>
             <Input value={campos.checkout} onChange={(e) => set("checkout", e.target.value)} placeholder="Onprofit" />
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">
             Link <span className="text-text-muted/70">(sem UTM)</span>
           </label>
           <Input

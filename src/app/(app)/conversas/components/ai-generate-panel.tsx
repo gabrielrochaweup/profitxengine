@@ -316,7 +316,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
           ) : (
             <>
               <div className="space-y-1">
-                <label className="text-[10px] text-text-muted">Cenário</label>
+                <label className="text-[10px] text-text-secondary">Cenário</label>
                 <Select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="h-8 w-full text-[11px]">
                   {templates.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -328,7 +328,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-[10px] text-text-muted">Qualidade do português</label>
+                  <label className="text-[10px] text-text-secondary">Qualidade do português</label>
                   <Select value={styleId} onChange={(e) => setStyleId(e.target.value)} className="h-8 text-[11px]">
                     {styles.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -338,7 +338,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] text-text-muted">Com ou sem imagem</label>
+                  <label className="text-[10px] text-text-secondary">Com ou sem imagem</label>
                   <Select
                     value={imageVariantId}
                     onChange={(e) => setImageVariantId(e.target.value)}
@@ -354,7 +354,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] text-text-muted">Variação de interação</label>
+                <label className="text-[10px] text-text-secondary">Variação de interação</label>
                 <Select value={variationId} onChange={(e) => setVariationId(e.target.value)} className="h-8 w-full text-[11px]">
                   {variations.map((v) => (
                     <option key={v.id} value={v.id}>
@@ -365,7 +365,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] text-text-muted">Detalhe específico (opcional)</label>
+                <label className="text-[10px] text-text-secondary">Detalhe específico (opcional)</label>
                 <Input
                   value={detail}
                   onChange={(e) => setDetail(e.target.value)}
@@ -376,7 +376,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] text-text-muted">Prompt montado</label>
+                  <label className="text-[10px] text-text-secondary">Prompt montado</label>
                   <button
                     type="button"
                     onClick={handleCopyPredefinido}

@@ -203,7 +203,7 @@ export function DayResultForm({ dateKey, currentUserId, canEdit }: DayResultForm
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] text-text-muted">Observações</label>
+            <label className="text-[11px] text-text-secondary">Observações</label>
             <Textarea
               value={form.observacoes}
               onChange={(e) => update({ observacoes: e.target.value })}
@@ -266,7 +266,7 @@ function NumberField({
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-[11px] text-text-muted">{label}</label>
+      <label className="text-[11px] text-text-secondary">{label}</label>
       <Input
         type="number"
         value={value}

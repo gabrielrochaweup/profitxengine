@@ -36,8 +36,8 @@ export default async function AnalyticsPage() {
 
     return (
       <div>
-        <h1 className="text-[28px] font-semibold text-text-primary">Analytics</h1>
-        <p className="mt-1 text-sm text-text-secondary">
+        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Analytics</h1>
+        <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
           Preencha o resultado de cada dia com os campos configurados pra esse produto.
         </p>
 
@@ -66,8 +66,8 @@ export default async function AnalyticsPage() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold text-text-primary">Analytics</h1>
-      <p className="mt-1 text-sm text-text-secondary">
+      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Analytics</h1>
+      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
         Resultado de cada dia marcado como concluído em Dinâmicas do Dia — faturamento, depósitos,
         volume de Pepe/Live/Copy e qual dinâmica performou melhor.
       </p>

@@ -170,7 +170,7 @@ function PainelPosts({
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <div>
-              <label className="mb-1 block text-[11px] font-medium text-text-muted">Tema</label>
+              <label className="mb-1 block text-[11px] font-medium text-text-secondary">Tema</label>
               <Input
                 value={tema}
                 onChange={(e) => setTema(e.target.value)}
@@ -179,7 +179,7 @@ function PainelPosts({
               />
             </div>
             <div>
-              <label className="mb-1 block text-[11px] font-medium text-text-muted">
+              <label className="mb-1 block text-[11px] font-medium text-text-secondary">
                 Ou a slug <span className="text-text-muted/70">(a URL já decidida)</span>
               </label>
               <Input
@@ -194,7 +194,7 @@ function PainelPosts({
 
           <div className="flex flex-wrap items-end gap-3">
             <div className="w-64">
-              <label className="mb-1 block text-[11px] font-medium text-text-muted">Domínio</label>
+              <label className="mb-1 block text-[11px] font-medium text-text-secondary">Domínio</label>
               <Select value={dominioId} onChange={(e) => setDominioId(e.target.value)} disabled={ocupado}>
                 <option value="">Sem domínio definido</option>
                 {dominios.map((d) => (
@@ -374,7 +374,7 @@ function EditorPost({
         )}
 
         <div>
-          <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-muted">
+          <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-secondary">
             <span>Título</span>
             <span className={tituloLongo ? "text-warning" : ""}>{campos.titulo.length}/60</span>
           </label>
@@ -383,7 +383,7 @@ function EditorPost({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">Slug</label>
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">Slug</label>
             <Input
               value={campos.slug}
               onChange={(e) => set("slug", e.target.value)}
@@ -391,7 +391,7 @@ function EditorPost({
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">Domínio</label>
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">Domínio</label>
             <Select value={campos.dominio_id} onChange={(e) => set("dominio_id", e.target.value)}>
               <option value="">Sem domínio definido</option>
               {dominios.map((d) => (
@@ -404,7 +404,7 @@ function EditorPost({
         </div>
 
         <div>
-          <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-muted">
+          <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-secondary">
             <span>Meta descrição</span>
             <span className={metaFora ? "text-warning" : ""}>{campos.meta_descricao.length}/158</span>
           </label>
@@ -412,12 +412,12 @@ function EditorPost({
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">Palavra-chave</label>
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">Palavra-chave</label>
           <Input value={campos.palavra_chave} onChange={(e) => set("palavra_chave", e.target.value)} />
         </div>
 
         <div>
-          <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-muted">
+          <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-secondary">
             <span>Conteúdo (Markdown)</span>
             <span>{contarPalavras(campos.conteudo_md)} palavras</span>
           </label>
@@ -663,11 +663,11 @@ function FormularioDominio({
       <div className="space-y-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">Domínio</label>
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">Domínio</label>
             <Input value={campos.dominio} onChange={(e) => set("dominio", e.target.value)} placeholder="escolaprofitx.com" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">
               Nome <span className="text-text-muted/70">(opcional)</span>
             </label>
             <Input value={campos.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Escola ProfitX" />
@@ -675,7 +675,7 @@ function FormularioDominio({
         </div>
 
         <div>
-          <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
+          <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-secondary">
             Como o blog chega no site
             <Tooltip text="Subdiretório concentra a autoridade no domínio principal, mas exige mexer no servidor do site. Subdomínio só precisa de um CNAME, e o Google trata o conteúdo como site vizinho. Use subdiretório onde você controla o servidor." />
           </label>
@@ -695,19 +695,19 @@ function FormularioDominio({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">
               {campos.modo === "subdiretorio" ? "Caminho do blog" : "Caminho (deixe / no subdomínio)"}
             </label>
             <Input value={campos.caminho} onChange={(e) => set("caminho", e.target.value)} placeholder="/blog" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">Idioma</label>
+            <label className="mb-1 block text-[11px] font-medium text-text-secondary">Idioma</label>
             <Input value={campos.idioma} onChange={(e) => set("idioma", e.target.value)} placeholder="pt-BR" />
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">
             Quem lê <span className="text-text-muted/70">(entra no prompt)</span>
           </label>
           <Input
@@ -718,7 +718,7 @@ function FormularioDominio({
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">
             Tom de voz <span className="text-text-muted/70">(entra no prompt)</span>
           </label>
           <Input value={campos.tom} onChange={(e) => set("tom", e.target.value)} placeholder="Direto, sem jargão, sem promessa de ganho" />

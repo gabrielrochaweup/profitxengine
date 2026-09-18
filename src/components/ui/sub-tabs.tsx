@@ -10,13 +10,16 @@ export function SubTabs<T extends string>({
   tabs,
   active,
   onChange,
+  className,
 }: {
   tabs: readonly { key: T; label: string }[];
   active: T;
   onChange: (key: T) => void;
+  /** Pra quem usa dentro de uma barra de acoes e nao quer a margem de baixo. */
+  className?: string;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap gap-1 rounded-panel bg-sidebar p-1 shadow-card-sm">
+    <div className={cn("mb-4 flex flex-wrap gap-1 rounded-panel bg-sidebar p-1 shadow-card-sm", className)}>
       {tabs.map((t) => (
         <button
           key={t.key}

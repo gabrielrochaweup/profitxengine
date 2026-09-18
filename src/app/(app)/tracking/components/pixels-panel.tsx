@@ -312,14 +312,14 @@ function CreatePixelModal({
     >
       <div className="space-y-3">
         <div>
-          <label className="mb-1 block text-xs font-medium text-text-muted">
+          <label className="mb-1 block text-xs font-medium text-text-secondary">
             {platform === "meta" ? "Pixel ID" : "Conversion ID (ex: AW-123456789)"}
           </label>
           <Input value={pixelId} onChange={(e) => setPixelId(e.target.value)} placeholder={platform === "meta" ? "672e1aeacb5e59472fdecb53" : "AW-123456789"} />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-text-muted">
+          <label className="mb-1 block text-xs font-medium text-text-secondary">
             Nome <span className="text-text-muted/70">(opcional, só pra identificar aqui)</span>
           </label>
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex: Pixel principal" />
@@ -327,7 +327,7 @@ function CreatePixelModal({
 
         {platform === "meta" && (
           <div>
-            <label className="mb-1 block text-xs font-medium text-text-muted">
+            <label className="mb-1 block text-xs font-medium text-text-secondary">
               Token da API de Conversões <span className="text-text-muted/70">(opcional — sem ele, PageView/Lead/InitiateCheckout funcionam, mas Purchase não)</span>
             </label>
             <Input

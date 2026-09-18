@@ -162,7 +162,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
                 <div className="space-y-3 border-t border-border p-3">
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Chave (msg_key)</label>
+                      <label className="text-[11px] text-text-secondary">Chave (msg_key)</label>
                       <Input
                         value={slot.msg_key}
                         disabled={!canEdit}
@@ -171,7 +171,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Horário</label>
+                      <label className="text-[11px] text-text-secondary">Horário</label>
                       <Input
                         value={slot.time_label ?? ""}
                         disabled={!canEdit}
@@ -180,7 +180,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
                       />
                     </div>
                     <div className="space-y-1 sm:col-span-2">
-                      <label className="text-[11px] text-text-muted">Papel/descrição</label>
+                      <label className="text-[11px] text-text-secondary">Papel/descrição</label>
                       <Input
                         value={slot.role_label ?? ""}
                         disabled={!canEdit}
@@ -192,7 +192,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
 
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Tags de CTA (separadas por vírgula)</label>
+                      <label className="text-[11px] text-text-secondary">Tags de CTA (separadas por vírgula)</label>
                       <Input
                         value={(slot.cta_tags ?? []).join(", ")}
                         disabled={!canEdit}
@@ -242,7 +242,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
                   </label>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] text-text-muted">Template da mensagem</label>
+                    <label className="text-[11px] text-text-secondary">Template da mensagem</label>
                     <Textarea
                       value={slot.template}
                       disabled={!canEdit}
@@ -254,7 +254,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
 
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Sugestão de mídia</label>
+                      <label className="text-[11px] text-text-secondary">Sugestão de mídia</label>
                       <Textarea
                         value={slot.media_suggestion ?? ""}
                         disabled={!canEdit}
@@ -264,7 +264,7 @@ export function SlotsEditor({ dynamicId, slots, onSlotsChange, canEdit }: SlotsE
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Sugestão pro expert (vídeo/áudio)</label>
+                      <label className="text-[11px] text-text-secondary">Sugestão pro expert (vídeo/áudio)</label>
                       <Textarea
                         value={slot.expert_hint ?? ""}
                         disabled={!canEdit}

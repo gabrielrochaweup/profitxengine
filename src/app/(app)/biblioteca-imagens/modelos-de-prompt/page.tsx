@@ -31,8 +31,8 @@ export default async function ModelosDePromptPage() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold text-text-primary">Modelos de Prompt (Imagem)</h1>
-      <p className="mt-1 text-sm text-text-secondary">
+      <h1 className="text-[22px] font-semibold leading-tight text-text-primary">Modelos de Prompt (Imagem)</h1>
+      <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">
         Templates com variáveis pra montar prompts de imagem sem reescrever tudo — combine um modelo com um
         personagem e um tom. Usado no &ldquo;Prompt pré-definido&rdquo; do gerador de imagens.
       </p>

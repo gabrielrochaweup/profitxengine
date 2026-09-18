@@ -13,6 +13,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { SubTabs } from "@/components/ui/sub-tabs";
+import { ActionBar, ContentGrid, EmptyState, Field, Section } from "@/components/ui/page";
 import {
   CATEGORIAS,
   CATEGORIA_LABEL,
@@ -132,10 +133,10 @@ export function AcessosClient({ productId }: { productId: string }) {
     setAcessos((prev) => prev.filter((a) => a.id !== acesso.id));
   }
 
-  if (carregando) return <Card className="mt-4 p-5 text-sm text-text-secondary">Carregando…</Card>;
+  if (carregando) return <Card className="p-5 text-sm text-text-secondary">Carregando…</Card>;
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Resumo label="Acessos guardados" valor={String(acessos.length)} />
         <Resumo label="Com assinatura" valor={String(assinaturas)} />
@@ -159,26 +160,35 @@ export function AcessosClient({ productId }: { productId: string }) {
         />
       </div>
 
-      <Card className="p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <SubTabs tabs={FILTROS} active={filtro} onChange={setFiltro} />
-          <div className="ml-auto flex items-center gap-2">
-            <Input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por nome, login ou responsável"
-              className="w-64"
-            />
-            <Button size="sm" onClick={() => setCriando(true)}>
-              Novo acesso
-            </Button>
-          </div>
-        </div>
+      <Section>
+        <ActionBar
+          filtros={<SubTabs tabs={FILTROS} active={filtro} onChange={setFiltro} className="mb-0" />}
+          acoes={
+            <>
+              <Input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar por nome, login ou responsável"
+                className="w-[320px]"
+              />
+              <Button onClick={() => setCriando(true)}>Novo acesso</Button>
+            </>
+          }
+        />
 
         {filtrados.length === 0 ? (
-          <p className="text-sm text-text-muted">
-            {acessos.length === 0 ? "Nenhum acesso guardado ainda." : "Nada encontrado com esse filtro."}
-          </p>
+          acessos.length === 0 ? (
+            <EmptyState
+              titulo="Nenhum acesso guardado ainda"
+              descricao="Comece pelas redes: quem entra, com qual login e onde está o segundo fator. É o campo do 2FA que resolve o pedido de senha às 23h."
+              acao={<Button onClick={() => setCriando(true)}>Cadastrar o primeiro</Button>}
+            />
+          ) : (
+            <EmptyState
+              titulo="Nada encontrado"
+              descricao="Nenhum acesso bate com esse filtro ou com o que você digitou na busca."
+            />
+          )
         ) : (
           <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
             {filtrados.map((acesso) => (
@@ -192,7 +202,7 @@ export function AcessosClient({ productId }: { productId: string }) {
             ))}
           </div>
         )}
-      </Card>
+      </Section>
 
       {criando && (
         <Formulario
@@ -474,14 +484,14 @@ function Formulario({
 
   return (
     <Modal open onClose={onFechar} title={titulo}>
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">Nome</label>
+      <div className="space-y-5">
+        {/* Nome ocupa 8 e categoria 4: um e texto livre, o outro escolhe entre
+            quatro palavras curtas. Largura igual prometeria o mesmo dos dois. */}
+        <ContentGrid>
+          <Field label="Nome" span={8}>
             <Input value={campos.nome} onChange={(e) => set("nome", e.target.value)} placeholder="YouTube — Escola ProfitX" />
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">Categoria</label>
+          </Field>
+          <Field label="Categoria" span={4}>
             <Select value={campos.categoria} onChange={(e) => set("categoria", e.target.value as Categoria)}>
               {CATEGORIAS.map((c) => (
                 <option key={c} value={c}>
@@ -489,35 +499,31 @@ function Formulario({
                 </option>
               ))}
             </Select>
-          </div>
-        </div>
+          </Field>
 
-        <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">
-            Página de login <span className="text-text-muted/70">(opcional)</span>
-          </label>
-          <Input value={campos.url} onChange={(e) => set("url", e.target.value)} placeholder="https://studio.youtube.com" />
-        </div>
+          <Field label="Página de login" hint="(opcional)" span={12}>
+            <Input value={campos.url} onChange={(e) => set("url", e.target.value)} placeholder="https://studio.youtube.com" />
+          </Field>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-[11px] font-medium text-text-muted">Login / e-mail</label>
+          <Field label="Login / e-mail" span={6}>
             <Input value={campos.usuario} onChange={(e) => set("usuario", e.target.value)} placeholder="contato@escolaprofitx.com" />
-          </div>
-          <div>
-            <label className="mb-1 flex items-center gap-1 text-[11px] font-medium text-text-muted">
-              Senha
+          </Field>
+          <Field label="Senha" hint={acesso ? "(em branco = não mexe)" : undefined} span={6}>
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="password"
+                value={campos.senha}
+                onChange={(e) => set("senha", e.target.value)}
+                placeholder={acesso ? "••••••••" : "senha da conta"}
+              />
               <Tooltip text="Guardada cifrada, igual aos tokens do app. Só aparece quando alguém clica em mostrar, e some da tela sozinha depois de 30 segundos." />
-              {acesso && <span className="text-text-muted/70">(em branco = não mexe)</span>}
-            </label>
-            <Input
-              type="password"
-              value={campos.senha}
-              onChange={(e) => set("senha", e.target.value)}
-              placeholder={acesso ? "••••••••" : "senha da conta"}
-            />
-          </div>
-        </div>
+            </div>
+          </Field>
+
+          <Field label="Quem administra" hint="(opcional)" span={6}>
+            <Input value={campos.responsavel} onChange={(e) => set("responsavel", e.target.value)} placeholder="Renato" />
+          </Field>
+        </ContentGrid>
 
         <div className="rounded-xl bg-card-hover p-3">
           <label className="flex items-center gap-2 text-xs text-text-secondary">
@@ -531,7 +537,7 @@ function Formulario({
           </label>
           {campos.tem_2fa && (
             <div className="mt-2">
-              <label className="mb-1 block text-[11px] font-medium text-text-muted">Onde está o 2FA</label>
+              <label className="mb-1 block text-[11px] font-medium text-text-secondary">Onde está o 2FA</label>
               <Input
                 value={campos.onde_2fa}
                 onChange={(e) => set("onde_2fa", e.target.value)}
@@ -541,12 +547,6 @@ function Formulario({
           )}
         </div>
 
-        <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">
-            Quem administra <span className="text-text-muted/70">(opcional)</span>
-          </label>
-          <Input value={campos.responsavel} onChange={(e) => set("responsavel", e.target.value)} placeholder="Renato" />
-        </div>
 
         <div className="rounded-xl bg-card-hover p-3">
           <label className="flex items-center gap-2 text-xs text-text-secondary">
@@ -559,13 +559,11 @@ function Formulario({
             É assinatura paga
           </label>
           {campos.assinatura && (
-            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-text-muted">Valor</label>
+            <ContentGrid className="mt-3">
+              <Field label="Valor" span={4}>
                 <Input value={campos.valor} onChange={(e) => set("valor", e.target.value)} placeholder="29,00" />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-text-muted">Moeda</label>
+              </Field>
+              <Field label="Moeda" span={4}>
                 <Select value={campos.moeda} onChange={(e) => set("moeda", e.target.value as Moeda)}>
                   {MOEDAS.map((m) => (
                     <option key={m} value={m}>
@@ -573,9 +571,8 @@ function Formulario({
                     </option>
                   ))}
                 </Select>
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-text-muted">Cobrança</label>
+              </Field>
+              <Field label="Cobrança" span={4}>
                 <Select value={campos.ciclo} onChange={(e) => set("ciclo", e.target.value as Ciclo)}>
                   {CICLOS.map((c) => (
                     <option key={c} value={c}>
@@ -583,13 +580,13 @@ function Formulario({
                     </option>
                   ))}
                 </Select>
-              </div>
-            </div>
+              </Field>
+            </ContentGrid>
           )}
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-text-muted">
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">
             Observações <span className="text-text-muted/70">(opcional)</span>
           </label>
           <Textarea

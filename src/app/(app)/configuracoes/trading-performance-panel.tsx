@@ -206,7 +206,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
                   </p>
                   <div className="flex gap-2">
                     <div className="flex-1 space-y-1">
-                      <label className="text-[11px] text-text-muted">Placar (V)</label>
+                      <label className="text-[11px] text-text-secondary">Placar (V)</label>
                       <Input
                         type="number"
                         step="1"
@@ -217,7 +217,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
                       />
                     </div>
                     <div className="flex-1 space-y-1">
-                      <label className="text-[11px] text-text-muted">Placar (D)</label>
+                      <label className="text-[11px] text-text-secondary">Placar (D)</label>
                       <Input
                         type="number"
                         step="1"
@@ -229,7 +229,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
                     </div>
                   </div>
                   <div className="mt-2 space-y-1">
-                    <label className="text-[11px] text-text-muted">
+                    <label className="text-[11px] text-text-secondary">
                       % de acerto
                       {acertoFromPlacar && <span className="ml-1 font-normal text-text-muted">(do placar)</span>}
                     </label>
@@ -244,7 +244,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
                   </div>
                   {product === "copy" && (
                     <div className="mt-2 space-y-1">
-                      <label className="text-[11px] text-text-muted">Rendimento (%)</label>
+                      <label className="text-[11px] text-text-secondary">Rendimento (%)</label>
                       <Input
                         type="number"
                         step="0.1"
@@ -284,7 +284,7 @@ function ConfigField({
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-[11px] text-text-muted">{label}</label>
+      <label className="text-[11px] text-text-secondary">{label}</label>
       <Input
         type="number"
         step="0.01"
