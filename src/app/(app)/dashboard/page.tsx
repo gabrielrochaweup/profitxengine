@@ -1,11 +1,20 @@
-import Link from "next/link";
 import { Newspaper } from "lucide-react";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { getNicheNews } from "@/lib/news/niche-feeds";
 import { getActiveProduct } from "@/lib/products-server";
-import { getNavItems } from "@/lib/products";
 import { PageContainer } from "@/components/ui/page";
+import { carregarResumoDoDia, type ResumoDoDia } from "./resumo";
+import { ResumoDoDiaView } from "./components/resumo-do-dia";
+
+/*
+  O Dashboard deixou de ser um menu.
+
+  Antes eram catorze atalhos pras mesmas catorze coisas que a barra lateral
+  já lista — a tela mais vista do app não dizia nada sobre o dia. Agora ela
+  responde o que está acontecendo, o que está fora do lugar e o que acabou
+  de entrar, com link pra onde se resolve cada coisa.
+*/
 
 // getHours() usa o fuso do servidor (UTC na Vercel), não o do usuário — como
 // o app é só em português pra um público no Brasil, fixamos America/Sao_Paulo
@@ -23,6 +32,15 @@ function getGreeting() {
   return "Boa noite";
 }
 
+function hojePorExtenso() {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  }).format(new Date());
+}
+
 async function getData() {
   const supabase = createClient();
   const {
@@ -34,29 +52,39 @@ async function getData() {
     supabase.from("prompts").select("id", { count: "exact", head: true }),
   ]);
 
-  const activeProduct = user ? await getActiveProduct(user.id, profileRes.data?.role === "admin") : null;
-  const { items: news, label } = await getNicheNews(activeProduct?.niche).catch(() => ({ items: [], label: "" }));
+  const isAdmin = profileRes.data?.role === "admin";
+  const activeProduct = user ? await getActiveProduct(user.id, isAdmin) : null;
+
+  // A notícia e o resumo vão juntos: um depende de rede externa (feed RSS) e
+  // o outro do banco, e não há motivo pra esperar um antes de pedir o outro.
+  //
+  // O resumo não pode derrubar a home: se uma das leituras falhar (função
+  // que não existe ainda no banco, rede caindo), a saudação e a notícia
+  // continuam de pé e a seção some.
+  const [noticia, resumo] = await Promise.all([
+    getNicheNews(activeProduct?.niche).catch(() => ({ items: [], label: "" })),
+    activeProduct
+      ? carregarResumoDoDia(activeProduct.id, isAdmin).catch((erro) => {
+          console.error("[dashboard] falha ao montar o resumo do dia", erro);
+          return null;
+        })
+      : Promise.resolve(null),
+  ]);
 
   return {
     fullName: profileRes.data?.full_name ?? null,
     email: user?.email ?? null,
     schemaReady: !prompts.error,
-    topNews: news[0] ?? null,
-    newsLabel: label,
-    productSlug: activeProduct?.slug ?? null,
+    topNews: noticia.items[0] ?? null,
+    newsLabel: noticia.label,
+    resumo: resumo as ResumoDoDia | null,
+    temProduto: !!activeProduct,
   };
 }
 
 export default async function DashboardPage() {
   const data = await getData();
   const displayName = data.fullName || data.email || "";
-  const greeting = getGreeting();
-  // Puxa direto do mesmo menu lateral do produto ativo — nunca fica
-  // desatualizado quando uma ferramenta nova entra, e já respeita o que é
-  // exclusivo de cada produto (ex: Dinâmicas do Dia só existe pro PROFITX).
-  const shortcuts = data.productSlug
-    ? getNavItems(data.productSlug).filter((item) => item.href !== "/dashboard")
-    : [];
 
   return (
     <PageContainer largura="padrao">
@@ -84,33 +112,26 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      {/* A saudação ocupava a dobra inteira: 56px de texto e 112px de respiro
-          antes de aparecer a primeira coisa clicável. Ela continua sendo a
-          abertura da tela, só que sem empurrar os atalhos pra fora da vista. */}
-      <div className="flex flex-col items-center py-8 text-center sm:py-12">
-        <h1 className="text-[26px] font-bold leading-tight text-text-primary sm:text-[32px]">
-          {greeting}{displayName ? `, ${displayName}` : ""}!
+      {/* A saudação encolheu e foi pra esquerda: ela abria a tela com 112px
+          de respiro antes da primeira informação útil. Continua sendo a
+          primeira linha, agora do tamanho de uma primeira linha. */}
+      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="text-[22px] font-bold leading-tight text-text-primary">
+          {getGreeting()}
+          {displayName ? `, ${displayName}` : ""}!
         </h1>
-        <p className="mt-1.5 text-[13px] text-text-secondary sm:text-sm">Comece a criar.</p>
+        <p className="text-[12px] capitalize text-text-tertiary">{hojePorExtenso()}</p>
       </div>
 
-      <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-        {shortcuts.map((shortcut) => (
-          <Link
-            key={shortcut.href}
-            href={shortcut.href}
-            className="flex flex-col items-center gap-2.5 rounded-card bg-card p-4 text-center shadow-card transition-colors duration-150 hover:bg-card-hover hover:shadow-[0_0_0_1px_var(--accent)] sm:p-5"
-          >
-            {/* Ícone num quadrado de raio 10, o mesmo do cartão que o contém.
-                Círculo era o único elemento 100% arredondado que sobrou. */}
-            <div className="flex h-11 w-11 items-center justify-center rounded-card bg-accent/15 text-accent-text">
-              <shortcut.icon size={20} />
-            </div>
-            {/* O nome da ferramenta é o conteúdo do cartão, não uma legenda. */}
-            <span className="text-[13px] font-medium text-text-primary">{shortcut.label}</span>
-          </Link>
-        ))}
-      </div>
+      {data.resumo ? (
+        <ResumoDoDiaView resumo={data.resumo} />
+      ) : (
+        <Card className="px-5 py-4 text-sm text-text-secondary">
+          {data.temProduto
+            ? "Não deu pra montar o resumo de hoje agora. Atualize a página em alguns segundos."
+            : "Você ainda não tem acesso a nenhum produto — peça a um admin pra liberar."}
+        </Card>
+      )}
     </PageContainer>
   );
 }
