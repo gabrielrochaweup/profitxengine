@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip } from "@/components/ui/tooltip";
 import { ALVO_LABEL, type SendPulseAlvo } from "@/lib/sendpulse/config-keys";
 import { Bloco, Cartao, Ponto, Tabela, TabelaWrap, Td, Th, Tr, Vazio } from "./ui";
 
@@ -13,14 +14,25 @@ interface Aluno {
   plano: string | null;
   assinou: boolean;
   pepe: boolean;
+  corretora: boolean;
+  depositou: boolean;
+  depositos: number;
+  depositado_cents: number;
   primeira_compra: string | null;
   ultima_compra: string | null;
   assinado_em: string | null;
   pepe_em: string | null;
+  corretora_em: string | null;
+  deposito_em: string | null;
 }
 
 function data(v: string | null) {
   return v ? new Date(v).toLocaleDateString("pt-BR") : "—";
+}
+
+// Depósito de corretora é sempre em dólar.
+function usd(cents: number) {
+  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
 
 // Link que abre a conversa no WhatsApp já no número certo — o telefone
@@ -46,6 +58,7 @@ export function AlunosPanel({
   const [busca, setBusca] = useState("");
   const [soPendentes, setSoPendentes] = useState(false);
   const [soSemPepe, setSoSemPepe] = useState(false);
+  const [soSemDeposito, setSoSemDeposito] = useState(false);
 
   useEffect(() => {
     fetch(`/api/tracking/alunos?product_id=${productId}`)
@@ -77,6 +90,7 @@ export function AlunosPanel({
     return noPeriodo.filter((a) => {
       if (soPendentes && a.assinou) return false;
       if (soSemPepe && a.pepe) return false;
+      if (soSemDeposito && a.depositou) return false;
       if (!termo) return true;
       return (
         a.email.includes(termo) ||
@@ -84,12 +98,13 @@ export function AlunosPanel({
         a.phone.includes(termo)
       );
     });
-  }, [noPeriodo, busca, soPendentes, soSemPepe]);
+  }, [noPeriodo, busca, soPendentes, soSemPepe, soSemDeposito]);
 
   // Os contadores seguem o período (e não a busca): eles descrevem o
   // universo daquela janela, que é o que os botões abaixo filtram.
   const semContrato = noPeriodo.filter((a) => !a.assinou).length;
   const semPepe = noPeriodo.filter((a) => !a.pepe).length;
+  const semDeposito = noPeriodo.filter((a) => !a.depositou).length;
 
   if (loading) return <Cartao className="text-sm text-text-secondary">Carregando…</Cartao>;
 
@@ -116,6 +131,12 @@ export function AlunosPanel({
               <span className="font-semibold tabular-nums text-text-primary">{semPepe}</span> sem Pepe
             </span>
           </span>
+          <span className="flex items-center gap-1.5">
+            <Ponto tom={semDeposito > 0 ? "alerta" : "ok"} />
+            <span className="text-text-tertiary">
+              <span className="font-semibold tabular-nums text-text-primary">{semDeposito}</span> sem depósito
+            </span>
+          </span>
         </div>
       }
     >
@@ -138,6 +159,13 @@ export function AlunosPanel({
           <Button size="sm" variant={soSemPepe ? "primary" : "secondary"} onClick={() => setSoSemPepe((v) => !v)}>
             Só quem não entrou no Pepe
           </Button>
+          <Button
+            size="sm"
+            variant={soSemDeposito ? "primary" : "secondary"}
+            onClick={() => setSoSemDeposito((v) => !v)}
+          >
+            Só quem não depositou
+          </Button>
         </div>
 
         {filtrados.length === 0 ? (
@@ -156,6 +184,12 @@ export function AlunosPanel({
                   <Th>Plano</Th>
                   <Th>Contrato</Th>
                   <Th>Pepe</Th>
+                  <Th>
+                    <span className="inline-flex items-center gap-1">
+                      Depositou?
+                      <Tooltip text="Casa pelo e-mail da compra. Quem abriu conta na corretora com outro e-mail aparece como “sem conta” — confira antes de cobrar." />
+                    </span>
+                  </Th>
                   <Th num>1ª compra</Th>
                   <Th num>Última compra</Th>
                 </tr>
@@ -195,6 +229,33 @@ export function AlunosPanel({
                         <span className="inline-flex items-center gap-1.5">
                           <Ponto tom={a.pepe ? "ok" : "neutro"} />
                           <span className="text-text-tertiary">{a.pepe ? "cadastrado" : "pendente"}</span>
+                        </span>
+                      </Td>
+                      {/* Três estados, não dois: "não depositou" com conta
+                          aberta e "não depositou" sem conta pedem conversas
+                          diferentes — uma é lembrar de depositar, a outra é
+                          ajudar a abrir a conta. */}
+                      <Td
+                        title={
+                          a.depositou
+                            ? `${a.depositos} ${a.depositos === 1 ? "depósito" : "depósitos"} · ${usd(a.depositado_cents)} · primeiro em ${data(a.deposito_em)}`
+                            : a.corretora
+                              ? `Conta aberta em ${data(a.corretora_em)}, sem depósito`
+                              : "Sem cadastro na corretora com este e-mail"
+                        }
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <Ponto tom={a.depositou ? "ok" : a.corretora ? "alerta" : "neutro"} />
+                          {a.depositou ? (
+                            <span className="text-text-tertiary">
+                              sim
+                              <span className="ml-1 tabular-nums text-text-muted">{usd(a.depositado_cents)}</span>
+                            </span>
+                          ) : a.corretora ? (
+                            <span className="font-medium text-warning">não · tem conta</span>
+                          ) : (
+                            <span className="text-text-tertiary">não · sem conta</span>
+                          )}
                         </span>
                       </Td>
                       <Td num>{data(a.primeira_compra)}</Td>

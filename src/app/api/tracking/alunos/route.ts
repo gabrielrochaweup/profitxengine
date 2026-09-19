@@ -20,10 +20,19 @@ interface Aluno {
   plano: string | null;
   assinou: boolean;
   pepe: boolean;
+  /** Tem conta na corretora (evento broker_signup com este e-mail). */
+  corretora: boolean;
+  /** Já pôs dinheiro lá dentro — é quem NÃO tem aqui que se chama pra depositar. */
+  depositou: boolean;
+  depositos: number;
+  /** Sempre em dólar: depósito de corretora não é cobrado em real. */
+  depositado_cents: number;
   primeira_compra: string | null;
   ultima_compra: string | null;
   assinado_em: string | null;
   pepe_em: string | null;
+  corretora_em: string | null;
+  deposito_em: string | null;
 }
 
 export async function GET(request: Request) {
@@ -79,10 +88,16 @@ export async function GET(request: Request) {
       plano: null,
       assinou: false,
       pepe: false,
+      corretora: false,
+      depositou: false,
+      depositos: 0,
+      depositado_cents: 0,
       primeira_compra: null,
       ultima_compra: null,
       assinado_em: null,
       pepe_em: null,
+      corretora_em: null,
+      deposito_em: null,
     };
 
     if (ev.event_type === "contract_signed") {
@@ -147,6 +162,59 @@ export async function GET(request: Request) {
     }
   }
 
+  // Corretora: conta aberta e dinheiro depositado.
+  //
+  // Mesma regra do Pepe — marca em aluno que já existe, nunca cria linha —
+  // e pelo mesmo motivo: quem só abriu conta na corretora sem comprar o
+  // curso não é aluno desta lista.
+  //
+  // O casamento é por e-mail. Se a pessoa abriu a conta na corretora com
+  // outro e-mail, ela aparece aqui como "sem conta" — a tela diz isso na
+  // dica da coluna, porque um "não" errado numa lista de cobrança faz
+  // alguém receber a mensagem errada.
+  const corretoraPorEmail = new Map<string, { conta: string | null; primeiro: string | null; qtd: number; total: number }>();
+  for (let inicio = 0; ; inicio += PAGINA) {
+    const { data: pagina } = await admin
+      .from("tracking_events")
+      .select("email, event_type, amount_cents, occurred_at")
+      .eq("product_id", productId)
+      .in("event_type", ["broker_signup", "broker_deposit"])
+      .not("email", "is", null)
+      .order("occurred_at", { ascending: true })
+      .range(inicio, inicio + PAGINA - 1);
+
+    if (!pagina || pagina.length === 0) break;
+    for (const ev of pagina) {
+      const email = normalizarEmail(ev.email);
+      if (!email) continue;
+      const atual = corretoraPorEmail.get(email) ?? { conta: null, primeiro: null, qtd: 0, total: 0 };
+      if (ev.event_type === "broker_signup") {
+        // Ordem crescente: o primeiro que aparece é o cadastro de verdade.
+        atual.conta = atual.conta ?? ev.occurred_at;
+      } else {
+        atual.primeiro = atual.primeiro ?? ev.occurred_at;
+        atual.qtd += 1;
+        atual.total += Number(ev.amount_cents) || 0;
+      }
+      corretoraPorEmail.set(email, atual);
+    }
+    if (pagina.length < PAGINA) break;
+  }
+
+  for (const [email, dados] of Array.from(corretoraPorEmail)) {
+    const alvo = porEmail.get(email);
+    if (!alvo) continue;
+    // Depósito sem cadastro visto ainda é conta na corretora: não dá pra
+    // depositar sem ter conta, e o evento de cadastro pode ter chegado
+    // antes de existirmos ou com outro e-mail.
+    alvo.corretora = dados.conta !== null || dados.qtd > 0;
+    alvo.corretora_em = dados.conta;
+    alvo.depositou = dados.qtd > 0;
+    alvo.depositos = dados.qtd;
+    alvo.depositado_cents = dados.total;
+    alvo.deposito_em = dados.primeiro;
+  }
+
   // Completa o telefone de quem não trouxe em nenhum evento: o lead guarda o
   // que apareceu em qualquer etapa da jornada.
   const semTelefone = Array.from(porEmail.values()).filter((a) => !a.phone).map((a) => a.email);
@@ -173,5 +241,6 @@ export async function GET(request: Request) {
     total: alunos.length,
     sem_contrato: alunos.filter((a) => !a.assinou).length,
     sem_pepe: alunos.filter((a) => !a.pepe).length,
+    sem_deposito: alunos.filter((a) => !a.depositou).length,
   });
 }
