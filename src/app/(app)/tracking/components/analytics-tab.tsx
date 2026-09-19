@@ -421,14 +421,18 @@ export function AnalyticsTab({
     [filteredReport]
   );
 
-  // Visão rápida com as 6 etapas juntas — complementa os 2 funis
+  // Visão rápida com as 8 etapas juntas — complementa os 2 funis
   // detalhados abaixo (curso/corretora), que divergem logo após "Leads".
+  //
+  // A ordem é a da jornada real, não a da tabela: depois de comprar, a
+  // pessoa entra na área de membros e só então assina o contrato. Trocado,
+  // o funil sugeria uma etapa acontecendo antes da que a alimenta.
   const combinedFunnelStages = [
     { label: "Leads", value: kpis.leads },
     { label: "Iniciou checkout", value: kpis.initiateCheckouts },
     { label: "Compra do curso", value: kpis.purchases },
-    { label: "Contrato assinado", value: kpis.contractsSigned },
     { label: "Área de membros", value: kpis.membersAccess },
+    { label: "Contrato assinado", value: kpis.contractsSigned },
     { label: "Cadastro no Pepe", value: kpis.toolSignups },
     { label: "Cadastro na corretora", value: kpis.brokerSignups },
     { label: "Depósito", value: kpis.deposits },
