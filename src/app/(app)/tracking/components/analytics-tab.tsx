@@ -36,7 +36,7 @@ import {
 import { MatrizDeOrigem } from "./origem";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { SimpleBarChart, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
+import { SimpleBarChart, ConversionFunnel, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
 
 interface CampaignRow {
   utm_source: string;
@@ -468,6 +468,42 @@ export function AnalyticsTab({
     return rows.filter((r) => r.etapa === metricaTempo);
   }, [atividade, sourceFilter, hideUnattributed, metricaTempo]);
 
+  /*
+    Os dois funis detalhados, curso e corretora.
+
+    Eles divergem logo depois de "Leads" — quem compra o curso e quem abre
+    conta na corretora são dois caminhos, não duas etapas do mesmo caminho —
+    e é isso que o desenho lado a lado mostra e a grade de oito cartões não
+    mostra.
+
+    O valor vem do mesmo lugar que o card equivalente lá em cima (pessoa
+    quando dá pra contar, evento quando não dá). Alimentar estes daqui com o
+    contador de eventos faria a mesma etapa aparecer com dois números
+    diferentes na mesma tela, a 200px de distância.
+  */
+  const valorDaEtapa = useMemo(() => {
+    const porChave = new Map(etapasDoFunil.map((e) => [e.chave, e.pessoas ?? e.eventos]));
+    return (chave: string) => porChave.get(chave) ?? 0;
+  }, [etapasDoFunil]);
+
+  const funilDoCurso = useMemo(
+    () => [
+      { label: "Leads", value: valorDaEtapa("lead") },
+      { label: "Iniciou checkout", value: valorDaEtapa("initiate_checkout") },
+      { label: "Compra do curso", value: valorDaEtapa("purchase") },
+    ],
+    [valorDaEtapa]
+  );
+
+  const funilDaCorretora = useMemo(
+    () => [
+      { label: "Leads", value: valorDaEtapa("lead") },
+      { label: "Cadastro na corretora", value: valorDaEtapa("broker_signup") },
+      { label: "Depósito", value: valorDaEtapa("broker_deposit") },
+    ],
+    [valorDaEtapa]
+  );
+
   const distribuicaoPorProduto = useMemo(
     () => salesByOffer.map((r) => ({ label: r.offer_name, valor: r.purchases })),
     [salesByOffer]
@@ -711,6 +747,18 @@ export function AnalyticsTab({
             }
           >
             <Funil etapas={etapasDoFunil} selecionada={etapaSelecionada} onSelecionar={setEtapaSelecionada} />
+
+            {/* Os dois caminhos que saem de "Leads", um ao lado do outro. */}
+            <CartaoDividido className="mt-4">
+              <MetadeCartao>
+                <p className="mb-1 text-[11px] font-medium text-text-tertiary">Funil do curso</p>
+                <ConversionFunnel data={funilDoCurso} color="var(--accent-text)" />
+              </MetadeCartao>
+              <MetadeCartao>
+                <p className="mb-1 text-[11px] font-medium text-text-tertiary">Funil da corretora</p>
+                <ConversionFunnel data={funilDaCorretora} color="var(--success)" />
+              </MetadeCartao>
+            </CartaoDividido>
 
             {piorEtapa && piorEtapa.fracaoDaAnterior !== null && (
               <p className="mt-2 text-[11px] text-text-tertiary">
