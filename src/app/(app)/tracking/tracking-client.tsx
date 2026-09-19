@@ -10,6 +10,7 @@ import {
   type AnalyticsSubTab,
   type TableTab,
 } from "./components/analytics-tab";
+import { ehFiltroDeAluno, type FiltroDeAluno } from "./components/alunos-panel";
 import { FontesDeDadosPanel, type WebhookEndpoint } from "./components/data-sources-panel";
 import { SendPulsePanel } from "./components/sendpulse-panel";
 import { AdsSettings, type AdAccount } from "./components/ads-settings";
@@ -144,6 +145,11 @@ export function TrackingClient({
   const searchParams = useSearchParams();
   const destino = traduzirEndereco(searchParams.get("aba"), searchParams.get("sub"));
   const plataformaDaUrl = searchParams.get("plataforma");
+  // ?filtro= chega dos cartões do Dashboard: "ver quem falta" abre a lista
+  // já na fila certa, em vez de largar a pessoa na tela cheia pra ela
+  // reencontrar o recorte na mão.
+  const filtroDaUrl = searchParams.get("filtro");
+  const filtroAlunos: FiltroDeAluno | undefined = ehFiltroDeAluno(filtroDaUrl) ? filtroDaUrl : undefined;
 
   // A validação é contra o que ESTA pessoa pode ver: um endereço só de admin,
   // aberto por quem não é, cai na primeira aba — senão a aba fica marcada no
@@ -294,6 +300,7 @@ export function TrackingClient({
           isAdmin={isAdmin}
           subTab={abaDeAnalise}
           tableTab={performanceSubTab}
+          filtroAlunos={filtroAlunos}
         />
       )}
 

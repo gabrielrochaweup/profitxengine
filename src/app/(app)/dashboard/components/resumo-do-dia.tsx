@@ -43,15 +43,20 @@ export function ResumoDoDiaView({ resumo }: { resumo: ResumoDoDia }) {
           </Link>
         </div>
 
+        {/* O número é o conteúdo, então ele manda no tamanho: 30px de valor
+            com um rótulo de 10px em cima. Numa tela de 1920 as seis células
+            cabem lado a lado sem apertar. */}
         <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-card bg-card shadow-card sm:grid-cols-3 xl:grid-cols-6 xl:divide-y-0">
           {resumo.numeros.map((n) => (
-            <div key={n.chave} className={cn("min-w-0 px-3 py-3", n.destaque && "bg-card-hover/40")}>
-              <p className="truncate text-[11px] text-text-tertiary">{n.rotulo}</p>
-              <p className="mt-1.5 text-[20px] font-bold leading-none tabular-nums text-text-primary">{n.valor}</p>
+            <div key={n.chave} className={cn("min-w-0 px-4 py-4", n.destaque && "bg-card-hover/40")}>
+              <p className="truncate text-[10px] font-medium uppercase tracking-wide text-text-tertiary">
+                {n.rotulo}
+              </p>
+              <p className="mt-2 text-[30px] font-bold leading-none tabular-nums text-text-primary">{n.valor}</p>
               {n.delta && (
                 <p
                   className={cn(
-                    "mt-1.5 flex items-center gap-1 truncate text-[10px] tabular-nums",
+                    "mt-2 flex items-center gap-1 truncate text-[11px] tabular-nums",
                     n.delta.texto === "igual a ontem"
                       ? "text-text-muted"
                       : n.delta.positivo
@@ -97,7 +102,7 @@ export function ResumoDoDiaView({ resumo }: { resumo: ResumoDoDia }) {
             Nada pedindo atenção agora — disparos em dia e ninguém parado no meio do funil.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
             {resumo.alertas.map((a) => (
               <CartaoDeAlerta key={a.chave} alerta={a} />
             ))}
@@ -131,14 +136,14 @@ export function ResumoDoDiaView({ resumo }: { resumo: ResumoDoDia }) {
           ) : (
             <ul className="divide-y divide-border">
               {resumo.movimentos.map((m) => (
-                <li key={m.id} className="flex items-center gap-3 px-4 py-2">
-                  <span className="w-10 shrink-0 font-mono text-[11px] tabular-nums text-text-muted">{m.quando}</span>
-                  <span className="w-40 shrink-0 truncate text-[12px] font-medium text-text-primary">{m.tipo}</span>
-                  <span className="min-w-0 flex-1 truncate text-[11px] text-text-tertiary" title={m.quem}>
+                <li key={m.id} className="flex items-center gap-4 px-4 py-2.5">
+                  <span className="w-11 shrink-0 font-mono text-[11px] tabular-nums text-text-muted">{m.quando}</span>
+                  <span className="w-44 shrink-0 truncate text-[13px] font-medium text-text-primary">{m.tipo}</span>
+                  <span className="min-w-0 flex-1 truncate text-[12px] text-text-tertiary" title={m.quem}>
                     {m.quem}
                   </span>
                   {m.valor && (
-                    <span className="shrink-0 text-[12px] font-semibold tabular-nums text-success">{m.valor}</span>
+                    <span className="shrink-0 text-[13px] font-semibold tabular-nums text-success">{m.valor}</span>
                   )}
                 </li>
               ))}

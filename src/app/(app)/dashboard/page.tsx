@@ -87,7 +87,10 @@ export default async function DashboardPage() {
   const displayName = data.fullName || data.email || "";
 
   return (
-    <PageContainer largura="padrao">
+    // Largura cheia só aqui: o Dashboard é leitura de relance, e um painel
+    // de vigia não se lê em coluna de 1280px com metade da tela vazia dos
+    // dois lados. O resto do app segue com a largura de leitura.
+    <PageContainer largura="amplo">
       {data.topNews && (
         <a
           href={data.topNews.link}
@@ -112,11 +115,13 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      {/* A saudação encolheu e foi pra esquerda: ela abria a tela com 112px
-          de respiro antes da primeira informação útil. Continua sendo a
-          primeira linha, agora do tamanho de uma primeira linha. */}
-      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-[22px] font-bold leading-tight text-text-primary">
+      {/* A saudação encolheu: ela abria a tela com 112px de respiro antes da
+          primeira informação útil. Continua sendo a primeira linha, agora do
+          tamanho de uma primeira linha — e centralizada, porque em tela cheia
+          um título encostado na esquerda de 1920px fica órfão do conteúdo que
+          ele abre. */}
+      <div className="mb-7 flex flex-col items-center gap-1 text-center">
+        <h1 className="text-[24px] font-bold leading-tight text-text-primary">
           {getGreeting()}
           {displayName ? `, ${displayName}` : ""}!
         </h1>

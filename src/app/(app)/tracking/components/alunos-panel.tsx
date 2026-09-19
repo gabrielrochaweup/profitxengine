@@ -1,11 +1,45 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip } from "@/components/ui/tooltip";
 import { ALVO_LABEL, type SendPulseAlvo } from "@/lib/sendpulse/config-keys";
+import { cn } from "@/lib/utils";
 import { Bloco, Cartao, Ponto, Tabela, TabelaWrap, Td, Th, Tr, Vazio } from "./ui";
+
+/*
+  Os recortes da lista.
+
+  Um de cada vez, e não caixinhas que se somam: cada um deles é uma fila de
+  cobrança com uma conversa própria ("assina o contrato", "abre a conta",
+  "põe dinheiro"), e cruzar duas produz uma lista que não corresponde a
+  nenhuma mensagem. Ser um só também é o que deixa o Dashboard linkar
+  direto pra fila certa — ?aba=pessoas&filtro=sem-deposito.
+*/
+export const FILTROS_DE_ALUNO = [
+  { chave: "todos", rotulo: "Todos" },
+  { chave: "sem-contrato", rotulo: "Sem contrato" },
+  { chave: "sem-pepe", rotulo: "Sem Pepe" },
+  { chave: "sem-corretora", rotulo: "Sem corretora" },
+  { chave: "sem-deposito", rotulo: "Conta sem depósito" },
+] as const;
+
+export type FiltroDeAluno = (typeof FILTROS_DE_ALUNO)[number]["chave"];
+
+export function ehFiltroDeAluno(v: unknown): v is FiltroDeAluno {
+  return typeof v === "string" && FILTROS_DE_ALUNO.some((f) => f.chave === v);
+}
+
+function passaNoFiltro(a: Aluno, filtro: FiltroDeAluno): boolean {
+  if (filtro === "sem-contrato") return !a.assinou;
+  if (filtro === "sem-pepe") return !a.pepe;
+  if (filtro === "sem-corretora") return !a.corretora;
+  // "Conta sem depósito" é quem ABRIU a conta e não pôs dinheiro. Quem nem
+  // abriu está na fila anterior, e misturar as duas daria uma lista que não
+  // serve pra nenhuma das duas conversas.
+  if (filtro === "sem-deposito") return a.corretora && !a.depositou;
+  return true;
+}
 
 interface Aluno {
   email: string;
@@ -47,18 +81,19 @@ export function AlunosPanel({
   de,
   ate,
   recarregar,
+  filtroInicial = "todos",
 }: {
   productId: string;
   de: string;
   ate: string;
   recarregar: number;
+  /** Fila escolhida lá fora — o Dashboard manda a pessoa direto pra ela. */
+  filtroInicial?: FiltroDeAluno;
 }) {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
-  const [soPendentes, setSoPendentes] = useState(false);
-  const [soSemPepe, setSoSemPepe] = useState(false);
-  const [soSemDeposito, setSoSemDeposito] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroDeAluno>(filtroInicial);
 
   useEffect(() => {
     fetch(`/api/tracking/alunos?product_id=${productId}`)
@@ -88,9 +123,7 @@ export function AlunosPanel({
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return noPeriodo.filter((a) => {
-      if (soPendentes && a.assinou) return false;
-      if (soSemPepe && a.pepe) return false;
-      if (soSemDeposito && a.depositou) return false;
+      if (!passaNoFiltro(a, filtro)) return false;
       if (!termo) return true;
       return (
         a.email.includes(termo) ||
@@ -98,13 +131,14 @@ export function AlunosPanel({
         a.phone.includes(termo)
       );
     });
-  }, [noPeriodo, busca, soPendentes, soSemPepe, soSemDeposito]);
+  }, [noPeriodo, busca, filtro]);
 
   // Os contadores seguem o período (e não a busca): eles descrevem o
   // universo daquela janela, que é o que os botões abaixo filtram.
-  const semContrato = noPeriodo.filter((a) => !a.assinou).length;
-  const semPepe = noPeriodo.filter((a) => !a.pepe).length;
-  const semDeposito = noPeriodo.filter((a) => !a.depositou).length;
+  const quantos = (f: FiltroDeAluno) => noPeriodo.filter((a) => passaNoFiltro(a, f)).length;
+  const semContrato = quantos("sem-contrato");
+  const semPepe = quantos("sem-pepe");
+  const semDeposito = quantos("sem-deposito");
 
   if (loading) return <Cartao className="text-sm text-text-secondary">Carregando…</Cartao>;
 
@@ -153,19 +187,30 @@ export function AlunosPanel({
             placeholder="Buscar por nome, e-mail ou telefone"
             className="h-8 max-w-xs text-xs"
           />
-          <Button size="sm" variant={soPendentes ? "primary" : "secondary"} onClick={() => setSoPendentes((v) => !v)}>
-            Só quem não assinou
-          </Button>
-          <Button size="sm" variant={soSemPepe ? "primary" : "secondary"} onClick={() => setSoSemPepe((v) => !v)}>
-            Só quem não entrou no Pepe
-          </Button>
-          <Button
-            size="sm"
-            variant={soSemDeposito ? "primary" : "secondary"}
-            onClick={() => setSoSemDeposito((v) => !v)}
-          >
-            Só quem não depositou
-          </Button>
+          {/* O contador vai junto do rótulo: o tamanho da fila é metade da
+              decisão de qual delas atacar primeiro. */}
+          <div className="flex flex-wrap items-center gap-1">
+            {FILTROS_DE_ALUNO.map((f) => {
+              const total = f.chave === "todos" ? noPeriodo.length : quantos(f.chave);
+              const ativo = filtro === f.chave;
+              return (
+                <button
+                  key={f.chave}
+                  type="button"
+                  onClick={() => setFiltro(f.chave)}
+                  className={cn(
+                    "flex h-8 items-center gap-1.5 rounded-button px-2.5 text-[12px] font-medium transition-colors",
+                    ativo
+                      ? "bg-accent text-accent-contrast"
+                      : "border border-border bg-card-hover text-text-secondary hover:border-border-strong hover:text-text-primary"
+                  )}
+                >
+                  {f.rotulo}
+                  <span className={cn("tabular-nums", ativo ? "opacity-80" : "text-text-muted")}>{total}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {filtrados.length === 0 ? (

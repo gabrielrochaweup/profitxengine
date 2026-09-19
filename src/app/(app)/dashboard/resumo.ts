@@ -370,7 +370,7 @@ export async function carregarResumoDoDia(productId: string, isAdmin: boolean): 
         // Este é o único da lista que trava o produto: sem assinatura o
         // acesso nem abre.
         detalhe: "Sem assinatura o acesso à área de membros não abre.",
-        href: "/tracking?aba=pessoas",
+        href: "/tracking?aba=pessoas&filtro=sem-contrato",
         acao: "Ver quem falta",
       });
     }
@@ -380,7 +380,7 @@ export async function carregarResumoDoDia(productId: string, isAdmin: boolean): 
         nivel: "atencao",
         titulo: `${alunos.semPepe} alunos sem cadastro no Pepe`,
         detalhe: "Compraram e ainda não criaram conta na ferramenta.",
-        href: "/tracking?aba=pessoas",
+        href: "/tracking?aba=pessoas&filtro=sem-pepe",
         acao: "Ver quem falta",
       });
     }
@@ -390,7 +390,7 @@ export async function carregarResumoDoDia(productId: string, isAdmin: boolean): 
         nivel: "atencao",
         titulo: `${alunos.semCorretora} alunos sem cadastro na corretora`,
         detalhe: "Nem abriram conta — é o degrau antes do depósito.",
-        href: "/tracking?aba=pessoas",
+        href: "/tracking?aba=pessoas&filtro=sem-corretora",
         acao: "Ver quem falta",
       });
     }
@@ -401,7 +401,7 @@ export async function carregarResumoDoDia(productId: string, isAdmin: boolean): 
         nivel: "atencao",
         titulo: `${soFaltaDepositar} ${soFaltaDepositar === 1 ? "aluno abriu conta" : "alunos abriram conta"} na corretora e não depositaram`,
         detalhe: "Conta aberta, sem dinheiro dentro. É a lista mais quente pra chamar.",
-        href: "/tracking?aba=pessoas",
+        href: "/tracking?aba=pessoas&filtro=sem-deposito",
         acao: "Chamar pra depositar",
       });
     }

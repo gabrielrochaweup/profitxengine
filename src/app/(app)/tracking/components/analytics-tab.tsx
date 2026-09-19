@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
-import { AlunosPanel } from "./alunos-panel";
+import { AlunosPanel, type FiltroDeAluno } from "./alunos-panel";
 import {
   BarraDeFiltros,
   Bloco,
@@ -193,6 +193,7 @@ export function AnalyticsTab({
   isAdmin,
   subTab,
   tableTab = "campanhas",
+  filtroAlunos,
 }: {
   productId: string;
   initialReport: CampaignRow[];
@@ -201,6 +202,8 @@ export function AnalyticsTab({
   subTab: AnalyticsSubTab;
   /** Qual recorte de Performance mostrar. Quem manda é a barra do módulo. */
   tableTab?: TableTab;
+  /** Fila de alunos que veio no endereço (o Dashboard linka direto pra ela). */
+  filtroAlunos?: FiltroDeAluno;
 }) {
   const [period, setPeriod] = useState<Period>("90d");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
@@ -651,7 +654,13 @@ export function AnalyticsTab({
       </BarraDeFiltros>
 
       {listaDeAlunos && isAdmin && (
-        <AlunosPanel productId={productId} de={janela.de} ate={janela.ate} recarregar={recarregarAlunos} />
+        <AlunosPanel
+          productId={productId}
+          de={janela.de}
+          ate={janela.ate}
+          recarregar={recarregarAlunos}
+          filtroInicial={filtroAlunos}
+        />
       )}
 
       {subTab === "visao" && (
