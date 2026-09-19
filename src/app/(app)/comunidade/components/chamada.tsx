@@ -175,8 +175,11 @@ export function BarraChamada({ salaId, pessoas }: { salaId: string; pessoas: Map
 /**
  * O botão de entrar/sair, no rodapé da sala.
  *
- * Alinhado à esquerda, acima do campo de mensagem: azul pra entrar, vermelho
- * pra sair, no MESMO lugar — a pessoa aprende um alvo só.
+ * Alinhado à direita, acima do campo de mensagem: azul pra entrar, vermelho
+ * pra sair, no MESMO lugar — a pessoa aprende um alvo só. À direita porque é
+ * a coluna onde já moram as ações desta tela (o botão de enviar, logo abaixo,
+ * e os controles de mídia, logo acima): o olho desce por uma linha só em vez
+ * de cruzar a largura do chat.
  */
 export function BotaoChamada({
   salaId,
@@ -193,7 +196,12 @@ export function BotaoChamada({
 
   if (aquiDentro) {
     return (
-      <div className="mb-2 flex flex-wrap items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-end gap-2">
+        <span className="text-[11px] text-text-tertiary">
+          {chamada.status === "reconectando"
+            ? "Reconectando…"
+            : "Você continua na sala e no chat depois de sair da chamada."}
+        </span>
         <button
           type="button"
           onClick={chamada.sair}
@@ -202,11 +210,6 @@ export function BotaoChamada({
           <PhoneOff size={15} />
           Sair da chamada
         </button>
-        <span className="text-[11px] text-text-tertiary">
-          {chamada.status === "reconectando"
-            ? "Reconectando…"
-            : "Você continua na sala e no chat depois de sair da chamada."}
-        </span>
       </div>
     );
   }
@@ -214,7 +217,8 @@ export function BotaoChamada({
   if (emOutraSala && chamada.sala) {
     const outra = chamada.sala;
     return (
-      <div className="mb-2 flex flex-wrap items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-end gap-2">
+        <span className="text-[11px] text-text-tertiary">Saia dela antes de entrar na chamada desta sala.</span>
         <button
           type="button"
           onClick={() => onIrParaSala(outra.id)}
@@ -223,13 +227,15 @@ export function BotaoChamada({
           <Headphones size={15} />
           Você está na chamada de {outra.nome}
         </button>
-        <span className="text-[11px] text-text-tertiary">Saia dela antes de entrar na chamada desta sala.</span>
       </div>
     );
   }
 
   return (
-    <div className="mb-2 flex flex-wrap items-center gap-2">
+    <div className="mb-2 flex flex-wrap items-center justify-end gap-2">
+      {!chamada.disponivel && (
+        <span className="text-[11px] text-text-muted">Chamadas ainda não configuradas neste ambiente.</span>
+      )}
       <button
         type="button"
         onClick={() => chamada.entrar({ id: salaId, nome: nomeDaSala })}
@@ -239,9 +245,6 @@ export function BotaoChamada({
         <Headphones size={15} />
         {chamada.status === "entrando" ? "Entrando…" : "Entrar na chamada"}
       </button>
-      {!chamada.disponivel && (
-        <span className="text-[11px] text-text-muted">Chamadas ainda não configuradas neste ambiente.</span>
-      )}
     </div>
   );
 }
