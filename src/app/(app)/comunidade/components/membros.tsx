@@ -26,7 +26,9 @@ export function Membros({
 }) {
   const porId = new Map(presencas.map((p) => [p.user_id, p]));
 
-  const naChamada = pessoas.filter((p) => porId.get(p.id)?.na_chamada && porId.get(p.id)?.sala_id === salaId);
+  // Na chamada DESTA sala: quem está na chamada da #Geral enquanto lê esta
+  // aqui aparece como online, não como se estivesse falando nesta sala.
+  const naChamada = pessoas.filter((p) => porId.get(p.id)?.sala_chamada === salaId);
   const online = pessoas.filter((p) => porId.has(p.id) && !naChamada.some((c) => c.id === p.id));
   const offline = pessoas.filter((p) => !porId.has(p.id));
 

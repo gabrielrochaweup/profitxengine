@@ -38,6 +38,7 @@ const config: Config = {
         success: "var(--success)",
         warning: "var(--warning)",
         danger: "var(--danger)",
+        "danger-strong": "var(--danger-strong)",
         "success-soft": "var(--success-soft)",
         "warning-soft": "var(--warning-soft)",
         "danger-soft": "var(--danger-soft)",

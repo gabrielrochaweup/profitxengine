@@ -8,12 +8,12 @@ import { EVENTO_LIDA } from "@/components/layout/badge-comunidade";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { Chat } from "./components/chat";
-import { Chamada } from "./components/chamada";
+import { AreaDeMidia, BarraChamada, BotaoChamada, useApresentacao } from "./components/chamada";
 import { Membros } from "./components/membros";
 import { SalasSidebar } from "./components/salas-sidebar";
 import { SalaModal, type DadosSala } from "./components/sala-modal";
-import { PAGINA, usePresenca, type MembroSala, type Mensagem, type Pessoa, type Reacao, type Sala } from "./lib";
-import { useChamada } from "./lib-chamada";
+import { PAGINA, type MembroSala, type Mensagem, type Pessoa, type Reacao, type Sala } from "./lib";
+import { useChamadaDaComunidade } from "./chamada-contexto";
 
 /**
  * Texto de um erro, venha ele de onde vier.
@@ -44,24 +44,20 @@ function mensagemDoErro(e: unknown): string {
  */
 export function ComunidadeClient({
   meuId,
-  meuNome,
   souAdminDoApp,
   podeCriarSala,
   pessoas,
   salasIniciais,
   membrosIniciais,
   naoLidasIniciais,
-  chamadaDisponivel,
 }: {
   meuId: string;
-  meuNome: string;
   souAdminDoApp: boolean;
   podeCriarSala: boolean;
   pessoas: Pessoa[];
   salasIniciais: Sala[];
   membrosIniciais: MembroSala[];
   naoLidasIniciais: { room_id: string; nao_lidas: number }[];
-  chamadaDisponivel: boolean;
 }) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -90,11 +86,17 @@ export function ComunidadeClient({
   const salaAtivaRef = useRef(salaAtiva);
   salaAtivaRef.current = salaAtiva;
 
-  // A chamada é sessão, não banco: quem está nela agora vive no LiveKit (pra
-  // quem entrou) e na presença (pra quem só está olhando de fora).
-  const chamada = useChamada(salaAtiva, meuNome);
-  const naChamada = chamada.status === "dentro" || chamada.status === "reconectando";
-  const { presencas, conectado } = usePresenca(meuId, salaAtiva, naChamada);
+  // A chamada e a presença moram no layout do app (ver chamada-provider.tsx):
+  // elas precisam sobreviver a sair desta página. Aqui a gente só lê o estado
+  // e avisa qual sala está aberta na tela.
+  const chamada = useChamadaDaComunidade();
+  const { presencas, presencaConectada: conectado, verSala } = chamada;
+  const apresentando = useApresentacao(salaAtiva ?? "");
+
+  useEffect(() => {
+    verSala(salaAtiva);
+    return () => verSala(null);
+  }, [verSala, salaAtiva]);
 
   const pessoasPorId = useMemo(() => new Map(pessoas.map((p) => [p.id, p])), [pessoas]);
   const sala = salas.find((s) => s.id === salaAtiva) ?? null;
@@ -122,7 +124,7 @@ export function ComunidadeClient({
   const naChamadaPorSala = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const p of presencas) {
-      if (p.na_chamada && p.sala_id) mapa.set(p.sala_id, (mapa.get(p.sala_id) ?? 0) + 1);
+      if (p.sala_chamada) mapa.set(p.sala_chamada, (mapa.get(p.sala_chamada) ?? 0) + 1);
     }
     return mapa;
   }, [presencas]);
@@ -513,29 +515,7 @@ export function ComunidadeClient({
           </div>
         </header>
 
-        {sala && (
-          <Chamada
-            disponivel={chamadaDisponivel}
-            salaId={sala.id}
-            status={chamada.status}
-            erro={chamada.erro}
-            limparErro={chamada.limparErro}
-            participantes={chamada.participantes}
-            telaDeAlguem={chamada.telaDeAlguem}
-            micLigado={chamada.micLigado}
-            cameraLigada={chamada.cameraLigada}
-            telaLigada={chamada.telaLigada}
-            dispositivos={chamada.dispositivos}
-            pessoas={pessoasPorId}
-            presencas={presencas}
-            onEntrar={chamada.entrar}
-            onSair={chamada.sair}
-            onAlternarMic={chamada.alternarMic}
-            onAlternarCamera={chamada.alternarCamera}
-            onAlternarTela={chamada.alternarTela}
-            onTrocarDispositivo={chamada.trocarDispositivo}
-          />
-        )}
+        {sala && <BarraChamada salaId={sala.id} pessoas={pessoasPorId} />}
 
         {!sala ? (
           <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
@@ -570,20 +550,38 @@ export function ComunidadeClient({
         ) : carregando ? (
           <div className="flex flex-1 items-center justify-center text-[12px] text-text-tertiary">Carregando…</div>
         ) : (
-          <Chat
-            mensagens={mensagens}
-            reacoes={reacoes}
-            pessoas={pessoasPorId}
-            meuId={meuId}
-            souAdminDaSala={souAdminDaSala}
-            temMais={temMais}
-            carregandoMais={carregandoMais}
-            onCarregarMais={carregarMais}
-            onEnviar={enviar}
-            onEditar={editar}
-            onExcluir={excluir}
-            onReagir={reagir}
-          />
+          <div className="flex min-h-0 flex-1 flex-col">
+            {/* Área de mídia e chat são irmãos no mesmo lugar da árvore de
+                propósito: quando alguém compartilha a tela, o que muda é o
+                TAMANHO de cada um, não a identidade dos componentes — e o
+                rascunho de quem estava digitando sobrevive à mudança. */}
+            <AreaDeMidia salaId={sala.id} />
+
+            <div
+              className={cn(
+                "flex min-w-0 flex-col",
+                apresentando ? "h-[32%] min-h-[180px] shrink-0 border-t border-border" : "min-h-0 flex-1"
+              )}
+            >
+              <Chat
+                mensagens={mensagens}
+                reacoes={reacoes}
+                pessoas={pessoasPorId}
+                meuId={meuId}
+                souAdminDaSala={souAdminDaSala}
+                temMais={temMais}
+                carregandoMais={carregandoMais}
+                onCarregarMais={carregarMais}
+                onEnviar={enviar}
+                onEditar={editar}
+                onExcluir={excluir}
+                onReagir={reagir}
+                acaoChamada={
+                  <BotaoChamada salaId={sala.id} nomeDaSala={sala.nome} onIrParaSala={abrirSala} />
+                }
+              />
+            </div>
+          </div>
         )}
       </section>
 

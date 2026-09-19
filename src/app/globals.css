@@ -67,6 +67,11 @@
   --success: #95cf0e;
   --warning: #f3de7f;
   --danger: #d47865;
+  /* O --danger é a cor do AVISO: ele escreve e ele contorna, e por isso é
+     claro o bastante pra ler sobre o card. Quando o vermelho precisa
+     PREENCHER um botão (sair da chamada), esse mesmo tom deixaria o rótulo
+     em 3,1:1. Este preenche e leva branco em cima com 5,4:1, nos dois temas. */
+  --danger-strong: #c0392b;
 
   --success-soft: rgba(149, 207, 14, 0.12);
   --warning-soft: rgba(243, 222, 127, 0.12);
@@ -116,6 +121,7 @@
   --success: #5b7f08;
   --warning: #8a7410;
   --danger: #b0563f;
+  --danger-strong: #c0392b;
 
   --success-soft: #eef7dc;
   --warning-soft: #fbf3d9;

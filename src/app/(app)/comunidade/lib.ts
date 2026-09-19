@@ -67,13 +67,16 @@ export function corDaPessoa(id: string): string {
  * Estado de presença de uma pessoa.
  *
  * São três coisas separadas de propósito (e o painel da direita depende
- * disso): estar ONLINE, estar VENDO uma sala e estar NA CHAMADA dela. Dá pra
- * estar online no Dashboard, ou lendo #Geral sem áudio nenhum.
+ * disso): estar ONLINE, estar VENDO uma sala e estar NA CHAMADA de uma sala.
+ * Dá pra estar online no Dashboard, ou lendo #Geral sem áudio nenhum — e,
+ * desde que a chamada passou a sobreviver à navegação, dá pra estar na
+ * chamada da #Geral enquanto se lê a #Suporte ou o Tracking. Por isso a sala
+ * da chamada é um campo próprio, e não um "sim/não" colado na sala aberta.
  */
 export interface Presenca {
   user_id: string;
   sala_id: string | null;
-  na_chamada: boolean;
+  sala_chamada: string | null;
 }
 
 /**
@@ -83,7 +86,7 @@ export interface Presenca {
  * tabela, cada refresh viraria escrita e toda queda de conexão deixaria
  * alguém "online" pra sempre até um job limpar.
  */
-export function usePresenca(meuId: string, salaAtual: string | null, naChamada: boolean) {
+export function usePresenca(meuId: string, salaAtual: string | null, salaDaChamada: string | null) {
   const [presencas, setPresencas] = useState<Presenca[]>([]);
   const [conectado, setConectado] = useState(false);
   const canalRef = useRef<RealtimeChannel | null>(null);
@@ -103,8 +106,12 @@ export function usePresenca(meuId: string, salaAtual: string | null, naChamada: 
       for (const entradas of Object.values(estado)) {
         for (const e of entradas) {
           const atual = porPessoa.get(e.user_id);
-          if (!atual || (!atual.na_chamada && e.na_chamada) || (!atual.sala_id && e.sala_id)) {
-            porPessoa.set(e.user_id, { user_id: e.user_id, sala_id: e.sala_id, na_chamada: e.na_chamada });
+          if (!atual || (!atual.sala_chamada && e.sala_chamada) || (!atual.sala_id && e.sala_id)) {
+            porPessoa.set(e.user_id, {
+              user_id: e.user_id,
+              sala_id: e.sala_id,
+              sala_chamada: e.sala_chamada ?? null,
+            });
           }
         }
       }
@@ -118,7 +125,7 @@ export function usePresenca(meuId: string, salaAtual: string | null, naChamada: 
       .subscribe(async (status) => {
         setConectado(status === "SUBSCRIBED");
         if (status === "SUBSCRIBED") {
-          await canal.track({ user_id: meuId, sala_id: salaAtual, na_chamada: naChamada });
+          await canal.track({ user_id: meuId, sala_id: salaAtual, sala_chamada: salaDaChamada });
         }
       });
 
@@ -134,8 +141,8 @@ export function usePresenca(meuId: string, salaAtual: string | null, naChamada: 
   useEffect(() => {
     const canal = canalRef.current;
     if (!canal || !conectado) return;
-    canal.track({ user_id: meuId, sala_id: salaAtual, na_chamada: naChamada });
-  }, [meuId, salaAtual, naChamada, conectado]);
+    canal.track({ user_id: meuId, sala_id: salaAtual, sala_chamada: salaDaChamada });
+  }, [meuId, salaAtual, salaDaChamada, conectado]);
 
   return { presencas, conectado };
 }

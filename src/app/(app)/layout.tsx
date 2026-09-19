@@ -4,6 +4,7 @@ import { getUser, getProfile } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ProductTabs } from "@/components/layout/product-tabs";
 import { ActiveProductProvider } from "@/components/layout/active-product-context";
+import { ChamadaProvider } from "@/app/(app)/comunidade/chamada-provider";
 import { DEFAULT_PRODUCT_SLUG, isPathAccessible } from "@/lib/products";
 import { getAccessibleProducts, iniciarBuscaDeProdutos } from "@/lib/products-server";
 
@@ -47,6 +48,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       initialProduct={activeProduct}
       products={products.map((p) => ({ id: p.id, slug: p.slug }))}
     >
+      {/* A chamada da Comunidade mora aqui, acima das páginas: trocar de tela
+          não pode desligar o microfone de quem está no meio de uma conversa —
+          e mostrar uma tela do próprio ENGINE exige exatamente isso. */}
+      <ChamadaProvider
+        meuId={user.id}
+        meuNome={profile?.full_name?.trim() || "Sem nome"}
+        disponivel={
+          !!process.env.LIVEKIT_URL && !!process.env.LIVEKIT_API_KEY && !!process.env.LIVEKIT_API_SECRET
+        }
+      >
       <div className="flex h-dvh flex-col bg-app md:gap-3 md:p-3">
         {products.length > 0 && (
           <div className="hidden shrink-0 md:block">
@@ -66,6 +77,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </div>
+      </ChamadaProvider>
     </ActiveProductProvider>
   );
 }

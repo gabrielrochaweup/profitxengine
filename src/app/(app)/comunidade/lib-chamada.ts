@@ -35,9 +35,19 @@ async function carregarLiveKit(): Promise<ModuloLiveKit> {
   pro servidor, que redistribui. Em malha ponto-a-ponto, com 8 pessoas, cada
   uma subiria 7 cópias — e é aí que a chamada começa a picotar em internet
   doméstica.
+
+  Este hook NÃO mora na página da Comunidade: ele mora no provedor que fica no
+  layout do app (ver chamada-contexto.tsx). É o que permite andar pelo resto
+  do sistema — inclusive pra mostrar uma tela do próprio ENGINE — sem a
+  chamada cair junto com a página.
 */
 
 export type StatusChamada = "fora" | "entrando" | "dentro" | "reconectando";
+
+export interface SalaDaChamada {
+  id: string;
+  nome: string;
+}
 
 export interface ParticipanteChamada {
   id: string;
@@ -80,8 +90,33 @@ function explicar(e: unknown): string {
   return msg || "Não deu pra entrar na chamada.";
 }
 
-export function useChamada(salaId: string | null, meuNome: string) {
+/**
+ * O navegador já autorizou microfone/câmera neste site?
+ *
+ * Serve pra decidir se vale mostrar o nosso aviso antes: quem já liberou uma
+ * vez não vê janela nenhuma do Chrome, e um aviso "vai aparecer um pedido"
+ * seria mentira. A Permissions API não existe em todo navegador — quando não
+ * dá pra saber, o retorno é "desconhecido" e quem chama decide.
+ */
+export type EstadoPermissao = "granted" | "denied" | "prompt" | "desconhecido";
+
+export async function estadoDaPermissao(tipo: "microphone" | "camera"): Promise<EstadoPermissao> {
+  try {
+    const permissions = navigator.permissions;
+    if (!permissions?.query) return "desconhecido";
+    // O tipo do TS não conhece "microphone"/"camera" em todos os navegadores,
+    // e a query joga quando o nome não é suportado — daí o try.
+    const status = await permissions.query({ name: tipo as PermissionName });
+    if (status.state === "granted" || status.state === "denied" || status.state === "prompt") return status.state;
+    return "desconhecido";
+  } catch {
+    return "desconhecido";
+  }
+}
+
+export function useChamada(meuNome: string) {
   const [status, setStatus] = useState<StatusChamada>("fora");
+  const [sala, setSala] = useState<SalaDaChamada | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [participantes, setParticipantes] = useState<ParticipanteChamada[]>([]);
   const [micLigado, setMicLigado] = useState(false);
@@ -147,6 +182,7 @@ export function useChamada(salaId: string | null, meuNome: string) {
     const room = roomRef.current;
     roomRef.current = null;
     setStatus("fora");
+    setSala(null);
     setParticipantes([]);
     setMicLigado(false);
     setCameraLigada(false);
@@ -154,68 +190,73 @@ export function useChamada(salaId: string | null, meuNome: string) {
     if (room) await room.disconnect();
   }, []);
 
-  const entrar = useCallback(async () => {
-    if (!salaId || roomRef.current) return;
-    setErro(null);
-    setStatus("entrando");
+  const entrar = useCallback(
+    async (alvo: SalaDaChamada) => {
+      if (!alvo.id || roomRef.current) return;
+      setErro(null);
+      setSala(alvo);
+      setStatus("entrando");
 
-    try {
-      // O token vem do nosso servidor, que é quem confere se esta pessoa pode
-      // entrar nesta sala. O navegador nunca decide isso.
-      const res = await fetch("/api/comunidade/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sala_id: salaId }),
-      });
-      const corpo = await res.json();
-      if (!res.ok) throw new Error(corpo.error ?? "Não deu pra entrar na chamada.");
+      try {
+        // O token vem do nosso servidor, que é quem confere se esta pessoa pode
+        // entrar nesta sala. O navegador nunca decide isso.
+        const res = await fetch("/api/comunidade/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sala_id: alvo.id }),
+        });
+        const corpo = await res.json();
+        if (!res.ok) throw new Error(corpo.error ?? "Não deu pra entrar na chamada.");
 
-      const lk = await carregarLiveKit();
-      const room = new lk.Room({
-        // Manda só a qualidade que cabe na tela de quem assiste, e para de
-        // enviar o que ninguém está olhando.
-        adaptiveStream: true,
-        dynacast: true,
-      });
-      roomRef.current = room;
+        const lk = await carregarLiveKit();
+        const room = new lk.Room({
+          // Manda só a qualidade que cabe na tela de quem assiste, e para de
+          // enviar o que ninguém está olhando.
+          adaptiveStream: true,
+          dynacast: true,
+        });
+        roomRef.current = room;
 
-      room
-        .on(lk.RoomEvent.ParticipantConnected, sincronizar)
-        .on(lk.RoomEvent.ParticipantDisconnected, sincronizar)
-        .on(lk.RoomEvent.TrackSubscribed, sincronizar)
-        .on(lk.RoomEvent.TrackUnsubscribed, sincronizar)
-        .on(lk.RoomEvent.TrackMuted, sincronizar)
-        .on(lk.RoomEvent.TrackUnmuted, sincronizar)
-        .on(lk.RoomEvent.LocalTrackPublished, sincronizar)
-        .on(lk.RoomEvent.LocalTrackUnpublished, sincronizar)
-        .on(lk.RoomEvent.ActiveSpeakersChanged, sincronizar)
-        .on(lk.RoomEvent.ConnectionStateChanged, (estado) => {
-          if (estado === lk.ConnectionState.Reconnecting) setStatus("reconectando");
-          if (estado === lk.ConnectionState.Connected) setStatus("dentro");
-        })
-        .on(lk.RoomEvent.Disconnected, () => {
-          // Queda de verdade (servidor caiu, rede morreu): a sala continua
-          // aberta, só a chamada acabou.
-          roomRef.current = null;
-          setStatus("fora");
-          setParticipantes([]);
-        })
-        .on(lk.RoomEvent.MediaDevicesError, (e: unknown) => setErro(explicar(e)));
+        room
+          .on(lk.RoomEvent.ParticipantConnected, sincronizar)
+          .on(lk.RoomEvent.ParticipantDisconnected, sincronizar)
+          .on(lk.RoomEvent.TrackSubscribed, sincronizar)
+          .on(lk.RoomEvent.TrackUnsubscribed, sincronizar)
+          .on(lk.RoomEvent.TrackMuted, sincronizar)
+          .on(lk.RoomEvent.TrackUnmuted, sincronizar)
+          .on(lk.RoomEvent.LocalTrackPublished, sincronizar)
+          .on(lk.RoomEvent.LocalTrackUnpublished, sincronizar)
+          .on(lk.RoomEvent.ActiveSpeakersChanged, sincronizar)
+          .on(lk.RoomEvent.ConnectionStateChanged, (estado) => {
+            if (estado === lk.ConnectionState.Reconnecting) setStatus("reconectando");
+            if (estado === lk.ConnectionState.Connected) setStatus("dentro");
+          })
+          .on(lk.RoomEvent.Disconnected, () => {
+            // Queda de verdade (servidor caiu, rede morreu): a sala continua
+            // aberta, só a chamada acabou.
+            roomRef.current = null;
+            setStatus("fora");
+            setSala(null);
+            setParticipantes([]);
+          })
+          .on(lk.RoomEvent.MediaDevicesError, (e: unknown) => setErro(explicar(e)));
 
-      await room.connect(corpo.url, corpo.token);
+        await room.connect(corpo.url, corpo.token);
 
-      // Só agora o navegador pede o microfone — e só o microfone. A câmera
-      // continua desligada até alguém pedir por ela.
-      await room.localParticipant.setMicrophoneEnabled(true);
+        // Só agora o navegador pede o microfone — e só o microfone. A câmera
+        // continua desligada até alguém pedir por ela.
+        await room.localParticipant.setMicrophoneEnabled(true);
 
-      setStatus("dentro");
-      sincronizar();
-      carregarDispositivos();
-    } catch (e) {
-      setErro(explicar(e));
-      await sair();
-    }
-  }, [salaId, sincronizar, carregarDispositivos, sair]);
+        setStatus("dentro");
+        sincronizar();
+        carregarDispositivos();
+      } catch (e) {
+        setErro(explicar(e));
+        await sair();
+      }
+    },
+    [sincronizar, carregarDispositivos, sair]
+  );
 
   const alternarMic = useCallback(async () => {
     const room = roomRef.current;
@@ -278,17 +319,11 @@ export function useChamada(salaId: string | null, meuNome: string) {
     };
   }, []);
 
-  // Trocar de sala sai da chamada da sala anterior: a chamada pertence à
-  // sala, não à pessoa.
-  useEffect(() => {
-    if (roomRef.current) sair();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [salaId]);
-
   const telaDeAlguem = participantes.find((p) => p.tela) ?? null;
 
   return {
     status,
+    sala,
     erro,
     limparErro: () => setErro(null),
     participantes,

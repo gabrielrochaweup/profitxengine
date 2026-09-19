@@ -30,7 +30,6 @@ export default async function ComunidadePage() {
     <div className="flex h-full min-h-0 flex-col">
       <ComunidadeClient
         meuId={user.id}
-        meuNome={profile?.full_name?.trim() || "Sem nome"}
         souAdminDoApp={profile?.role === "admin"}
         podeCriarSala={profile?.role === "admin" || profile?.role === "editor"}
         pessoas={(pessoas ?? []).map((p) => ({
@@ -45,12 +44,6 @@ export default async function ComunidadePage() {
         salasIniciais={salas ?? []}
         membrosIniciais={membros ?? []}
         naoLidasIniciais={naoLidas ?? []}
-        // O botão de entrar só liga quando as três chaves do LiveKit estão
-        // no ambiente. Sem elas, a tela diz isso em vez de abrir uma chamada
-        // que não conecta.
-        chamadaDisponivel={
-          !!process.env.LIVEKIT_URL && !!process.env.LIVEKIT_API_KEY && !!process.env.LIVEKIT_API_SECRET
-        }
       />
     </div>
   );

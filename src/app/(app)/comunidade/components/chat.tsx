@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { CornerUpLeft, Pencil, Send, Smile, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -35,6 +35,7 @@ export function Chat({
   onEditar,
   onExcluir,
   onReagir,
+  acaoChamada,
 }: {
   mensagens: Mensagem[];
   reacoes: Reacao[];
@@ -48,6 +49,8 @@ export function Chat({
   onEditar: (id: string, conteudo: string) => Promise<void>;
   onExcluir: (id: string) => Promise<void>;
   onReagir: (mensagemId: string, emoji: string) => Promise<void>;
+  /** Entrar/sair da chamada, logo acima do campo de mensagem. */
+  acaoChamada?: ReactNode;
 }) {
   const confirm = useConfirm();
   const listaRef = useRef<HTMLDivElement>(null);
@@ -374,6 +377,10 @@ export function Chat({
       )}
 
       <div className="border-t border-border p-3">
+        {/* A chamada vem antes do campo: é a ação mais consequente da sala e
+            mora onde a mão já está. */}
+        {acaoChamada}
+
         {respondendo && (
           <div className="mb-2 flex items-center gap-2 rounded-input border border-border bg-card-hover px-3 py-1.5 text-[11px]">
             <CornerUpLeft size={12} className="shrink-0 text-text-tertiary" />
