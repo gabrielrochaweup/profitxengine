@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto";
 import type { Database } from "@/lib/supabase/types";
@@ -9,7 +9,7 @@ type AcessoUpdate = Database["public"]["Tables"]["acessos"]["Update"];
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "editor")) {
+  if (!profile || profile.role !== "admin") {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 
@@ -63,7 +63,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "editor")) {
+  if (!profile || profile.role !== "admin") {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 

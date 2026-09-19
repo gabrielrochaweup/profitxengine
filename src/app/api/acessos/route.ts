@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto";
 import { CAMPOS_ACESSO, ehCategoria, ehCiclo, ehMoeda } from "@/lib/acessos";
 
-// Editor pra cima: a razão de existir desta tela é a equipe conseguir entrar
-// nas contas, e trancar em admin devolveria todo mundo pro grupo do WhatsApp
-// pedindo senha. Viewer fica de fora.
+// Só admin, nas três rotas de Acessos.
+//
+// A tela nasceu aberta pra editor, com o argumento de que trancar em admin
+// devolveria todo mundo pro grupo do WhatsApp pedindo senha. A decisão foi
+// revista: aqui moram as senhas das contas da empresa e o lugar onde está o
+// segundo fator, e esse conteúdo não é insumo de quem edita conteúdo.
+//
+// A checagem é repetida em cada handler de propósito — a rota é o portão de
+// verdade. Esconder o item do menu é conveniência; sem isto, bastava chamar
+// a URL direto.
 
 export async function GET(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "editor")) {
+  if (!profile || profile.role !== "admin") {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 
@@ -36,7 +43,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "editor")) {
+  if (!profile || profile.role !== "admin") {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 

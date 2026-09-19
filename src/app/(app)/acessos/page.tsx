@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser, getProfile } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
-import { hasRole } from "@/lib/auth";
 import type { UserRole } from "@/lib/supabase/types";
 import { PageContainer, PageHeader } from "@/components/ui/page";
 import { AcessosClient } from "./acessos-client";
@@ -24,14 +23,15 @@ export default async function AcessosPage() {
     );
   }
 
-  // Visualizador não entra: a tela existe pra quem opera as contas, e uma
-  // senha guardada não tem meio-termo entre ver e não ver.
-  if (!hasRole(role, "editor")) {
+  // Só admin. A tela abre a senha das contas da empresa e diz em qual
+  // celular está o 2FA — não tem meio-termo entre ver e não ver, e editor
+  // não precisa disso pra editar conteúdo.
+  if (role !== "admin") {
     return (
       <PageContainer largura="padrao">
         <PageHeader
           titulo="Acessos"
-          descricao="Essa área é da equipe que opera as contas. Peça a um admin pra mudar seu nível de acesso."
+          descricao="Essa área é restrita aos admins. Se você precisa entrar em alguma conta, peça a um admin."
         />
       </PageContainer>
     );

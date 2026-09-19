@@ -51,7 +51,7 @@ interface SidebarProps {
 export function Sidebar({ fullName, email, role }: SidebarProps) {
   const pathname = usePathname();
   const { activeProduct } = useActiveProduct();
-  const navSections = getNavSections(activeProduct);
+  const navSections = getNavSections(activeProduct, role === "admin");
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(true);

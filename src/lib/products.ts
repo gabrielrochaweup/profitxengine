@@ -21,6 +21,14 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  /**
+   * Some do menu e da rota pra quem não é admin.
+   *
+   * Vale pra ferramenta cujo CONTEÚDO é sensível por natureza, não pra
+   * ferramenta "avançada": Acessos guarda senha de conta da empresa e o
+   * lugar onde mora o segundo fator.
+   */
+  soAdmin?: boolean;
 }
 
 /**
@@ -66,7 +74,11 @@ const NAV_BIBLIOTECA: NavItem[] = [
   { href: "/biblioteca-imagens", label: "Imagens", icon: Images },
 ];
 
-const NAV_OPERACAO: NavItem[] = [{ href: "/acessos", label: "Acessos", icon: KeyRound }];
+// Acessos é só de admin: a tela existe pra abrir a senha das contas da
+// empresa e dizer em qual celular está o 2FA. Quem edita conteúdo não
+// precisa disso pra trabalhar, e "precisa de vez em quando" não é motivo
+// pra deixar o cofre aberto o tempo todo.
+const NAV_OPERACAO: NavItem[] = [{ href: "/acessos", label: "Acessos", icon: KeyRound, soAdmin: true }];
 
 // Itens exclusivos de UM produto específico (não aparecem nos outros).
 // PROFITX é o único com um hoje — um produto novo criado pela UI não entra
@@ -75,17 +87,31 @@ const EXCLUSIVE_NAV_ITEMS: Record<string, NavItem[]> = {
   profitx: [{ href: "/dinamicas-do-dia", label: "Dinâmicas do Dia", icon: Zap }],
 };
 
-export function getNavSections(slug: string): NavSection[] {
+export function getNavSections(slug: string, isAdmin = true): NavSection[] {
   const exclusivos = EXCLUSIVE_NAV_ITEMS[slug] ?? [];
+  const visiveis = (itens: NavItem[]) => (isAdmin ? itens : itens.filter((i) => !i.soAdmin));
   return [
     // Sem título: o começo do menu não precisa de rótulo pra ser entendido,
     // e um "INÍCIO" ali só empurraria tudo pra baixo.
-    { titulo: "", itens: [...NAV_INICIO, ...exclusivos] },
-    { titulo: "Criação", itens: NAV_CRIACAO },
-    { titulo: "Dados", itens: NAV_DADOS },
-    { titulo: "Biblioteca", itens: NAV_BIBLIOTECA },
-    { titulo: "Operação", itens: NAV_OPERACAO },
+    { titulo: "", itens: visiveis([...NAV_INICIO, ...exclusivos]) },
+    { titulo: "Criação", itens: visiveis(NAV_CRIACAO) },
+    { titulo: "Dados", itens: visiveis(NAV_DADOS) },
+    { titulo: "Biblioteca", itens: visiveis(NAV_BIBLIOTECA) },
+    // A seção inteira some quando o único item dela é de admin — um título
+    // "OPERAÇÃO" sozinho seria uma gaveta vazia com etiqueta.
+    { titulo: "Operação", itens: visiveis(NAV_OPERACAO) },
   ].filter((s) => s.itens.length > 0);
+}
+
+/** Rotas que só admin abre — a lista é derivada do próprio menu. */
+const HREFS_SO_ADMIN = new Set(
+  [...NAV_INICIO, ...NAV_CRIACAO, ...NAV_DADOS, ...NAV_BIBLIOTECA, ...NAV_OPERACAO]
+    .filter((i) => i.soAdmin)
+    .map((i) => i.href)
+);
+
+export function rotaSoDeAdmin(pathname: string): boolean {
+  return Array.from(HREFS_SO_ADMIN).some((href) => pathname === href || pathname.startsWith(`${href}/`));
 }
 
 /** Lista corrida — usada por quem só precisa saber quais rotas existem. */
@@ -137,6 +163,11 @@ const SHARED_HREFS = new Set(
 // específico.
 export function isPathAccessible(pathname: string, accessibleSlugs: string[]): boolean {
   const matchesHref = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+  // Esta função só é chamada pra quem NÃO é admin (ver (app)/layout.tsx), e
+  // por isso a checagem cabe aqui: rota de admin não abre, mesmo que a
+  // pessoa digite o endereço na barra.
+  if (rotaSoDeAdmin(pathname)) return false;
 
   const exclusiveOwner = Object.entries(EXCLUSIVE_NAV_ITEMS).find(([, items]) =>
     items.some((item) => matchesHref(item.href))

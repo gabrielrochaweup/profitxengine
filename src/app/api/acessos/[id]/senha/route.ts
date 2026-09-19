@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptSecret } from "@/lib/crypto";
 
@@ -9,7 +9,7 @@ import { decryptSecret } from "@/lib/crypto";
 // pra ver todas de uma vez, sem clicar em nada.
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "editor")) {
+  if (!profile || profile.role !== "admin") {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 
