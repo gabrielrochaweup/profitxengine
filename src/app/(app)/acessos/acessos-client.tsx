@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Eye, EyeOff, Copy, ShieldCheck, ShieldAlert } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, Copy, LogIn, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ interface Campos {
   categoria: Categoria;
   url: string;
   usuario: string;
+  login_google: boolean;
   senha: string;
   tem_2fa: boolean;
   onde_2fa: string;
@@ -49,6 +50,7 @@ const VAZIO: Campos = {
   categoria: "rede",
   url: "",
   usuario: "",
+  login_google: false,
   senha: "",
   tem_2fa: false,
   onde_2fa: "",
@@ -226,6 +228,7 @@ export function AcessosClient({ productId }: { productId: string }) {
             categoria: editando.categoria,
             url: editando.url ?? "",
             usuario: editando.usuario ?? "",
+            login_google: editando.login_google,
             senha: "",
             tem_2fa: editando.tem_2fa,
             onde_2fa: editando.onde_2fa ?? "",
@@ -338,6 +341,15 @@ function LinhaAcesso({
                 sem 2FA
               </Badge>
             )}
+            {acesso.login_google && (
+              // Conta sem senha guardada porque entra pelo Google é
+              // diferente de conta sem senha anotada. A etiqueta separa as
+              // duas — é a primeira pergunta de quem precisa entrar.
+              <Badge tone="neutral">
+                <LogIn size={11} className="mr-1" />
+                Login com Google
+              </Badge>
+            )}
             {acesso.assinatura && (
               <Badge tone="warning">
                 {custo === null
@@ -349,6 +361,7 @@ function LinhaAcesso({
           </div>
           <p className="mt-1 truncate text-[11px] text-text-muted">
             {acesso.usuario || "sem login anotado"}
+            {acesso.login_google && !acesso.tem_senha && " · entra pelo Google, sem senha própria"}
             {acesso.responsavel && ` · com ${acesso.responsavel}`}
             {acesso.tem_2fa && acesso.onde_2fa && ` · 2FA ${acesso.onde_2fa}`}
           </p>
@@ -369,22 +382,27 @@ function LinhaAcesso({
           )}
           {acesso.tem_senha && (
             <>
+              {/* Ícone com palavra do lado: sozinho, o olho passava
+                  despercebido no meio dos outros ícones — e é justamente o
+                  botão que a pessoa veio procurar. */}
               <button
                 type="button"
                 onClick={mostrar}
                 disabled={buscando}
-                className="rounded-button p-1.5 text-text-muted hover:bg-card hover:text-text-primary"
+                className="flex items-center gap-1 rounded-button px-1.5 py-1 text-[11px] text-text-muted hover:bg-card hover:text-text-primary disabled:opacity-50"
                 title={senha ? "Esconder a senha" : "Mostrar a senha"}
               >
                 {senha ? <EyeOff size={14} /> : <Eye size={14} />}
+                {buscando ? "Abrindo…" : senha ? "Esconder" : "Ver senha"}
               </button>
               <button
                 type="button"
                 onClick={copiar}
-                className="rounded-button p-1.5 text-text-muted hover:bg-card hover:text-text-primary"
+                className="flex items-center gap-1 rounded-button px-1.5 py-1 text-[11px] text-text-muted hover:bg-card hover:text-text-primary"
                 title="Copiar a senha"
               >
                 <Copy size={14} />
+                Copiar
               </button>
             </>
           )}
@@ -399,9 +417,19 @@ function LinhaAcesso({
 
       {senha && (
         <div className="mt-2 flex items-center gap-2">
-          <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-input bg-accent-soft px-3 py-1.5 font-mono text-xs">
+          {/* Selecionável de propósito: às vezes a pessoa quer só o pedaço
+              do meio, ou colar num campo que rejeita o Ctrl+V do botão. */}
+          <code className="flex-1 select-all overflow-x-auto whitespace-nowrap rounded-input bg-accent-soft px-3 py-1.5 font-mono text-xs">
             {senha}
           </code>
+          <button
+            type="button"
+            onClick={copiar}
+            title="Copiar a senha"
+            className="shrink-0 rounded-button p-1.5 text-text-muted hover:bg-card hover:text-text-primary"
+          >
+            <Copy size={14} />
+          </button>
           <span className="shrink-0 text-[10px] text-text-muted/70">some em 30s</span>
         </div>
       )}
@@ -448,6 +476,7 @@ function Formulario({
       categoria: campos.categoria,
       url: campos.url,
       usuario: campos.usuario,
+      login_google: campos.login_google,
       tem_2fa: campos.tem_2fa,
       onde_2fa: campos.onde_2fa,
       responsavel: campos.responsavel,
@@ -509,15 +538,30 @@ function Formulario({
             <Input value={campos.usuario} onChange={(e) => set("usuario", e.target.value)} placeholder="contato@escolaprofitx.com" />
           </Field>
           <Field label="Senha" hint={acesso ? "(em branco = não mexe)" : undefined} span={6}>
-            <div className="flex items-center gap-1.5">
-              <Input
-                type="password"
-                value={campos.senha}
-                onChange={(e) => set("senha", e.target.value)}
-                placeholder={acesso ? "••••••••" : "senha da conta"}
+            <CampoSenha
+              valor={campos.senha}
+              onChange={(v) => set("senha", v)}
+              acessoId={acesso?.id ?? null}
+              temSenha={acesso?.tem_senha ?? false}
+              loginGoogle={campos.login_google}
+            />
+          </Field>
+
+          <Field span={12}>
+            {/* A pergunta "essa conta tem senha própria?" vem antes de
+                qualquer senha: várias entram pelo botão do Google, e aí a
+                senha que importa é a da conta Google — não uma senha desta
+                plataforma que não existe. */}
+            <label className="flex items-center gap-2 text-xs text-text-secondary">
+              <input
+                type="checkbox"
+                checked={campos.login_google}
+                onChange={(e) => set("login_google", e.target.checked)}
+                className="h-3.5 w-3.5 accent-accent"
               />
-              <Tooltip text="Guardada cifrada, igual aos tokens do app. Só aparece quando alguém clica em mostrar, e some da tela sozinha depois de 30 segundos." />
-            </div>
+              Entra com o login do Google
+              <Tooltip text="Marque quando a plataforma abre com “Continuar com o Google”. O login acima é a conta Google usada; a senha pode ficar em branco." />
+            </label>
           </Field>
 
           <Field label="Quem administra" hint="(opcional)" span={6}>
@@ -607,5 +651,117 @@ function Formulario({
         </div>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * O campo de senha do formulário.
+ *
+ * Três coisas que faltavam, e todas pelo mesmo motivo — a senha existe pra
+ * ser levada até a plataforma:
+ *
+ * 1. O olho, pra conferir o que se está digitando. Senha em bolinha é boa
+ *    defesa contra quem olha por cima do ombro e péssima contra o próprio
+ *    erro de digitação.
+ * 2. Na edição, "Ver a senha atual": ela abre o cofre, traz a senha pro
+ *    campo e deixa visível. Antes, quem abria o cadastro pra conferir a
+ *    senha encontrava um campo vazio com "em branco = não mexe".
+ * 3. Copiar, que é o que a pessoa vai fazer em seguida de qualquer jeito.
+ */
+function CampoSenha({
+  valor,
+  onChange,
+  acessoId,
+  temSenha,
+  loginGoogle,
+}: {
+  valor: string;
+  onChange: (v: string) => void;
+  acessoId: string | null;
+  temSenha: boolean;
+  loginGoogle: boolean;
+}) {
+  const toast = useToast();
+  const [visivel, setVisivel] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+
+  async function buscarAtual(): Promise<string | null> {
+    if (!acessoId) return null;
+    setBuscando(true);
+    const res = await fetch(`/api/acessos/${acessoId}/senha`);
+    setBuscando(false);
+    const json = await res.json().catch(() => null);
+    if (!res.ok || typeof json?.senha !== "string") {
+      toast.error(json?.error ?? "Falha ao abrir a senha.");
+      return null;
+    }
+    return json.senha;
+  }
+
+  async function verAtual() {
+    const senha = await buscarAtual();
+    if (senha === null) return;
+    onChange(senha);
+    setVisivel(true);
+  }
+
+  async function copiar() {
+    // O que está no campo ganha do que está no banco: se a pessoa acabou de
+    // digitar uma senha nova, é essa que ela quer levar pra plataforma.
+    const senha = valor || (await buscarAtual());
+    if (!senha) return;
+    await navigator.clipboard.writeText(senha);
+    toast.success("Senha copiada.");
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="relative">
+        <Input
+          type={visivel ? "text" : "password"}
+          value={valor}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={temSenha ? "••••••••" : loginGoogle ? "não precisa — entra pelo Google" : "senha da conta"}
+          className="pr-16"
+          autoComplete="new-password"
+        />
+        <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => setVisivel((v) => !v)}
+            title={visivel ? "Esconder a senha" : "Mostrar a senha"}
+            aria-label={visivel ? "Esconder a senha" : "Mostrar a senha"}
+            className="flex h-7 w-7 items-center justify-center rounded-button text-text-muted hover:bg-card-hover hover:text-text-primary"
+          >
+            {visivel ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
+          {(valor || temSenha) && (
+            <button
+              type="button"
+              onClick={copiar}
+              title="Copiar a senha"
+              aria-label="Copiar a senha"
+              className="flex h-7 w-7 items-center justify-center rounded-button text-text-muted hover:bg-card-hover hover:text-text-primary"
+            >
+              <Copy size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {temSenha && (
+          <button
+            type="button"
+            onClick={verAtual}
+            disabled={buscando}
+            className="text-[11px] text-accent-text hover:underline disabled:opacity-50"
+          >
+            {buscando ? "Abrindo…" : "Ver a senha atual"}
+          </button>
+        )}
+        <Tooltip text="Guardada cifrada, igual aos tokens do app. Ela não sai na listagem: só quando alguém pede, e some da tela sozinha depois de 30 segundos." />
+      </div>
+    </div>
   );
 }

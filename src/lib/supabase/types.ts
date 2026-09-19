@@ -1311,6 +1311,7 @@ export interface Database {
           url: string | null;
           usuario: string | null;
           encrypted_senha: string | null;
+          login_google: boolean;
           tem_2fa: boolean;
           onde_2fa: string | null;
           responsavel: string | null;
@@ -1323,10 +1324,14 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["acessos"]["Row"], "id" | "created_at" | "updated_at"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["acessos"]["Row"],
+          "id" | "created_at" | "updated_at" | "login_google"
+        > & {
           id?: string;
           created_at?: string;
           updated_at?: string;
+          login_google?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["acessos"]["Insert"]>;
         Relationships: [];

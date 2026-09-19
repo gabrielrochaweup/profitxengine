@@ -1,5 +1,5 @@
 export const CAMPOS_ACESSO =
-  "id, nome, categoria, url, usuario, tem_2fa, onde_2fa, responsavel, assinatura, valor_cents, moeda, ciclo, observacoes, created_at, updated_at";
+  "id, nome, categoria, url, usuario, login_google, tem_2fa, onde_2fa, responsavel, assinatura, valor_cents, moeda, ciclo, observacoes, created_at, updated_at";
 
 export const CATEGORIAS = ["rede", "ferramenta", "financeiro", "outro"] as const;
 export type Categoria = (typeof CATEGORIAS)[number];
@@ -33,6 +33,8 @@ export interface Acesso {
   categoria: Categoria;
   url: string | null;
   usuario: string | null;
+  /** Entra pelo "Continuar com o Google" — a senha é a da conta Google. */
+  login_google: boolean;
   tem_2fa: boolean;
   onde_2fa: string | null;
   responsavel: string | null;

@@ -24,6 +24,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
   }
   if (typeof body?.tem_2fa === "boolean") update.tem_2fa = body.tem_2fa;
+  if (typeof body?.login_google === "boolean") update.login_google = body.login_google;
   if (ehMoeda(body?.moeda)) update.moeda = body.moeda;
   if (ehCiclo(body?.ciclo)) update.ciclo = body.ciclo;
 

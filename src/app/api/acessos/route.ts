@@ -60,6 +60,7 @@ export async function POST(request: Request) {
       url: texto(body?.url),
       usuario: texto(body?.usuario),
       encrypted_senha: senha ? encryptSecret(senha) : null,
+      login_google: body?.login_google === true,
       tem_2fa: body?.tem_2fa === true,
       onde_2fa: texto(body?.onde_2fa),
       responsavel: texto(body?.responsavel),
