@@ -1603,6 +1603,16 @@ export interface Database {
         Args: { p_product_id: string; p_source: string; p_from: string; p_to: string };
         Returns: { plano: string; cadastrados: number; acessaram: number }[];
       };
+      // Leitura própria do funil: quantas PESSOAS distintas chegaram em cada
+      // etapa, com a contagem de eventos ao lado. Ver 0108.
+      tracking_funil_pessoas: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: { utm_source: string; etapa: string; pessoas: number; eventos: number }[];
+      };
+      tracking_atividade_por_horario: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: { utm_source: string; etapa: string; weekday: number; hour: number; total: number }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

@@ -390,3 +390,74 @@ export function Ponto({ tom }: { tom: "ok" | "alerta" | "erro" | "neutro" }) {
     />
   );
 }
+
+/* ─────────────────────────── distribuição ─────────────────────────── */
+
+/**
+ * Como um total se reparte entre poucas categorias.
+ *
+ * Substitui os donuts do detalhamento. Dois motivos: donut de 260px pra
+ * mostrar "stories: 8 (100%)" gasta meia tela pra dizer uma linha, e a
+ * paleta rotativa pintava cada categoria de uma cor sem que a cor
+ * significasse nada.
+ *
+ * Com uma ou duas categorias vira uma frase; com mais, vira barra. A cor é
+ * sempre a mesma — o que varia é o comprimento, que é justamente a
+ * informação.
+ */
+export function Distribuicao({
+  dados,
+  formatar = (n: number) => String(n),
+  vazio = "Sem dados nesse período.",
+}: {
+  dados: { label: string; valor: number }[];
+  formatar?: (valor: number) => string;
+  vazio?: string;
+}) {
+  const ordenado = dados.slice().sort((a, b) => b.valor - a.valor);
+  const total = ordenado.reduce((acc, d) => acc + d.valor, 0);
+
+  if (ordenado.length === 0 || total === 0) {
+    return <p className="py-3 text-[11px] text-text-tertiary">{vazio}</p>;
+  }
+
+  if (ordenado.length <= 2) {
+    return (
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-1">
+        {ordenado.map((d) => (
+          <span key={d.label} className="flex items-baseline gap-1.5">
+            <span className="text-[15px] font-semibold tabular-nums text-text-primary">{formatar(d.valor)}</span>
+            <span className="text-[11px] text-text-secondary">{d.label}</span>
+            {ordenado.length > 1 && (
+              <span className="text-[10px] tabular-nums text-text-muted">
+                {Math.round((d.valor / total) * 100)}%
+              </span>
+            )}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  const maior = Math.max(...ordenado.map((d) => d.valor));
+  return (
+    <div className="space-y-1.5 py-0.5">
+      {ordenado.map((d) => (
+        <div key={d.label} className="flex items-center gap-2.5">
+          <span className="w-28 shrink-0 truncate text-[11px] text-text-secondary" title={d.label}>
+            {d.label}
+          </span>
+          <div className="h-3.5 flex-1 overflow-hidden rounded-[4px] bg-card-hover">
+            <div
+              className="h-full rounded-[4px] bg-accent"
+              style={{ width: `${Math.max(2, (d.valor / maior) * 100)}%`, opacity: Math.max(0.45, d.valor / maior) }}
+            />
+          </div>
+          <span className="w-20 shrink-0 text-right text-[11px] font-medium tabular-nums text-text-primary">
+            {formatar(d.valor)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}

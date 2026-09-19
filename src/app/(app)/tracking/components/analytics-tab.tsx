@@ -1,18 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  Users,
-  ShoppingCart,
-  GraduationCap,
-  Landmark,
-  Wallet,
-  TrendingUp,
-  Percent,
-  RefreshCw,
-  Sparkles,
-  FileSignature,
-} from "lucide-react";
+import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -23,6 +12,7 @@ import {
   Bloco,
   Cartao,
   CartaoDividido,
+  Distribuicao,
   FiltroCampo,
   MetadeCartao,
   Ponto,
@@ -34,9 +24,19 @@ import {
   Tr,
   Vazio,
 } from "./ui";
+import { isSpecialBucket, SPECIAL_BUCKET_HELP } from "./baldes";
+import {
+  ETAPAS_FUNIL,
+  Funil,
+  maiorQueda,
+  montarEtapasDoFunil,
+  porcentagem,
+  type LinhaFunil,
+} from "./funil";
+import { MatrizDeOrigem } from "./origem";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { SimpleBarChart, ConversionFunnel, DynamicPieChart, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
+import { SimpleBarChart, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
 
 interface CampaignRow {
   utm_source: string;
@@ -91,6 +91,29 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   broker_deposit: "Depósito",
 };
 
+/**
+ * As quatro perguntas que os gráficos de horário respondem.
+ *
+ * Um seletor em vez de quatro pares de gráficos empilhados: são os mesmos
+ * eixos, a mesma janela e o mesmo filtro de fonte — só muda o que se conta.
+ */
+const METRICAS_DE_TEMPO = [
+  { key: "lead", label: "Leads" },
+  { key: "purchase", label: "Compras" },
+  { key: "broker_signup", label: "Corretora" },
+  { key: "broker_deposit", label: "Depósitos" },
+] as const;
+
+type MetricaTempo = (typeof METRICAS_DE_TEMPO)[number]["key"];
+
+interface LinhaAtividade {
+  utm_source: string;
+  etapa: string;
+  weekday: number;
+  hour: number;
+  total: number;
+}
+
 // dow do Postgres: 0 = domingo. Reordenado pra exibir Seg→Dom.
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const WEEKDAY_DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -107,19 +130,6 @@ const EVENT_TYPE_FILTER_OPTIONS = [
   { value: "broker_signup", label: "Cadastro na corretora" },
   { value: "broker_deposit", label: "Depósito" },
 ];
-
-// Categorias "de fallback" que aparecem na coluna Origem/Campanha em vez
-// de um nome de campanha real — sem essa explicação, parecem só mais uma
-// campanha e confundem quem está lendo o relatório pela primeira vez.
-const SPECIAL_BUCKET_HELP: Record<string, string> = {
-  "(direto)": "Visitante chegou sem nenhuma UTM no link (sem utm_source).",
-  "(sem campanha)": "Tem utm_source, mas o link não veio com utm_campaign preenchido.",
-  "(não atribuído)": "Evento (compra, depósito...) chegou mas não deu pra ligar a nenhum lead nosso — sem campanha possível de atribuir.",
-};
-
-function isSpecialBucket(value: string): boolean {
-  return value in SPECIAL_BUCKET_HELP;
-}
 
 /**
  * Os quatro recortes de Performance, na hierarquia que o gestor de tráfego já
@@ -211,7 +221,12 @@ export function AnalyticsTab({
   const [salesByPayment, setSalesByPayment] = useState<
     { payment_method: string; purchases: number; revenue_cents: number }[]
   >([]);
-  const [salesByTime, setSalesByTime] = useState<{ weekday: number; hour: number; purchases: number }[]>([]);
+  // Leitura própria do funil (pessoas, não eventos) e atividade por hora de
+  // qualquer etapa — as duas vêm das funções criadas na 0108.
+  const [funilLinhas, setFunilLinhas] = useState<LinhaFunil[]>([]);
+  const [atividade, setAtividade] = useState<LinhaAtividade[]>([]);
+  const [etapaSelecionada, setEtapaSelecionada] = useState<string | null>(null);
+  const [metricaTempo, setMetricaTempo] = useState<MetricaTempo>("purchase");
   const [salesByPageType, setSalesByPageType] = useState<{ page_type: string; purchases: number; revenue_cents: number }[]>(
     []
   );
@@ -235,22 +250,33 @@ export function AnalyticsTab({
 
   async function fetchSalesBreakdowns(supabase: ReturnType<typeof createClient>, from: Date, now: Date) {
     const params = { p_product_id: productId, p_from: from.toISOString(), p_to: now.toISOString() };
-    const [{ data: offerData }, { data: paymentData }, { data: timeData }, { data: pageTypeData }, { data: channelData }] =
-      await Promise.all([
-        supabase.rpc("tracking_sales_by_offer", params),
-        supabase.rpc("tracking_sales_by_payment_method", params),
-        supabase.rpc("tracking_sales_by_time", params),
-        supabase.rpc("tracking_sales_by_page_type", params),
-        supabase.rpc("tracking_sales_by_channel", params),
-      ]);
+    const [
+      { data: offerData },
+      { data: paymentData },
+      { data: pageTypeData },
+      { data: channelData },
+      { data: funilData },
+      { data: atividadeData },
+    ] = await Promise.all([
+      supabase.rpc("tracking_sales_by_offer", params),
+      supabase.rpc("tracking_sales_by_payment_method", params),
+      supabase.rpc("tracking_sales_by_page_type", params),
+      supabase.rpc("tracking_sales_by_channel", params),
+      supabase.rpc("tracking_funil_pessoas", params),
+      // Substitui tracking_sales_by_time: a mesma leitura, mas de qualquer
+      // etapa e com a origem junto, que é o que o seletor de métrica e o
+      // filtro de fonte precisam.
+      supabase.rpc("tracking_atividade_por_horario", params),
+    ]);
 
     const { data: pepeData } = await supabase.rpc("tracking_ferramenta_por_plano", { ...params, p_source: "pepe" });
     setPepePorPlano(pepeData ?? []);
     setSalesByOffer(offerData ?? []);
     setSalesByPayment(paymentData ?? []);
-    setSalesByTime(timeData ?? []);
     setSalesByPageType(pageTypeData ?? []);
     setSalesByChannel(channelData ?? []);
+    setFunilLinhas(funilData ?? []);
+    setAtividade(atividadeData ?? []);
   }
 
   useEffect(() => {
@@ -347,6 +373,7 @@ export function AnalyticsTab({
 
   const KPI_DETAIL_LABEL: Record<string, string> = {
     page_view: "Leads",
+    initiate_checkout: "Iniciou checkout",
     purchase: "Compras do curso",
     contract_signed: "Contratos assinados",
     members_access: "Área de membros",
@@ -397,93 +424,82 @@ export function AnalyticsTab({
   const roiCorretora =
     hasSpend && depositsTotalBRL !== null ? (depositsTotalBRL - kpis.spend) / kpis.spend : null;
 
-  const bySource = useMemo(() => {
-    const map = new Map<string, { leads: number; depositsTotal: number }>();
-    report.forEach((r) => {
-      const entry = map.get(r.utm_source) ?? { leads: 0, depositsTotal: 0 };
-      entry.leads += r.leads;
-      entry.depositsTotal += r.deposits_total_cents;
-      map.set(r.utm_source, entry);
-    });
-    return Array.from(map.entries())
-      .map(([source, v]) => ({ source, ...v }))
-      .sort((a, b) => b.depositsTotal - a.depositsTotal);
-  }, [report]);
+  /* ── O funil, contado em pessoas ──
+     Mesmo recorte de fonte/atribuição do resto da aba: sem isso, o funil e a
+     tabela abaixo dele estariam falando de universos diferentes na mesma
+     tela. */
+  const funilFiltrado = useMemo(() => {
+    let rows = sourceFilter === "all" ? funilLinhas : funilLinhas.filter((r) => r.utm_source === sourceFilter);
+    if (hideUnattributed) rows = rows.filter((r) => !isSpecialBucket(r.utm_source));
+    return rows;
+  }, [funilLinhas, sourceFilter, hideUnattributed]);
 
-  const depositsByCampaign = useMemo(
-    () =>
-      filteredReport
-        .filter((r) => r.deposits_total_cents > 0)
-        .slice()
-        .sort((a, b) => b.deposits_total_cents - a.deposits_total_cents)
-        .slice(0, 10)
-        .map((r) => ({ label: `${r.utm_source} · ${r.utm_campaign}`, value: r.deposits_total_cents })),
-    [filteredReport]
-  );
+  const etapasDoFunil = useMemo(() => montarEtapasDoFunil(funilFiltrado), [funilFiltrado]);
+  const piorEtapa = useMemo(() => maiorQueda(etapasDoFunil), [etapasDoFunil]);
 
-  // Visão rápida com as 8 etapas juntas — complementa os 2 funis
-  // detalhados abaixo (curso/corretora), que divergem logo após "Leads".
-  //
-  // A ordem é a da jornada real, não a da tabela: depois de comprar, a
-  // pessoa entra na área de membros e só então assina o contrato. Trocado,
-  // o funil sugeria uma etapa acontecendo antes da que a alimenta.
-  const combinedFunnelStages = [
-    { label: "Leads", value: kpis.leads },
-    { label: "Iniciou checkout", value: kpis.initiateCheckouts },
-    { label: "Compra do curso", value: kpis.purchases },
-    { label: "Área de membros", value: kpis.membersAccess },
-    { label: "Contrato assinado", value: kpis.contractsSigned },
-    { label: "Cadastro no Pepe", value: kpis.toolSignups },
-    { label: "Cadastro na corretora", value: kpis.brokerSignups },
-    { label: "Depósito", value: kpis.deposits },
-  ];
-  const maxCombinedStage = Math.max(1, ...combinedFunnelStages.map((s) => s.value));
+  /**
+   * A linha de apoio de um KPI: quantas PESSOAS e que fatia dos leads elas
+   * são. O número grande do cartão continua sendo o do negócio (compras
+   * aconteceram, dólares entraram) — aqui embaixo vai quem chegou.
+   *
+   * Some quando não dá pra saber: evento sem lead ligado não vira pessoa, e
+   * inventar uma porcentagem aqui seria pior do que não mostrar nada.
+   */
+  function apoioDaEtapa(chave: string): string | undefined {
+    const e = etapasDoFunil.find((x) => x.chave === chave);
+    if (!e || e.pessoas === null || e.fracaoDeLeads === null) return undefined;
+    return `${e.pessoas} ${e.pessoas === 1 ? "pessoa" : "pessoas"} · ${porcentagem(e.fracaoDeLeads)} dos leads`;
+  }
 
-  // Curso e corretora divergem logo depois de "Leads" — dois funis
-  // separados em vez de misturar as duas jornadas numa lista só.
-  const courseFunnelData = [
-    { label: "Leads", value: kpis.leads },
-    { label: "Iniciou checkout", value: kpis.initiateCheckouts },
-    { label: "Compra do curso", value: kpis.purchases },
-  ];
-  const brokerFunnelData = [
-    { label: "Leads", value: kpis.leads },
-    { label: "Cadastro na corretora", value: kpis.brokerSignups },
-    { label: "Depósito", value: kpis.deposits },
-  ];
+  // Escolher uma etapa no funil também aponta os gráficos de horário pra
+  // ela, quando existe métrica correspondente: "focar a análise nesta etapa"
+  // sem precisar repetir a escolha num segundo controle. Trocar a métrica na
+  // mão depois continua valendo.
+  useEffect(() => {
+    if (!etapaSelecionada) return;
+    if (METRICAS_DE_TEMPO.some((m) => m.key === etapaSelecionada)) {
+      setMetricaTempo(etapaSelecionada as MetricaTempo);
+    }
+  }, [etapaSelecionada]);
 
-  const salesByOfferChart = useMemo(
-    () => salesByOffer.map((r) => ({ name: r.offer_name, value: r.purchases })),
+  const atividadeFiltrada = useMemo(() => {
+    let rows = sourceFilter === "all" ? atividade : atividade.filter((r) => r.utm_source === sourceFilter);
+    if (hideUnattributed) rows = rows.filter((r) => !isSpecialBucket(r.utm_source));
+    return rows.filter((r) => r.etapa === metricaTempo);
+  }, [atividade, sourceFilter, hideUnattributed, metricaTempo]);
+
+  const distribuicaoPorProduto = useMemo(
+    () => salesByOffer.map((r) => ({ label: r.offer_name, valor: r.purchases })),
     [salesByOffer]
   );
-  const salesByPaymentChart = useMemo(
-    () => salesByPayment.map((r) => ({ name: r.payment_method, value: r.purchases })),
+  const distribuicaoPorPagamento = useMemo(
+    () => salesByPayment.map((r) => ({ label: r.payment_method, valor: r.purchases })),
     [salesByPayment]
   );
-  const salesByPageTypeChart = useMemo(
-    () => salesByPageType.map((r) => ({ name: r.page_type, value: r.purchases })),
+  const distribuicaoPorTipoDePagina = useMemo(
+    () => salesByPageType.map((r) => ({ label: r.page_type, valor: r.purchases })),
     [salesByPageType]
   );
-  const salesByChannelChart = useMemo(
-    () => salesByChannel.map((r) => ({ label: r.channel, value: r.revenue_cents })),
+  const distribuicaoPorCanal = useMemo(
+    () => salesByChannel.map((r) => ({ label: r.channel, valor: r.revenue_cents })),
     [salesByChannel]
   );
 
-  const salesByHourChart = useMemo(() => {
+  const porHoraChart = useMemo(() => {
     const byHour = new Array(24).fill(0);
-    salesByTime.forEach((r) => {
-      byHour[r.hour] += r.purchases;
+    atividadeFiltrada.forEach((r) => {
+      byHour[r.hour] += Number(r.total) || 0;
     });
     return byHour.map((value, hour) => ({ label: `${String(hour).padStart(2, "0")}h`, value }));
-  }, [salesByTime]);
+  }, [atividadeFiltrada]);
 
-  const salesByWeekdayChart = useMemo(() => {
+  const porDiaChart = useMemo(() => {
     const byWeekday = new Array(7).fill(0);
-    salesByTime.forEach((r) => {
-      byWeekday[r.weekday] += r.purchases;
+    atividadeFiltrada.forEach((r) => {
+      byWeekday[r.weekday] += Number(r.total) || 0;
     });
     return WEEKDAY_DISPLAY_ORDER.map((dow) => ({ label: WEEKDAY_LABELS[dow], value: byWeekday[dow] }));
-  }, [salesByTime]);
+  }, [atividadeFiltrada]);
 
   const salesByUtm = useMemo(
     () =>
@@ -603,266 +619,273 @@ export function AnalyticsTab({
 
       {subTab === "visao" && (
         <div className="space-y-6">
-          {/* ── O que entrou, e o que sobrou ──
-              Os dois números que mandam ficam em destaque; gasto e cotação
-              são o rodapé deles, não outro par de cartões do mesmo tamanho. */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_200px]">
-            <HeroStat
-              label="Curso — faturamento (R$)"
-              value={fmtBRL(kpis.purchaseRevenue)}
-              sub={`${kpis.purchases} ${kpis.purchases === 1 ? "compra" : "compras"}`}
-              lucro={profitCurso !== null ? { valor: fmtBRL(profitCurso), positivo: profitCurso >= 0 } : null}
-              roas={roasCurso !== null ? `${roasCurso.toFixed(1)}x` : null}
-              roi={roiCurso !== null ? `${roiCurso >= 0 ? "+" : ""}${(roiCurso * 100).toFixed(0)}%` : null}
-            />
-            <HeroStat
-              label="Corretora — depósitos (US$)"
-              value={fmtUSD(kpis.depositsTotal)}
-              sub={
-                <span className="inline-flex flex-wrap items-center gap-1">
-                  {kpis.deposits} {kpis.deposits === 1 ? "depósito" : "depósitos"}
-                  {depositsTotalBRL !== null && <span>· ≈ {fmtBRL(depositsTotalBRL)}</span>}
-                  <Tooltip text="Depósito é sempre em dólar — convertido pra real na cotação atual só pra comparar com o gasto em anúncios, que é cobrado em real." />
-                </span>
-              }
-              lucro={
-                profitCorretora !== null ? { valor: fmtBRL(profitCorretora), positivo: profitCorretora >= 0 } : null
-              }
-              roas={roasCorretora !== null ? `${roasCorretora.toFixed(1)}x` : null}
-              roi={roiCorretora !== null ? `${roiCorretora >= 0 ? "+" : ""}${(roiCorretora * 100).toFixed(0)}%` : null}
-            />
+          {/* ── B. KPIs principais ──
+              A faixa que responde as cinco primeiras perguntas do gestor sem
+              rolar a página. Oito células numa superfície só: o contorno vem
+              do fio da grade, não de oito cartões.
 
-            <div className="flex flex-col gap-3">
-              <FinanceTile
-                label="Gasto com anúncios"
-                value={hasSpend ? fmtBRL(kpis.spend) : "—"}
-                hint={hasSpend ? "Base dos ROIs ao lado" : "Sincronize em Contas Meta/Google"}
-              />
-              <FinanceTile
-                label="Cotação USD/BRL"
-                value={usdBrlRate !== null ? `R$ ${usdBrlRate.toFixed(2)}` : "—"}
-                hint={usdBrlRateUpdatedAt ? `Atualizada ${usdBrlRateUpdatedAt}` : "Carregando..."}
-              />
-            </div>
-          </div>
-
-          {/* ── Funil de conversão ──
-              As oito etapas em cima e, embaixo, os dois funis detalhados: é a
-              mesma pergunta vista de perto e de longe, então é uma superfície
-              só com fio no meio — antes eram três cartões seguidos.
-
-              Empilhados e não lado a lado: espremidos em meia largura, os dois
-              funis viravam um fiapo de 4px de altura com rótulo ilegível. Cada
-              linha aqui ganha a largura inteira. */}
-          <Bloco titulo="Funil de conversão">
-            <CartaoDividido className="lg:grid-cols-1 lg:divide-x-0 lg:divide-y">
-              <MetadeCartao>
-                <div className="space-y-1.5">
-                  {combinedFunnelStages.map((stage) => (
-                    <div key={stage.label} className="flex items-center gap-3">
-                      <span className="w-36 shrink-0 truncate text-[11px] text-text-secondary">{stage.label}</span>
-                      <div className="h-4 flex-1 overflow-hidden rounded-[4px] bg-card-hover">
-                        <div
-                          className="h-full rounded-[4px] bg-accent"
-                          style={{ width: `${Math.max(2, (stage.value / maxCombinedStage) * 100)}%` }}
-                        />
-                      </div>
-                      <span className="w-12 shrink-0 text-right text-xs font-semibold tabular-nums text-text-primary">
-                        {stage.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </MetadeCartao>
-
-              <MetadeCartao className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div className="min-w-0">
-                  <p className="mb-1 text-[11px] font-medium text-text-tertiary">Funil do curso</p>
-                  <ConversionFunnel data={courseFunnelData} color="var(--accent-text)" />
-                </div>
-                <div className="min-w-0">
-                  <p className="mb-1 text-[11px] font-medium text-text-tertiary">Funil da corretora</p>
-                  <ConversionFunnel data={brokerFunnelData} color="var(--success)" />
-                </div>
-              </MetadeCartao>
-            </CartaoDividido>
-          </Bloco>
-
-          {/* ── KPIs do funil (dado real, já capturado) ──
-              Eram 8 cartões soltos com 12px de padding cada um, ocupando mais
-              tela do que os 8 números que carregam. Agora é uma faixa só,
-              dividida por fio: mesma informação, um terço da altura. */}
+              O valor é o do NEGÓCIO (compras aconteceram, dólares entraram);
+              a linha de apoio é a de PESSOAS, que é o que o funil conta.
+              Quando os dois divergem, o texto diz qual é qual em vez de
+              escolher um e esconder o outro. */}
           <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-card bg-card shadow-card sm:grid-cols-4 xl:grid-cols-8 xl:divide-y-0">
             <KpiTile
               icon={Users}
               label="Leads"
               value={String(kpis.leads)}
+              sub="únicos no período"
               onClick={() => setKpiDetailType("page_view")}
             />
             <KpiTile
               icon={ShoppingCart}
-              label="Compras do curso"
-              value={String(kpis.purchases)}
-              sub={fmtBRL(kpis.purchaseRevenue)}
-              onClick={() => setKpiDetailType("purchase")}
-            />
-            <KpiTile
-              icon={FileSignature}
-              label="Contratos assinados"
-              value={String(kpis.contractsSigned)}
-              onClick={() => setKpiDetailType("contract_signed")}
+              label="Checkout"
+              value={String(kpis.initiateCheckouts)}
+              sub={apoioDaEtapa("initiate_checkout")}
+              onClick={() => setKpiDetailType("initiate_checkout")}
             />
             <KpiTile
               icon={GraduationCap}
-              label="Área de membros"
-              value={String(kpis.membersAccess)}
-              onClick={() => setKpiDetailType("members_access")}
+              label="Compras"
+              value={String(kpis.purchases)}
+              sub={apoioDaEtapa("purchase")}
+              onClick={() => setKpiDetailType("purchase")}
             />
             <KpiTile
-              icon={Sparkles}
-              label="Cadastros no Pepe"
-              value={String(kpis.toolSignups)}
-              onClick={() => setKpiDetailType("tool_signup")}
+              icon={TrendingUp}
+              label="Receita do curso"
+              value={fmtBRL(kpis.purchaseRevenue)}
+              sub={kpis.purchases > 0 ? `${fmtBRL(Math.round(kpis.purchaseRevenue / kpis.purchases))} por venda` : undefined}
             />
             <KpiTile
               icon={Landmark}
               label="Cadastros corretora"
               value={String(kpis.brokerSignups)}
+              sub={apoioDaEtapa("broker_signup")}
               onClick={() => setKpiDetailType("broker_signup")}
             />
             <KpiTile
               icon={Wallet}
               label="Depósitos"
               value={String(kpis.deposits)}
-              sub={fmtUSD(kpis.depositsTotal)}
+              sub={apoioDaEtapa("broker_deposit")}
               tone="success"
               onClick={() => setKpiDetailType("broker_deposit")}
             />
             <KpiTile
-              icon={TrendingUp}
+              icon={Wallet}
+              label="Total depositado"
+              value={fmtUSD(kpis.depositsTotal)}
+              sub={depositsTotalBRL !== null ? `≈ ${fmtBRL(depositsTotalBRL)}` : undefined}
+              tone="success"
+            />
+            <KpiTile
+              icon={Percent}
               label="Ticket médio depósito"
               value={fmtUSD(kpis.deposits > 0 ? Math.round(kpis.depositsTotal / kpis.deposits) : 0)}
+              sub="por depósito"
               tone="accent"
-              onClick={() => setKpiDetailType("broker_deposit")}
             />
           </div>
 
-          {/* ── De onde vem a venda ──
-              Quatro recortes da mesma pergunta, dois a dois na mesma
-              superfície. */}
-          <Bloco titulo="De onde vem a venda">
-            <div className="space-y-4">
-              <CartaoDividido>
-                <MetadeCartao>
-                  <p className="mb-2 text-[11px] font-medium text-text-tertiary">Vendas por produto</p>
-                  <DynamicPieChart data={salesByOfferChart} innerRadius={50} unit="count" />
-                </MetadeCartao>
-                <MetadeCartao>
-                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
-                    Vendas por método de pagamento
-                    <Tooltip text="Só a Onprofit manda esse dado por enquanto (Cartão de crédito/Pix) — outras plataformas caem em '(não identificado)' até termos esse campo confirmado com elas também." />
-                  </p>
-                  <DynamicPieChart data={salesByPaymentChart} innerRadius={50} unit="count" />
-                </MetadeCartao>
-              </CartaoDividido>
+          {/* ── C. Funil completo ──
+              A espinha dorsal da página: as oito etapas na ordem da jornada,
+              em duas linhas de quatro. Clicar numa etapa foca a matriz de
+              origem e os gráficos de horário nela. */}
+          <Bloco
+            titulo="Funil"
+            dica={
+              <Tooltip text="Cada etapa mostra quantas PESSOAS distintas chegaram nela. A contagem de eventos aparece do lado quando os dois diferem — acesso à área de membros, por exemplo, repete a mesma pessoa várias vezes." />
+            }
+            acoes={
+              etapaSelecionada ? (
+                <button
+                  type="button"
+                  onClick={() => setEtapaSelecionada(null)}
+                  className="text-[11px] text-accent-text hover:underline"
+                >
+                  Limpar seleção
+                </button>
+              ) : (
+                <span className="text-[11px] text-text-muted">Clique numa etapa pra focar a análise nela</span>
+              )
+            }
+          >
+            <Funil etapas={etapasDoFunil} selecionada={etapaSelecionada} onSelecionar={setEtapaSelecionada} />
 
-              <CartaoDividido>
-                <MetadeCartao>
-                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
-                    Vendas por tipo de página
-                    <Tooltip text="Usa o utm_medium do link — preenche isso no Gerador de UTMs com o tipo de página (ex: quiz, remarketing, vsl) pra aparecer aqui. Só conta compra que bateu com um lead." />
-                  </p>
-                  <DynamicPieChart data={salesByPageTypeChart} innerRadius={50} unit="count" />
-                </MetadeCartao>
-                <MetadeCartao>
-                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
-                    Vendas por canal
-                    <Tooltip text="Usa o utm_content do link — preenche isso no Gerador de UTMs com o canal onde postou (ex: bio instagram, descrição youtube) pra aparecer aqui. Só conta compra que bateu com um lead." />
-                  </p>
-                  <HorizontalBarList
-                    data={salesByChannelChart}
-                    valueFormatter={(v) => fmtBRL(v)}
-                    colorFor={colorForLabel}
-                  />
-                </MetadeCartao>
-              </CartaoDividido>
+            {piorEtapa && piorEtapa.fracaoDaAnterior !== null && (
+              <p className="mt-2 text-[11px] text-text-tertiary">
+                Maior perda entre etapas:{" "}
+                <span className="font-medium text-text-secondary">
+                  {piorEtapa.rotuloAnterior} → {piorEtapa.rotulo}
+                </span>
+                , onde passaram {porcentagem(piorEtapa.fracaoDaAnterior)} das pessoas.
+              </p>
+            )}
+          </Bloco>
+
+          {/* ── Resultado financeiro ──
+              Faturamento e depósitos com o que sobrou deles. Fica depois do
+              funil porque responde "quanto valeu", não "o que aconteceu" —
+              e porque lucro/ROAS/ROI só existem com gasto sincronizado. */}
+          <Bloco titulo="Resultado financeiro">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_200px]">
+              <HeroStat
+                label="Curso — faturamento (R$)"
+                value={fmtBRL(kpis.purchaseRevenue)}
+                sub={`${kpis.purchases} ${kpis.purchases === 1 ? "compra" : "compras"}`}
+                lucro={profitCurso !== null ? { valor: fmtBRL(profitCurso), positivo: profitCurso >= 0 } : null}
+                roas={roasCurso !== null ? `${roasCurso.toFixed(1)}x` : null}
+                roi={roiCurso !== null ? `${roiCurso >= 0 ? "+" : ""}${(roiCurso * 100).toFixed(0)}%` : null}
+              />
+              <HeroStat
+                label="Corretora — depósitos (US$)"
+                value={fmtUSD(kpis.depositsTotal)}
+                sub={
+                  <span className="inline-flex flex-wrap items-center gap-1">
+                    {kpis.deposits} {kpis.deposits === 1 ? "depósito" : "depósitos"}
+                    {depositsTotalBRL !== null && <span>· ≈ {fmtBRL(depositsTotalBRL)}</span>}
+                    <Tooltip text="Depósito é sempre em dólar — convertido pra real na cotação atual só pra comparar com o gasto em anúncios, que é cobrado em real." />
+                  </span>
+                }
+                lucro={
+                  profitCorretora !== null ? { valor: fmtBRL(profitCorretora), positivo: profitCorretora >= 0 } : null
+                }
+                roas={roasCorretora !== null ? `${roasCorretora.toFixed(1)}x` : null}
+                roi={roiCorretora !== null ? `${roiCorretora >= 0 ? "+" : ""}${(roiCorretora * 100).toFixed(0)}%` : null}
+              />
+
+              <div className="flex flex-col gap-3">
+                <FinanceTile
+                  label="Gasto com anúncios"
+                  value={hasSpend ? fmtBRL(kpis.spend) : "—"}
+                  hint={hasSpend ? "Base dos ROIs ao lado" : "Sincronize em Contas Meta/Google"}
+                />
+                <FinanceTile
+                  label="Cotação USD/BRL"
+                  value={usdBrlRate !== null ? `R$ ${usdBrlRate.toFixed(2)}` : "—"}
+                  hint={usdBrlRateUpdatedAt ? `Atualizada ${usdBrlRateUpdatedAt}` : "Carregando..."}
+                />
+              </div>
             </div>
           </Bloco>
 
-          {/* ── Quando a venda acontece ── */}
-          <Bloco titulo="Quando a venda acontece">
+          {/* ── D. De onde vêm os resultados ──
+              Uma matriz no lugar de quatro recortes soltos (leads por fonte,
+              depósitos por fonte, depósitos por campanha, vendas por UTM):
+              a linha inteira, da entrada ao depósito, e a campanha por baixo
+              quando se pede. */}
+          <Bloco
+            titulo="De onde vêm os resultados"
+            dica={
+              <Tooltip text="Uma linha por origem, com a progressão até o depósito. Clique na origem pra abrir as campanhas dela." />
+            }
+            acoes={
+              etapaSelecionada ? (
+                <span className="text-[11px] text-text-tertiary">
+                  Ordenado por{" "}
+                  <span className="text-accent-text">
+                    {ETAPAS_FUNIL.find((e) => e.chave === etapaSelecionada)?.rotulo}
+                  </span>
+                </span>
+              ) : undefined
+            }
+          >
+            <Cartao>
+              <MatrizDeOrigem
+                linhas={filteredReport}
+                etapaSelecionada={etapaSelecionada}
+                fmtBRL={fmtBRL}
+                fmtUSD={fmtUSD}
+              />
+            </Cartao>
+          </Bloco>
+
+          {/* ── E. Quando os resultados acontecem ──
+              Os mesmos dois gráficos respondendo quatro perguntas: a métrica
+              é um seletor, não quatro componentes iguais empilhados. */}
+          <Bloco
+            titulo="Quando os resultados acontecem"
+            acoes={
+              <Segmentado
+                opcoes={METRICAS_DE_TEMPO}
+                ativo={metricaTempo}
+                onChange={(k) => setMetricaTempo(k)}
+              />
+            }
+          >
             <CartaoDividido>
               <MetadeCartao>
                 <p className="mb-2 text-[11px] font-medium text-text-tertiary">Por horário</p>
-                <SimpleBarChart data={salesByHourChart} valueLabel="Compras" color="var(--accent-text)" />
+                <SimpleBarChart
+                  data={porHoraChart}
+                  valueLabel={METRICAS_DE_TEMPO.find((m) => m.key === metricaTempo)?.label ?? ""}
+                  color="var(--accent-text)"
+                />
               </MetadeCartao>
               <MetadeCartao>
                 <p className="mb-2 text-[11px] font-medium text-text-tertiary">Por dia da semana</p>
-                <SimpleBarChart data={salesByWeekdayChart} valueLabel="Compras" color="var(--accent-pink)" />
+                <SimpleBarChart
+                  data={porDiaChart}
+                  valueLabel={METRICAS_DE_TEMPO.find((m) => m.key === metricaTempo)?.label ?? ""}
+                  color="var(--accent-pink)"
+                />
               </MetadeCartao>
             </CartaoDividido>
           </Bloco>
 
-          {/* ── Por fonte ── */}
-          <Bloco titulo="Por fonte de tráfego">
-            <div className="space-y-4">
-              <CartaoDividido>
-                <MetadeCartao>
-                  <p className="mb-2 text-[11px] font-medium text-text-tertiary">Leads</p>
-                  {bySource.length === 0 ? (
-                    <Vazio>Sem dados suficientes nesse período.</Vazio>
-                  ) : (
-                    <ul className="divide-y divide-border/60">
-                      {bySource.map((s) => (
-                        <li key={s.source} className="flex items-center justify-between gap-3 py-1.5 text-xs">
-                          <span className="min-w-0 truncate text-text-secondary">{s.source}</span>
-                          <span className="shrink-0 font-medium tabular-nums text-text-primary">{s.leads}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </MetadeCartao>
-                <MetadeCartao>
-                  <p className="mb-2 text-[11px] font-medium text-text-tertiary">Depósitos</p>
-                  {bySource.length === 0 ? (
-                    <Vazio>Sem dados suficientes nesse período.</Vazio>
-                  ) : (
-                    <ul className="divide-y divide-border/60">
-                      {bySource.map((s) => (
-                        <li key={s.source} className="flex items-center justify-between gap-3 py-1.5 text-xs">
-                          <span className="min-w-0 truncate text-text-secondary">{s.source}</span>
-                          <span className="shrink-0 font-medium tabular-nums text-text-primary">
-                            {fmtUSD(s.depositsTotal)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </MetadeCartao>
-              </CartaoDividido>
-
-              <Cartao>
-                <p className="mb-2 text-[11px] font-medium text-text-tertiary">Depósitos por campanha (top 10)</p>
-                <HorizontalBarList
-                  data={depositsByCampaign}
-                  valueFormatter={(v) => fmtUSD(v)}
-                  colorFor={colorForLabel}
+          {/* ── F. Detalhamentos secundários ──
+              Importantes, mas não podem competir com o funil: viraram quatro
+              distribuições compactas numa superfície só. Eram quatro donuts
+              de 260px — um deles pra mostrar uma categoria única. */}
+          <Bloco titulo="Detalhes das vendas">
+            <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card bg-border shadow-card lg:grid-cols-2">
+              <div className="bg-card p-4">
+                <p className="mb-2 text-[11px] font-medium text-text-tertiary">Por produto</p>
+                <Distribuicao dados={distribuicaoPorProduto} vazio="Nenhuma venda nesse período." />
+              </div>
+              <div className="bg-card p-4">
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
+                  Por método de pagamento
+                  <Tooltip text="Só a Onprofit manda esse dado por enquanto (Cartão de crédito/Pix) — outras plataformas caem em '(não identificado)' até termos esse campo confirmado com elas também." />
+                </p>
+                <Distribuicao dados={distribuicaoPorPagamento} vazio="Nenhuma venda nesse período." />
+              </div>
+              <div className="bg-card p-4">
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
+                  Por tipo de página
+                  <Tooltip text="Usa o utm_medium do link — preenche isso no Gerador de UTMs com o tipo de página (ex: quiz, remarketing, vsl) pra aparecer aqui. Só conta compra que bateu com um lead." />
+                </p>
+                <Distribuicao dados={distribuicaoPorTipoDePagina} vazio="Nenhuma venda com tipo de página no link." />
+              </div>
+              <div className="bg-card p-4">
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
+                  Por canal — receita
+                  <Tooltip text="Usa o utm_content do link — preenche isso no Gerador de UTMs com o canal onde postou (ex: bio instagram, descrição youtube) pra aparecer aqui. Só conta compra que bateu com um lead." />
+                </p>
+                <Distribuicao
+                  dados={distribuicaoPorCanal}
+                  formatar={(v) => fmtBRL(v)}
+                  vazio="Nenhuma venda com canal no link."
                 />
-              </Cartao>
+              </div>
             </div>
           </Bloco>
 
-          {/* ── Adoção do Pepe ── */}
-          <Bloco
-            titulo="Pepe — cadastros por plano"
-            dica={
-              <Tooltip text="Quantos alunos criaram conta na ferramenta e quantos realmente entraram. O plano é o que o próprio Pepe conhece da pessoa; se divergir da compra, é sinal de que os dois sistemas estão fora de sincronia." />
-            }
-          >
-            <Cartao>
-              {pepePorPlano.length === 0 ? (
-                <Vazio>Nenhum cadastro no Pepe ainda neste período.</Vazio>
-              ) : (
+          {/* ── Pepe ──
+              Ligado à etapa "Cadastro no Pepe" do funil. Sem cadastro no
+              período vira uma linha, não um cartão vazio de 200px. */}
+          {pepePorPlano.length === 0 ? (
+            <p className="text-[11px] text-text-tertiary">
+              <span className="font-medium text-text-secondary">Pepe</span> — nenhum cadastro no período.
+            </p>
+          ) : (
+            <Bloco
+              titulo="Pepe — cadastros por plano"
+              dica={
+                <Tooltip text="Quantos alunos criaram conta na ferramenta e quantos realmente entraram. O plano é o que o próprio Pepe conhece da pessoa; se divergir da compra, é sinal de que os dois sistemas estão fora de sincronia." />
+              }
+            >
+              <Cartao>
                 <TabelaWrap>
                   <Tabela>
                     <thead>
@@ -885,12 +908,11 @@ export function AnalyticsTab({
                     </tbody>
                   </Tabela>
                 </TabelaWrap>
-              )}
-            </Cartao>
-          </Bloco>
+              </Cartao>
+            </Bloco>
+          )}
         </div>
       )}
-
       {subTab === "campanhas" && tableTab !== "campanhas" && (
         <Bloco titulo={PERFORMANCE_SUB_TABS.find((t) => t.key === tableTab)?.label ?? ""}>
           <Cartao>
