@@ -11,6 +11,7 @@ import {
   BarraDeFiltros,
   Bloco,
   Cartao,
+  CartaoComTopo,
   CartaoDividido,
   Distribuicao,
   FiltroCampo,
@@ -654,7 +655,53 @@ export function AnalyticsTab({
       )}
 
       {subTab === "visao" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
+          {/* ── A. Resultado financeiro ──
+              Abre a página: quanto entrou e o que sobrou. O funil explica
+              COMO isso aconteceu, e explicação vem depois do resultado.
+              Lucro, ROAS e ROI só aparecem com gasto sincronizado. */}
+          <Bloco titulo="Resultado financeiro">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_200px]">
+              <HeroStat
+                label="Curso — faturamento (R$)"
+                value={fmtBRL(kpis.purchaseRevenue)}
+                sub={`${kpis.purchases} ${kpis.purchases === 1 ? "compra" : "compras"}`}
+                lucro={profitCurso !== null ? { valor: fmtBRL(profitCurso), positivo: profitCurso >= 0 } : null}
+                roas={roasCurso !== null ? `${roasCurso.toFixed(1)}x` : null}
+                roi={roiCurso !== null ? `${roiCurso >= 0 ? "+" : ""}${(roiCurso * 100).toFixed(0)}%` : null}
+              />
+              <HeroStat
+                label="Corretora — depósitos (US$)"
+                value={fmtUSD(kpis.depositsTotal)}
+                sub={
+                  <span className="inline-flex flex-wrap items-center gap-1">
+                    {kpis.deposits} {kpis.deposits === 1 ? "depósito" : "depósitos"}
+                    {depositsTotalBRL !== null && <span>· ≈ {fmtBRL(depositsTotalBRL)}</span>}
+                    <Tooltip text="Depósito é sempre em dólar — convertido pra real na cotação atual só pra comparar com o gasto em anúncios, que é cobrado em real." />
+                  </span>
+                }
+                lucro={
+                  profitCorretora !== null ? { valor: fmtBRL(profitCorretora), positivo: profitCorretora >= 0 } : null
+                }
+                roas={roasCorretora !== null ? `${roasCorretora.toFixed(1)}x` : null}
+                roi={roiCorretora !== null ? `${roiCorretora >= 0 ? "+" : ""}${(roiCorretora * 100).toFixed(0)}%` : null}
+              />
+
+              <div className="flex flex-col gap-3">
+                <FinanceTile
+                  label="Gasto com anúncios"
+                  value={hasSpend ? fmtBRL(kpis.spend) : "—"}
+                  hint={hasSpend ? "Base dos ROIs ao lado" : "Sincronize em Contas Meta/Google"}
+                />
+                <FinanceTile
+                  label="Cotação USD/BRL"
+                  value={usdBrlRate !== null ? `R$ ${usdBrlRate.toFixed(2)}` : "—"}
+                  hint={usdBrlRateUpdatedAt ? `Atualizada ${usdBrlRateUpdatedAt}` : "Carregando..."}
+                />
+              </div>
+            </div>
+          </Bloco>
+
           {/* ── B. KPIs principais ──
               A faixa que responde as cinco primeiras perguntas do gestor sem
               rolar a página. Oito células numa superfície só: o contorno vem
@@ -689,6 +736,7 @@ export function AnalyticsTab({
             <KpiTile
               icon={TrendingUp}
               label="Receita do curso"
+              destaque
               value={fmtBRL(kpis.purchaseRevenue)}
               sub={kpis.purchases > 0 ? `${fmtBRL(Math.round(kpis.purchaseRevenue / kpis.purchases))} por venda` : undefined}
             />
@@ -710,6 +758,7 @@ export function AnalyticsTab({
             <KpiTile
               icon={Wallet}
               label="Total depositado"
+              destaque
               value={fmtUSD(kpis.depositsTotal)}
               sub={depositsTotalBRL !== null ? `≈ ${fmtBRL(depositsTotalBRL)}` : undefined}
               tone="success"
@@ -771,52 +820,6 @@ export function AnalyticsTab({
             )}
           </Bloco>
 
-          {/* ── Resultado financeiro ──
-              Faturamento e depósitos com o que sobrou deles. Fica depois do
-              funil porque responde "quanto valeu", não "o que aconteceu" —
-              e porque lucro/ROAS/ROI só existem com gasto sincronizado. */}
-          <Bloco titulo="Resultado financeiro">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_200px]">
-              <HeroStat
-                label="Curso — faturamento (R$)"
-                value={fmtBRL(kpis.purchaseRevenue)}
-                sub={`${kpis.purchases} ${kpis.purchases === 1 ? "compra" : "compras"}`}
-                lucro={profitCurso !== null ? { valor: fmtBRL(profitCurso), positivo: profitCurso >= 0 } : null}
-                roas={roasCurso !== null ? `${roasCurso.toFixed(1)}x` : null}
-                roi={roiCurso !== null ? `${roiCurso >= 0 ? "+" : ""}${(roiCurso * 100).toFixed(0)}%` : null}
-              />
-              <HeroStat
-                label="Corretora — depósitos (US$)"
-                value={fmtUSD(kpis.depositsTotal)}
-                sub={
-                  <span className="inline-flex flex-wrap items-center gap-1">
-                    {kpis.deposits} {kpis.deposits === 1 ? "depósito" : "depósitos"}
-                    {depositsTotalBRL !== null && <span>· ≈ {fmtBRL(depositsTotalBRL)}</span>}
-                    <Tooltip text="Depósito é sempre em dólar — convertido pra real na cotação atual só pra comparar com o gasto em anúncios, que é cobrado em real." />
-                  </span>
-                }
-                lucro={
-                  profitCorretora !== null ? { valor: fmtBRL(profitCorretora), positivo: profitCorretora >= 0 } : null
-                }
-                roas={roasCorretora !== null ? `${roasCorretora.toFixed(1)}x` : null}
-                roi={roiCorretora !== null ? `${roiCorretora >= 0 ? "+" : ""}${(roiCorretora * 100).toFixed(0)}%` : null}
-              />
-
-              <div className="flex flex-col gap-3">
-                <FinanceTile
-                  label="Gasto com anúncios"
-                  value={hasSpend ? fmtBRL(kpis.spend) : "—"}
-                  hint={hasSpend ? "Base dos ROIs ao lado" : "Sincronize em Contas Meta/Google"}
-                />
-                <FinanceTile
-                  label="Cotação USD/BRL"
-                  value={usdBrlRate !== null ? `R$ ${usdBrlRate.toFixed(2)}` : "—"}
-                  hint={usdBrlRateUpdatedAt ? `Atualizada ${usdBrlRateUpdatedAt}` : "Carregando..."}
-                />
-              </div>
-            </div>
-          </Bloco>
-
           {/* ── D. De onde vêm os resultados ──
               Uma matriz no lugar de quatro recortes soltos (leads por fonte,
               depósitos por fonte, depósitos por campanha, vendas por UTM):
@@ -838,14 +841,20 @@ export function AnalyticsTab({
               ) : undefined
             }
           >
-            <Cartao>
+            <CartaoComTopo
+              titulo={`${filteredReport.length} ${filteredReport.length === 1 ? "campanha" : "campanhas"} · ordenado por ${
+                etapaSelecionada
+                  ? (ETAPAS_FUNIL.find((e) => e.chave === etapaSelecionada)?.rotulo ?? "").toLowerCase()
+                  : "total depositado"
+              }`}
+            >
               <MatrizDeOrigem
                 linhas={filteredReport}
                 etapaSelecionada={etapaSelecionada}
                 fmtBRL={fmtBRL}
                 fmtUSD={fmtUSD}
               />
-            </Cartao>
+            </CartaoComTopo>
           </Bloco>
 
           {/* ── E. Quando os resultados acontecem ──
@@ -861,24 +870,22 @@ export function AnalyticsTab({
               />
             }
           >
-            <CartaoDividido>
-              <MetadeCartao>
-                <p className="mb-2 text-[11px] font-medium text-text-tertiary">Por horário</p>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <CartaoComTopo titulo="Por horário">
                 <SimpleBarChart
                   data={porHoraChart}
                   valueLabel={METRICAS_DE_TEMPO.find((m) => m.key === metricaTempo)?.label ?? ""}
                   color="var(--accent-text)"
                 />
-              </MetadeCartao>
-              <MetadeCartao>
-                <p className="mb-2 text-[11px] font-medium text-text-tertiary">Por dia da semana</p>
+              </CartaoComTopo>
+              <CartaoComTopo titulo="Por dia da semana">
                 <SimpleBarChart
                   data={porDiaChart}
                   valueLabel={METRICAS_DE_TEMPO.find((m) => m.key === metricaTempo)?.label ?? ""}
                   color="var(--accent-pink)"
                 />
-              </MetadeCartao>
-            </CartaoDividido>
+              </CartaoComTopo>
+            </div>
           </Bloco>
 
           {/* ── F. Detalhamentos secundários ──
@@ -886,36 +893,38 @@ export function AnalyticsTab({
               distribuições compactas numa superfície só. Eram quatro donuts
               de 260px — um deles pra mostrar uma categoria única. */}
           <Bloco titulo="Detalhes das vendas">
-            <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card bg-border shadow-card lg:grid-cols-2">
-              <div className="bg-card p-4">
-                <p className="mb-2 text-[11px] font-medium text-text-tertiary">Por produto</p>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <CartaoComTopo titulo="Por produto">
                 <Distribuicao dados={distribuicaoPorProduto} vazio="Nenhuma venda nesse período." />
-              </div>
-              <div className="bg-card p-4">
-                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
-                  Por método de pagamento
+              </CartaoComTopo>
+              <CartaoComTopo
+                titulo="Por método de pagamento"
+                dica={
                   <Tooltip text="Só a Onprofit manda esse dado por enquanto (Cartão de crédito/Pix) — outras plataformas caem em '(não identificado)' até termos esse campo confirmado com elas também." />
-                </p>
+                }
+              >
                 <Distribuicao dados={distribuicaoPorPagamento} vazio="Nenhuma venda nesse período." />
-              </div>
-              <div className="bg-card p-4">
-                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
-                  Por tipo de página
+              </CartaoComTopo>
+              <CartaoComTopo
+                titulo="Por tipo de página"
+                dica={
                   <Tooltip text="Usa o utm_medium do link — preenche isso no Gerador de UTMs com o tipo de página (ex: quiz, remarketing, vsl) pra aparecer aqui. Só conta compra que bateu com um lead." />
-                </p>
+                }
+              >
                 <Distribuicao dados={distribuicaoPorTipoDePagina} vazio="Nenhuma venda com tipo de página no link." />
-              </div>
-              <div className="bg-card p-4">
-                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
-                  Por canal — receita
+              </CartaoComTopo>
+              <CartaoComTopo
+                titulo="Por canal — receita"
+                dica={
                   <Tooltip text="Usa o utm_content do link — preenche isso no Gerador de UTMs com o canal onde postou (ex: bio instagram, descrição youtube) pra aparecer aqui. Só conta compra que bateu com um lead." />
-                </p>
+                }
+              >
                 <Distribuicao
                   dados={distribuicaoPorCanal}
                   formatar={(v) => fmtBRL(v)}
                   vazio="Nenhuma venda com canal no link."
                 />
-              </div>
+              </CartaoComTopo>
             </div>
           </Bloco>
 
@@ -1157,6 +1166,7 @@ function KpiTile({
   value,
   sub,
   tone,
+  destaque,
   onClick,
 }: {
   icon: typeof Users;
@@ -1164,6 +1174,8 @@ function KpiTile({
   value: string;
   sub?: string;
   tone?: "accent" | "success";
+  /** Fundo levemente distinto: separa o dinheiro das contagens na mesma faixa. */
+  destaque?: boolean;
   onClick?: () => void;
 }) {
   // Célula de uma faixa, não cartão solto: o contorno vem do fio da grade.
@@ -1191,14 +1203,17 @@ function KpiTile({
       <button
         type="button"
         onClick={onClick}
-        className="min-w-0 px-3 py-3 text-left transition-colors duration-150 hover:bg-card-hover"
+        className={cn(
+          "min-w-0 px-3 py-3 text-left transition-colors duration-150 hover:bg-card-hover",
+          destaque && "bg-card-hover/40"
+        )}
       >
         {content}
       </button>
     );
   }
 
-  return <div className="min-w-0 px-3 py-3">{content}</div>;
+  return <div className={cn("min-w-0 px-3 py-3", destaque && "bg-card-hover/40")}>{content}</div>;
 }
 
 // Tabela de eventos compartilhada entre "Eventos recentes" e o popup de

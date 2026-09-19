@@ -31,8 +31,13 @@ export function BlocoTitulo({
   className?: string;
 }) {
   return (
+    // A barrinha do accent à esquerda existe porque, numa página com seis
+    // seções seguidas no mesmo tom de fundo, um título de 13px no meio do
+    // escuro não separa nada: a tela vira um bloco contínuo. Dois pixels de
+    // cor marcam onde um assunto começa sem precisar de mais uma caixa.
     <div className={cn("mb-3 flex flex-wrap items-center justify-between gap-2", className)}>
-      <h3 className="flex items-center gap-1.5 text-[13px] font-semibold text-text-primary">
+      <h3 className="flex items-center gap-2 text-[14px] font-semibold text-text-primary">
+        <span className="h-4 w-0.5 shrink-0 rounded-full bg-accent" aria-hidden />
         {titulo}
         {dica}
       </h3>
@@ -76,6 +81,43 @@ export function Bloco({
  */
 export function Cartao({ className, children }: { className?: string; children: ReactNode }) {
   return <div className={cn("rounded-card bg-card p-4 shadow-card", className)}>{children}</div>;
+}
+
+/**
+ * Cartão com barra de título.
+ *
+ * O cartão liso é ótimo pra uma coisa só; quando são quatro painéis
+ * seguidos, o olho perde onde um termina e o outro começa — foi o que
+ * aconteceu em "Detalhes das vendas" e em "Quando os resultados acontecem".
+ * A faixa de título devolve a borda de cima sem desenhar mais uma caixa.
+ */
+export function CartaoComTopo({
+  titulo,
+  dica,
+  acoes,
+  className,
+  corpoClassName,
+  children,
+}: {
+  titulo: ReactNode;
+  dica?: ReactNode;
+  acoes?: ReactNode;
+  className?: string;
+  corpoClassName?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("overflow-hidden rounded-card bg-card shadow-card", className)}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-card-hover/40 px-4 py-2">
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+          {titulo}
+          {dica}
+        </p>
+        {acoes && <div className="flex shrink-0 items-center gap-2">{acoes}</div>}
+      </div>
+      <div className={cn("p-4", corpoClassName)}>{children}</div>
+    </div>
+  );
 }
 
 /**

@@ -127,13 +127,23 @@ export function MatrizDeOrigem({
   function celula(valor: number, coluna: Coluna, forte?: boolean) {
     const texto =
       coluna.dinheiro === "brl" ? fmtBRL(valor) : coluna.dinheiro === "usd" ? fmtUSD(valor) : String(valor);
+    const zero = valor === 0;
     return (
       <Td
         key={coluna.chave}
         num
-        forte={forte && !coluna.fraco}
+        forte={forte && !coluna.fraco && !zero}
         fraco={coluna.fraco && !forte}
-        className={cn(colunaDestacada === coluna.chave && "bg-accent-soft/50 text-text-primary")}
+        className={cn(
+          // Metade desta tabela é zero. Zero apagado é o que faz o número
+          // que existe saltar — antes todos tinham o mesmo peso e a tabela
+          // virava textura.
+          zero && "text-text-muted/50",
+          // O depósito é o fim da linha: quando ele existe, ganha a cor de
+          // resultado. É a única cor da tabela, e significa uma coisa só.
+          !zero && coluna.chave === "deposits_total_cents" && "text-success",
+          colunaDestacada === coluna.chave && "bg-accent-soft/50 text-text-primary"
+        )}
       >
         {texto}
       </Td>
@@ -160,12 +170,21 @@ export function MatrizDeOrigem({
           </tr>
         </thead>
         <tbody>
-          {fontes.map((f) => {
+          {fontes.map((f, i) => {
             const expandida = aberta === f.fonte;
             const soUma = f.campanhas.length === 1;
             return (
               <Fragment key={f.fonte}>
-                <Tr className={cn(expandida && "bg-card-hover")}>
+                {/* Faixa alternada + marca na primeira linha: a de cima é a
+                    que mais entregou no critério da vez, e ela precisa se
+                    anunciar sem virar outro cartão. */}
+                <Tr
+                  className={cn(
+                    i % 2 === 1 && "bg-card-hover/25",
+                    expandida && "bg-card-hover",
+                    i === 0 && "shadow-[inset_2px_0_0_var(--accent)]"
+                  )}
+                >
                   <Td>
                     <button
                       type="button"
