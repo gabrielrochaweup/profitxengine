@@ -19,7 +19,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (typeof body?.slug === "string" && body.slug.trim()) update.slug = gerarSlug(body.slug);
   if (typeof body?.conteudo_md === "string") update.conteudo_md = body.conteudo_md;
   if (typeof body?.dominio_id === "string" || body?.dominio_id === null) update.dominio_id = body.dominio_id;
-  for (const campo of ["meta_descricao", "palavra_chave", "imagem_url", "imagem_alt"] as const) {
+  for (const campo of ["meta_descricao", "palavra_chave", "imagem_url", "imagem_alt", "imagem_prompt"] as const) {
     if (typeof body?.[campo] === "string" || body?.[campo] === null) {
       update[campo] = typeof body[campo] === "string" && body[campo].trim() ? body[campo].trim() : null;
     }

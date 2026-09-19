@@ -14,7 +14,7 @@ export function ehModo(v: unknown): v is ModoBlog {
 }
 
 export const CAMPOS_POST =
-  "id, dominio_id, slug, titulo, meta_descricao, palavra_chave, conteudo_md, imagem_url, imagem_alt, status, publicado_em, tema, created_at, updated_at";
+  "id, dominio_id, slug, titulo, meta_descricao, palavra_chave, conteudo_md, imagem_url, imagem_alt, imagem_prompt, status, publicado_em, tema, created_at, updated_at";
 
 export interface BlogDominio {
   id: string;
@@ -43,6 +43,8 @@ export interface BlogPost {
   conteudo_md: string;
   imagem_url: string | null;
   imagem_alt: string | null;
+  /** O prompt que gerou a capa — fica salvo pra poder ser ajustado e gerado de novo. */
+  imagem_prompt: string | null;
   status: "rascunho" | "publicado";
   publicado_em: string | null;
   tema: string | null;

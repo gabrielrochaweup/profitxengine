@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { SubTabs } from "@/components/ui/sub-tabs";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ContentGrid, EmptyState, Field } from "@/components/ui/page";
 import { useToast } from "@/components/ui/toast";
+import { createClient } from "@/lib/supabase/client";
+import { markdownParaHtml } from "@/lib/blog-render";
 import {
   MODOS,
   MODO_LABEL,
@@ -319,6 +321,15 @@ async function salvarPost(id: string, campos: Record<string, unknown>): Promise<
   return res.ok && json?.post ? (json.post as BlogPost) : null;
 }
 
+/**
+ * O post depois de gerado: tudo editável à mão.
+ *
+ * O que a IA entrega é rascunho, não resultado final — então o texto abre num
+ * editor de verdade (com uma prévia do que vai pro ar, porque Markdown cru
+ * não mostra o que a página vai parecer) e a capa deixa de ser uma imagem
+ * pregada no post: dá pra mexer no prompt e gerar de novo, mandar outra do
+ * computador, apontar uma URL, jogar a imagem pro meio do texto ou tirar.
+ */
 function EditorPost({
   post,
   dominios,
@@ -331,6 +342,7 @@ function EditorPost({
   onSalvo: (p: BlogPost) => void;
 }) {
   const toast = useToast();
+  const textoRef = useRef<HTMLTextAreaElement>(null);
   const [campos, setCampos] = useState({
     titulo: post.titulo,
     slug: post.slug,
@@ -338,8 +350,12 @@ function EditorPost({
     palavra_chave: post.palavra_chave ?? "",
     conteudo_md: post.conteudo_md,
     dominio_id: post.dominio_id ?? "",
+    imagem_alt: post.imagem_alt ?? "",
+    imagem_prompt: post.imagem_prompt ?? "",
   });
   const [salvando, setSalvando] = useState(false);
+  const [modo, setModo] = useState<"editar" | "visualizar">("editar");
+  const [anterior, setAnterior] = useState<string | null>(null);
 
   function set<K extends keyof typeof campos>(k: K, v: string) {
     setCampos((prev) => ({ ...prev, [k]: v }));
@@ -361,19 +377,59 @@ function EditorPost({
     toast.success(status === "publicado" ? "Post marcado como publicado." : "Salvo.");
   }
 
+  /**
+   * Trocar a imagem grava na hora, sem esperar o botão Salvar.
+   *
+   * Gerar custa dinheiro e enviar arquivo sobe byte: fechar o modal depois
+   * disso e perder a imagem seria perder trabalho já pago. O texto continua
+   * no fluxo normal de salvar.
+   */
+  async function aplicarImagem(url: string | null) {
+    setAnterior(post.imagem_url);
+    const p = await salvarPost(post.id, {
+      imagem_url: url,
+      imagem_alt: campos.imagem_alt || null,
+      imagem_prompt: campos.imagem_prompt || null,
+    });
+    if (!p) {
+      toast.error("A imagem não foi salva no post.");
+      return;
+    }
+    onSalvo(p);
+  }
+
+  /** Joga a capa pro meio do texto, onde o cursor estiver. */
+  function inserirNoTexto(url: string) {
+    const el = textoRef.current;
+    const texto = campos.conteudo_md;
+    const pos = el && el.selectionStart > 0 ? el.selectionStart : texto.length;
+    const marcacao = `![${campos.imagem_alt || ""}](${url})`;
+    const novo = `${texto.slice(0, pos).replace(/\s+$/, "")}\n\n${marcacao}\n\n${texto.slice(pos).replace(/^\s+/, "")}`;
+    set("conteudo_md", novo);
+    setModo("editar");
+    toast.success("Imagem colocada no texto — clique em Salvar pra valer.");
+  }
+
   // Limites do Google: título some no resultado acima de ~60, descrição
   // acima de ~158. Mostrar a contagem evita descobrir isso depois de
   // publicado.
   const tituloLongo = campos.titulo.length > 60;
-  const metaFora = campos.meta_descricao.length > 0 && (campos.meta_descricao.length < 140 || campos.meta_descricao.length > 158);
+  const metaFora =
+    campos.meta_descricao.length > 0 && (campos.meta_descricao.length < 140 || campos.meta_descricao.length > 158);
 
   return (
     <Modal open onClose={onFechar} title="Editar post" className="max-w-3xl">
       <div className="space-y-3">
-        {post.imagem_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={post.imagem_url} alt={post.imagem_alt ?? ""} className="h-40 w-full rounded-xl object-cover" />
-        )}
+        <PainelCapa
+          post={post}
+          prompt={campos.imagem_prompt}
+          alt={campos.imagem_alt}
+          anterior={anterior}
+          onPrompt={(v) => set("imagem_prompt", v)}
+          onAlt={(v) => set("imagem_alt", v)}
+          onImagem={aplicarImagem}
+          onInserirNoTexto={inserirNoTexto}
+        />
 
         <div>
           <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-secondary">
@@ -419,16 +475,45 @@ function EditorPost({
         </div>
 
         <div>
-          <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-text-secondary">
-            <span>Conteúdo (Markdown)</span>
-            <span>{contarPalavras(campos.conteudo_md)} palavras</span>
-          </label>
-          <Textarea
-            rows={16}
-            value={campos.conteudo_md}
-            onChange={(e) => set("conteudo_md", e.target.value)}
-            className="font-mono text-xs"
-          />
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label className="text-[11px] font-medium text-text-secondary">Conteúdo (Markdown)</label>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-text-muted">{contarPalavras(campos.conteudo_md)} palavras</span>
+              {/* Markdown cru não mostra o que a página vai parecer, e é nela
+                  que o texto vai ser lido. */}
+              <div className="flex overflow-hidden rounded-button border border-border">
+                {(["editar", "visualizar"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setModo(m)}
+                    className={
+                      modo === m
+                        ? "bg-card-hover px-2 py-0.5 text-[11px] font-medium text-text-primary"
+                        : "px-2 py-0.5 text-[11px] text-text-tertiary hover:text-text-primary"
+                    }
+                  >
+                    {m === "editar" ? "Editar" : "Visualizar"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {modo === "editar" ? (
+            <Textarea
+              ref={textoRef}
+              rows={16}
+              value={campos.conteudo_md}
+              onChange={(e) => set("conteudo_md", e.target.value)}
+              className="font-mono text-xs"
+            />
+          ) : (
+            <div
+              className="max-h-[460px] overflow-y-auto rounded-input border border-border bg-input p-4 text-[13px] leading-relaxed text-text-secondary [&_a]:text-accent-text [&_blockquote]:border-l-2 [&_blockquote]:border-border-strong [&_blockquote]:pl-3 [&_blockquote]:text-text-tertiary [&_code]:rounded [&_code]:bg-card-hover [&_code]:px-1 [&_figcaption]:mt-1 [&_figcaption]:text-center [&_figcaption]:text-[11px] [&_figcaption]:text-text-tertiary [&_figure]:my-3 [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:text-[15px] [&_h2]:font-semibold [&_h2]:text-text-primary [&_h3]:mb-1.5 [&_h3]:mt-3 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-text-primary [&_img]:rounded-card [&_li]:mb-1 [&_ol]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_strong]:text-text-primary [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:pl-5"
+              dangerouslySetInnerHTML={{ __html: markdownParaHtml(campos.conteudo_md) }}
+            />
+          )}
         </div>
 
         <div className="flex flex-wrap justify-end gap-2 pt-1">
@@ -446,6 +531,194 @@ function EditorPost({
     </Modal>
   );
 }
+
+/**
+ * A capa do post, com as rédeas na mão.
+ *
+ * O prompt fica visível e editável porque é ele que decide a imagem: sem ele
+ * à vista, "gerar de novo" é jogar a mesma moeda pra cima e torcer. Com ele,
+ * muda-se uma palavra e vê-se o efeito.
+ */
+function PainelCapa({
+  post,
+  prompt,
+  alt,
+  anterior,
+  onPrompt,
+  onAlt,
+  onImagem,
+  onInserirNoTexto,
+}: {
+  post: BlogPost;
+  prompt: string;
+  alt: string;
+  anterior: string | null;
+  onPrompt: (v: string) => void;
+  onAlt: (v: string) => void;
+  onImagem: (url: string | null) => Promise<void>;
+  onInserirNoTexto: (url: string) => void;
+}) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const arquivoRef = useRef<HTMLInputElement>(null);
+  const [ocupado, setOcupado] = useState<null | "gerando" | "enviando">(null);
+  const [urlAberta, setUrlAberta] = useState(false);
+  const [url, setUrl] = useState("");
+
+  async function gerarDeNovo() {
+    if (!prompt.trim()) {
+      toast.error("Escreva o prompt da imagem primeiro.");
+      return;
+    }
+    setOcupado("gerando");
+    const nova = await gerarImagem(prompt.trim());
+    if (!nova) {
+      setOcupado(null);
+      toast.error("A imagem não foi gerada. Tente de novo ou ajuste o prompt.");
+      return;
+    }
+    await onImagem(nova);
+    setOcupado(null);
+    toast.success("Capa nova.");
+  }
+
+  async function enviarArquivo(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Só imagem.");
+      return;
+    }
+    setOcupado("enviando");
+    const supabase = createClient();
+    const caminho = `${post.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+    const { error } = await supabase.storage.from("blog-images").upload(caminho, file);
+    if (error) {
+      setOcupado(null);
+      toast.error("Falha ao enviar a imagem.");
+      return;
+    }
+    const { data } = supabase.storage.from("blog-images").getPublicUrl(caminho);
+    await onImagem(data.publicUrl);
+    setOcupado(null);
+    toast.success("Capa trocada.");
+  }
+
+  async function remover() {
+    const ok = await confirm({
+      title: "Tirar a capa",
+      description: "O post fica sem imagem de capa. O texto e o prompt continuam aqui.",
+      confirmLabel: "Tirar",
+      danger: true,
+    });
+    if (!ok) return;
+    await onImagem(null);
+  }
+
+  const travado = ocupado !== null;
+
+  return (
+    <div className="rounded-card border border-border bg-card-hover/40 p-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="sm:w-56 sm:shrink-0">
+          {post.imagem_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={post.imagem_url}
+              alt={post.imagem_alt ?? ""}
+              className="aspect-video w-full rounded-card object-cover"
+            />
+          ) : (
+            <div className="flex aspect-video w-full items-center justify-center rounded-card border border-dashed border-border text-[11px] text-text-muted">
+              sem capa
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <label className="mb-1 block text-[11px] font-medium text-text-secondary">
+            Prompt da imagem <span className="text-text-muted/70">(em inglês funciona melhor)</span>
+          </label>
+          <Textarea
+            rows={3}
+            value={prompt}
+            onChange={(e) => onPrompt(e.target.value)}
+            placeholder="editorial cover photo, natural light, no text, no logo"
+            className="text-xs"
+          />
+
+          <label className="mb-1 mt-2 block text-[11px] font-medium text-text-secondary">
+            Texto alternativo <span className="text-text-muted/70">(o que o Google e o leitor de tela leem)</span>
+          </label>
+          <Input value={alt} onChange={(e) => onAlt(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <Button size="sm" onClick={gerarDeNovo} disabled={travado}>
+          {ocupado === "gerando" ? "Gerando…" : post.imagem_url ? "Gerar de novo" : "Gerar capa"}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => arquivoRef.current?.click()} disabled={travado}>
+          {ocupado === "enviando" ? "Enviando…" : "Enviar do computador"}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => setUrlAberta((v) => !v)} disabled={travado}>
+          Usar uma URL
+        </Button>
+        {post.imagem_url && (
+          <>
+            <Button size="sm" variant="ghost" onClick={() => onInserirNoTexto(post.imagem_url!)} disabled={travado}>
+              Colocar no texto
+            </Button>
+            <Button size="sm" variant="ghost" onClick={remover} disabled={travado}>
+              Tirar capa
+            </Button>
+          </>
+        )}
+        {anterior && anterior !== post.imagem_url && (
+          // Gerar de novo é jogada de dado: a imagem anterior pode ser melhor
+          // que a nova, e sem isso ela estaria perdida.
+          <Button size="sm" variant="ghost" onClick={() => onImagem(anterior)} disabled={travado}>
+            Voltar pra anterior
+          </Button>
+        )}
+      </div>
+
+      {urlAberta && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://…"
+            className="min-w-0 flex-1"
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={!/^https?:\/\//.test(url.trim()) || travado}
+            onClick={async () => {
+              await onImagem(url.trim());
+              setUrl("");
+              setUrlAberta(false);
+            }}
+          >
+            Usar
+          </Button>
+        </div>
+      )}
+
+      <input
+        ref={arquivoRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) enviarArquivo(file);
+        }}
+      />
+    </div>
+  );
+}
+
 
 /* ----------------------------- domínios ----------------------------- */
 

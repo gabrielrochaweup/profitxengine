@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { CreateProductModal } from "@/components/layout/product-tabs";
+import { CreateProductModal } from "@/components/layout/product-modals";
 import { DEFAULT_PRODUCT_SLUG, nicheLabel } from "@/lib/products";
 import type { Database } from "@/lib/supabase/types";
 

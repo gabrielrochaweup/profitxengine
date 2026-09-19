@@ -643,11 +643,15 @@ export function AnalyticsTab({
           </div>
 
           {/* ── Funil de conversão ──
-              As oito etapas juntas e, ao lado, os dois funis detalhados: é a
+              As oito etapas em cima e, embaixo, os dois funis detalhados: é a
               mesma pergunta vista de perto e de longe, então é uma superfície
-              só com fio no meio — antes eram três cartões seguidos. */}
+              só com fio no meio — antes eram três cartões seguidos.
+
+              Empilhados e não lado a lado: espremidos em meia largura, os dois
+              funis viravam um fiapo de 4px de altura com rótulo ilegível. Cada
+              linha aqui ganha a largura inteira. */}
           <Bloco titulo="Funil de conversão">
-            <CartaoDividido className="lg:grid-cols-[1.15fr_1fr]">
+            <CartaoDividido className="lg:grid-cols-1 lg:divide-x-0 lg:divide-y">
               <MetadeCartao>
                 <div className="space-y-1.5">
                   {combinedFunnelStages.map((stage) => (
@@ -667,7 +671,7 @@ export function AnalyticsTab({
                 </div>
               </MetadeCartao>
 
-              <MetadeCartao className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <MetadeCartao className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="min-w-0">
                   <p className="mb-1 text-[11px] font-medium text-text-tertiary">Funil do curso</p>
                   <ConversionFunnel data={courseFunnelData} color="var(--accent-text)" />

@@ -1259,6 +1259,7 @@ export interface Database {
           conteudo_md: string;
           imagem_url: string | null;
           imagem_alt: string | null;
+          imagem_prompt: string | null;
           status: "rascunho" | "publicado";
           publicado_em: string | null;
           tema: string | null;
@@ -1275,6 +1276,7 @@ export interface Database {
           | "conteudo_md"
           | "imagem_url"
           | "imagem_alt"
+          | "imagem_prompt"
           | "status"
           | "publicado_em"
           | "tema"
@@ -1289,6 +1291,7 @@ export interface Database {
           conteudo_md?: string;
           imagem_url?: string | null;
           imagem_alt?: string | null;
+          imagem_prompt?: string | null;
           status?: "rascunho" | "publicado";
           publicado_em?: string | null;
           tema?: string | null;

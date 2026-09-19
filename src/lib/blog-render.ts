@@ -49,6 +49,20 @@ export function markdownParaHtml(md: string): string {
       continue;
     }
 
+    // Imagem sozinha no parágrafo vira figura com legenda — é como um post
+    // com foto no meio do texto se parece, e é o que o editor insere quando
+    // alguém manda uma imagem gerada pro corpo.
+    const imagem = bloco.match(/^!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)$/);
+    if (imagem) {
+      const alt = escapar(imagem[1]);
+      saida.push(
+        `<figure><img src="${escapar(imagem[2])}" alt="${alt}" loading="lazy" />${
+          alt ? `<figcaption>${alt}</figcaption>` : ""
+        }</figure>`
+      );
+      continue;
+    }
+
     saida.push(`<p>${inline(linhas.join(" "))}</p>`);
   }
 
@@ -68,7 +82,11 @@ function inline(texto: string): string {
   t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
   t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   t = t.replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
-  // Só http(s): sem isso um "javascript:" no href viraria clique executável.
+  // Só http(s) nos dois: sem isso um "javascript:" no href viraria clique
+  // executável. E a imagem vem ANTES do link, porque "![alt](url)" também
+  // casa com o padrão de link — na ordem trocada, a foto virava um link com
+  // "!" na frente.
+  t = t.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, '<img src="$2" alt="$1" loading="lazy" />');
   t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" rel="noopener">$1</a>');
   return t;
 }

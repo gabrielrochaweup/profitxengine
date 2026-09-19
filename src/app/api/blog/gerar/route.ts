@@ -98,6 +98,7 @@ export async function POST(request: Request) {
         palavra_chave: gerado.palavra_chave,
         conteudo_md: gerado.conteudo_md,
         imagem_alt: gerado.imagem_alt,
+        imagem_prompt: gerado.imagem_prompt,
         tema,
         created_by: profile.userId,
       })
@@ -116,9 +117,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // O prompt da imagem volta pro cliente em vez de virar coluna: ele serve
-    // uma vez, pra chamada de imagem logo em seguida, e guardar prompt de
-    // imagem em post seria dado morto na tabela.
+    // O prompt da imagem volta no corpo pra chamada de imagem que vem logo
+    // em seguida — e agora também fica salvo na coluna: é com ele em mãos que
+    // dá pra mexer numa palavra e gerar a capa de novo, no editor.
     return NextResponse.json({ post: data, imagem_prompt: gerado.imagem_prompt });
   } catch (err) {
     const motivo = err instanceof Error ? err.message : "Falha ao gerar o texto.";

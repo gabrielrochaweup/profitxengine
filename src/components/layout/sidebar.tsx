@@ -12,6 +12,7 @@ import {
   Settings,
   SlidersHorizontal,
   ShieldCheck,
+  Boxes,
   ChevronRight,
   LogOut,
   X,
@@ -188,6 +189,14 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                 onNavigate={() => setMobileOpen(false)}
               />
               {role === "admin" && (
+                <MenuLink
+                  href="/projetos"
+                  icon={Boxes}
+                  label="Configurações de Projeto"
+                  onNavigate={() => setMobileOpen(false)}
+                />
+              )}
+              {role === "admin" && (
                 <MenuLink href="/admin" icon={ShieldCheck} label="Admin" onNavigate={() => setMobileOpen(false)} />
               )}
 
@@ -339,6 +348,17 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                     label="Configurações da Plataforma"
                     onNavigate={() => setMenuOpen(false)}
                   />
+                  {/* Renomear e desativar projeto moravam na barra de cima,
+                      no hover da aba. Vieram pra cá: é configuração, e
+                      configuração fica onde se procura configuração. */}
+                  {role === "admin" && (
+                    <MenuLink
+                      href="/projetos"
+                      icon={Boxes}
+                      label="Configurações de Projeto"
+                      onNavigate={() => setMenuOpen(false)}
+                    />
+                  )}
                   {role === "admin" && (
                     <MenuLink href="/admin" icon={ShieldCheck} label="Admin" onNavigate={() => setMenuOpen(false)} />
                   )}

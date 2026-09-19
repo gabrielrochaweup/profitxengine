@@ -254,6 +254,9 @@ ul,ol{margin:0 0 20px;padding-left:22px}
 li{margin-bottom:8px}
 blockquote{margin:0 0 20px;padding:4px 0 4px 18px;border-left:3px solid var(--linha);color:var(--fg2)}
 code{background:var(--linha);border-radius:4px;padding:1px 5px;font-size:.9em}
+article figure{margin:0 0 24px}
+article figure img,article p>img{width:100%;height:auto;border-radius:12px;display:block}
+article figcaption{margin-top:8px;color:var(--fg2);font-size:14px;text-align:center}
 .indice{list-style:none;margin:0;padding:0}
 .indice li{margin:0;border-top:1px solid var(--linha)}
 .indice li:last-child{border-bottom:1px solid var(--linha)}
