@@ -1,0 +1,331 @@
+/*
+  A paleta do kit, em oito variáveis.
+
+  Importe uma vez (no layout ou no globals.css) e troque os valores pela sua
+  marca. Se o seu projeto já tem tokens equivalentes, aponte estes pros seus
+  em vez de manter duas paletas:
+
+    :root { --tk-accent: var(--sua-cor-primaria); }
+
+  A regra de cor do kit, e vale a pena mantê-la ao trocar os valores:
+  UMA COR, UM SIGNIFICADO. Accent é "olhe aqui", verde é resultado, amarelo
+  é atenção, vermelho é problema. Paleta rotativa — uma cor por categoria —
+  pinta o painel inteiro e não destaca nada.
+*/
+
+:root {
+  --tk-fundo: #0f0f0f;
+  --tk-superficie: #161616;
+  --tk-superficie-2: #1d1d1d;
+  --tk-borda: rgba(255, 255, 255, 0.08);
+  --tk-borda-forte: rgba(255, 255, 255, 0.16);
+
+  --tk-texto: #f5f5f5;
+  --tk-texto-2: #b4b4b4;
+  --tk-texto-3: #8a8a8a;
+  --tk-texto-fraco: #5c5c5c;
+
+  --tk-accent: #006cb9;
+  --tk-accent-texto: #4aa8e8;
+  --tk-accent-suave: rgba(0, 108, 185, 0.18);
+
+  --tk-ok: #95cf0e;
+  --tk-atencao: #f3de7f;
+  --tk-erro: #d47865;
+  --tk-erro-suave: rgba(212, 120, 101, 0.16);
+
+  --tk-raio: 10px;
+}
+
+/* Tema claro: o kit não impõe: se o seu app tem alternância, redefina as
+   mesmas variáveis no seletor que você já usa. */
+[data-theme="light"] {
+  --tk-fundo: #f1f1ef;
+  --tk-superficie: #ffffff;
+  --tk-superficie-2: #f5f5f3;
+  --tk-borda: rgba(10, 10, 10, 0.1);
+  --tk-borda-forte: rgba(10, 10, 10, 0.18);
+
+  --tk-texto: #121212;
+  --tk-texto-2: #4a4a4a;
+  --tk-texto-3: #6e6e6e;
+  --tk-texto-fraco: #8a8a8a;
+
+  --tk-accent-texto: #005f9f;
+  --tk-ok: #5b7f08;
+  --tk-atencao: #8a7410;
+  --tk-erro: #b0563f;
+}
+
+/* ─────────────────────────── peças ─────────────────────────── */
+
+.tk-cartao {
+  background: var(--tk-superficie);
+  border-radius: var(--tk-raio);
+  box-shadow: 0 0 0 1px var(--tk-borda);
+}
+
+.tk-bloco + .tk-bloco {
+  margin-top: 32px;
+}
+
+.tk-bloco-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tk-bloco-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tk-texto);
+}
+
+.tk-bloco-marca {
+  width: 2px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--tk-accent);
+  flex-shrink: 0;
+}
+
+.tk-bloco-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--tk-texto-3);
+}
+
+.tk-vazio {
+  padding: 24px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--tk-texto-3);
+}
+
+/* dica */
+.tk-dica {
+  position: relative;
+  display: inline-flex;
+  cursor: help;
+}
+.tk-dica-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  border: 1px solid var(--tk-borda-forte);
+  font-size: 9px;
+  font-style: italic;
+  color: var(--tk-texto-3);
+}
+.tk-dica-balao {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--tk-superficie-2);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--tk-borda-forte);
+  font-size: 11px;
+  line-height: 1.45;
+  font-style: normal;
+  color: var(--tk-texto-2);
+  white-space: normal;
+}
+
+/* segmentado */
+.tk-segmentado {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--tk-borda);
+  background: var(--tk-superficie-2);
+}
+.tk-segmentado-item {
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--tk-texto-2);
+  cursor: pointer;
+}
+.tk-segmentado-item:hover {
+  color: var(--tk-texto);
+}
+.tk-segmentado-ativo,
+.tk-segmentado-ativo:hover {
+  background: var(--tk-accent);
+  color: #fff;
+}
+
+/* ─────────────────────────── funil ─────────────────────────── */
+
+.tk-funil {
+  display: grid;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+  border-radius: var(--tk-raio);
+  background: var(--tk-superficie);
+  box-shadow: 0 0 0 1px var(--tk-borda);
+}
+@media (min-width: 640px) {
+  .tk-funil { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .tk-funil { grid-template-columns: repeat(4, 1fr); }
+}
+
+.tk-etapa {
+  min-width: 0;
+  padding: 12px 14px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--tk-borda);
+  border-left: 1px solid var(--tk-borda);
+  cursor: pointer;
+  font: inherit;
+}
+.tk-etapa:hover { background: var(--tk-superficie-2); }
+.tk-etapa-ativa, .tk-etapa-ativa:hover { background: var(--tk-accent-suave); }
+
+.tk-etapa-topo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--tk-texto-2);
+}
+.tk-etapa-ordem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--tk-superficie-2);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--tk-texto-3);
+  flex-shrink: 0;
+}
+.tk-etapa-valor {
+  margin: 8px 0 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tk-texto);
+  font-variant-numeric: tabular-nums;
+}
+.tk-etapa-unidade {
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: var(--tk-texto-3);
+}
+.tk-etapa-barra {
+  height: 6px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: var(--tk-superficie-2);
+  overflow: hidden;
+}
+.tk-etapa-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--tk-accent);
+}
+.tk-etapa-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--tk-texto-3);
+  font-variant-numeric: tabular-nums;
+}
+.tk-etapa-queda {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--tk-erro-suave);
+  color: var(--tk-erro);
+  font-weight: 500;
+}
+.tk-funil-legenda {
+  padding: 8px 14px;
+  border-top: 1px solid var(--tk-borda);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--tk-texto-fraco);
+}
+
+/* ─────────────────────────── tabela ─────────────────────────── */
+
+.tk-tabela-wrap { overflow-x: auto; }
+.tk-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.tk-tabela th {
+  padding: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--tk-texto-3);
+  border-bottom: 1px solid var(--tk-borda);
+  white-space: nowrap;
+}
+.tk-tabela td {
+  padding: 8px;
+  color: var(--tk-texto-2);
+  border-bottom: 1px solid var(--tk-borda);
+  white-space: nowrap;
+}
+.tk-tabela tbody tr:hover { background: var(--tk-superficie-2); }
+.tk-num { text-align: right; font-variant-numeric: tabular-nums; }
+.tk-forte { color: var(--tk-texto); font-weight: 500; }
+/* Metade de uma matriz de origem é zero. Com todos no mesmo peso, o número
+   que existe não aparece. */
+.tk-zero { color: var(--tk-texto-fraco); opacity: 0.6; }
+.tk-dinheiro { color: var(--tk-ok); }
+.tk-linha-par { background: rgba(255, 255, 255, 0.02); }
+.tk-linha-topo { box-shadow: inset 2px 0 0 var(--tk-accent); }
+.tk-origem-botao {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 220px;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--tk-texto);
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+.tk-origem-campanha td:first-child { padding-left: 24px; }
