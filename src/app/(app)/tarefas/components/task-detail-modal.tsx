@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { downloadImageUrl } from "@/lib/download-file";
+import { useUrlsDeAnexo } from "../lib/anexos";
 import { getUrgencyLevel, URGENCY_TEXT_CLASS, urgencyLabel, useMinuteTick } from "../lib/urgency";
 import type { Database } from "@/lib/supabase/types";
 
@@ -119,6 +120,9 @@ export function TaskDetailModal({
   // arrastar ali não teria uma ordem única e correta pra persistir.
   const canReorder = activeVariantId !== null || variants.length === 0;
   const variantPosition = new Map(variants.map((v) => [v.id, v.position]));
+
+  // O bucket é privado: a URL de cada anexo é assinada na hora, em lote.
+  const urlDoAnexo = useUrlsDeAnexo(attachments);
 
   const visibleAttachments = (
     activeVariantId === null ? attachments : attachments.filter((a) => a.variant_id === activeVariantId)
@@ -285,7 +289,7 @@ export function TaskDetailModal({
                     onClick={async () => {
                       for (const a of visibleAttachments) {
                         // eslint-disable-next-line no-await-in-loop
-                        await downloadImageUrl(a.file_url, a.file_name);
+                        await downloadImageUrl(urlDoAnexo(a), a.file_name);
                       }
                     }}
                     title="Baixar todos os anexos exibidos"
@@ -462,6 +466,7 @@ export function TaskDetailModal({
                             <AttachmentThumb
                               key={attachment.id}
                               attachment={attachment}
+                              url={urlDoAnexo(attachment)}
                               index={index}
                               variantName={attachmentVariant?.name ?? null}
                               showPosition={canReorder}
@@ -497,6 +502,7 @@ export function TaskDetailModal({
 
 function AttachmentThumb({
   attachment,
+  url,
   index,
   variantName,
   showPosition,
@@ -505,6 +511,8 @@ function AttachmentThumb({
   onRemove,
 }: {
   attachment: TaskAttachment;
+  /** Assinada e temporária — ver lib/anexos.ts. */
+  url: string;
   index: number;
   variantName: string | null;
   showPosition: boolean;
@@ -528,10 +536,10 @@ function AttachmentThumb({
       style={style}
       className="group relative overflow-hidden rounded-lg border border-border"
     >
-      <a href={attachment.file_url} target="_blank" rel="noreferrer" className="block">
+      <a href={url} target="_blank" rel="noreferrer" className="block">
         {attachment.file_type?.startsWith("image/") ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={attachment.file_url} alt={attachment.file_name} className="h-20 w-full object-cover" />
+          <img src={url} alt={attachment.file_name} className="h-20 w-full object-cover" />
         ) : (
           <div className="flex h-20 w-full flex-col items-center justify-center gap-1 bg-card-hover px-1">
             <FileText size={20} className="text-text-muted" />
@@ -568,7 +576,7 @@ function AttachmentThumb({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            downloadImageUrl(attachment.file_url, attachment.file_name);
+            downloadImageUrl(url, attachment.file_name);
           }}
           title="Baixar anexo"
           className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"

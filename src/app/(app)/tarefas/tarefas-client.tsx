@@ -220,6 +220,10 @@ export function TarefasClient({
         task_id: taskId,
         product_id: productId,
         file_url: urlData.publicUrl,
+        // O caminho é o que permite assinar a URL depois: o bucket é
+        // privado e a URL pública acima fica só como reserva das linhas
+        // antigas (ver migration 0111).
+        file_path: path,
         file_name: file.name,
         file_type: file.type || null,
         variant_id: variantId,

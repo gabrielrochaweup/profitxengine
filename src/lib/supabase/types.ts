@@ -882,6 +882,8 @@ export interface Database {
           task_id: string;
           product_id: string;
           file_url: string;
+          /** Caminho dentro do bucket — é o que se assina. Ver migration 0111. */
+          file_path: string | null;
           file_name: string;
           file_type: string | null;
           variant_id: string | null;
