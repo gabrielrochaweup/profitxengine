@@ -12,7 +12,7 @@ export default async function ModelosDePromptPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await getProfile(user.id);
-  const activeProduct = await getActiveProduct(user.id, profile?.role === "admin");
+  const activeProduct = await getActiveProduct(user.id);
 
   const emptyResult = Promise.resolve({ data: [] });
   const [{ data: templates }, { data: characters }, { data: tones }, { data: ctas }] = await Promise.all([

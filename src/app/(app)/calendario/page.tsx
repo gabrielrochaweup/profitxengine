@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
 import { productOwnsExclusiveRoute } from "@/lib/products";
 import { CalendarioHubClient } from "./calendario-hub-client";
@@ -12,8 +12,7 @@ export default async function CalendarioPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await getProfile(user.id);
-  const activeProduct = await getActiveProduct(user.id, profile?.role === "admin");
+  const activeProduct = await getActiveProduct(user.id);
   const hasDinamicas = !!activeProduct && productOwnsExclusiveRoute(activeProduct.slug, "/dinamicas-do-dia");
   const emptyResult = Promise.resolve({ data: [] });
 

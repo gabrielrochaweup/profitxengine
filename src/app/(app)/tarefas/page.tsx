@@ -14,7 +14,7 @@ export default async function TarefasPage() {
   const isAdminUser = profile?.role === "admin";
   const canEdit = profile?.role === "editor" || isAdminUser;
 
-  const product = await getActiveProduct(user.id, isAdminUser);
+  const product = await getActiveProduct(user.id);
 
   if (!product) {
     return (

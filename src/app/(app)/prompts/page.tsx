@@ -12,7 +12,7 @@ export default async function PromptsPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await getProfile(user.id);
-  const activeProduct = await getActiveProduct(user.id, profile?.role === "admin");
+  const activeProduct = await getActiveProduct(user.id);
 
   const [{ data: prompts }, { data: categories }] = await Promise.all([
     activeProduct

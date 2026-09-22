@@ -15,7 +15,7 @@ export default async function AnalyticsPage() {
 
   const { data: profile } = await getProfile(user.id);
   const isAdmin = profile?.role === "admin";
-  const activeProduct = await getActiveProduct(user.id, isAdmin);
+  const activeProduct = await getActiveProduct(user.id);
   const hasDinamicas = !!activeProduct && productOwnsExclusiveRoute(activeProduct.slug, "/dinamicas-do-dia");
 
   // Produtos sem Dinâmicas do Dia (ex: SEVEN, físico) não usam os campos

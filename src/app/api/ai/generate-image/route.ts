@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "module e prompt são obrigatórios." }, { status: 400 });
   }
 
-  const activeProduct = await getActiveProduct(profile.userId, profile.role === "admin");
+  const activeProduct = await getActiveProduct(profile.userId);
   if (!activeProduct) {
     return NextResponse.json({ error: "Nenhum produto ativo." }, { status: 422 });
   }

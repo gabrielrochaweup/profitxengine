@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const isAdminUser = profile?.role === "admin";
   // Já veio do cache da busca acima — não vai à rede de novo.
-  const products = await getAccessibleProducts(user.id, isAdminUser);
+  const products = await getAccessibleProducts(user.id);
 
   const pathname = headers().get("x-pathname") ?? "";
   if (!isAdminUser && !isPathAccessible(pathname, products.map((p) => p.slug))) {

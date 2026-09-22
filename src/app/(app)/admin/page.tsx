@@ -23,11 +23,10 @@ export default async function AdminPage() {
     redirect("/dashboard");
   }
 
-  const [{ data: users }, { data: usageLog }, { data: products }, { data: productAccess }] = await Promise.all([
+  const [{ data: users }, { data: usageLog }, { data: products }] = await Promise.all([
     supabase.rpc("admin_list_users"),
     supabase.from("ai_usage_log").select("*").order("created_at", { ascending: false }).limit(50),
     supabase.from("products").select("*").order("position"),
-    supabase.from("product_access").select("*"),
   ]);
 
   const creatorIds = Array.from(
@@ -59,9 +58,7 @@ export default async function AdminPage() {
         <Card className="p-5">
           <ProductManager
             initialProducts={products ?? []}
-            initialAccess={productAccess ?? []}
             users={users ?? []}
-            currentUserId={user.id}
           />
         </Card>
 

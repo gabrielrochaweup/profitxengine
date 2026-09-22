@@ -13,7 +13,7 @@ export default async function TrackingPage() {
 
   const { data: profile } = await getProfile(user.id);
   const isAdmin = profile?.role === "admin";
-  const activeProduct = await getActiveProduct(user.id, isAdmin);
+  const activeProduct = await getActiveProduct(user.id);
 
   if (!activeProduct) {
     return (

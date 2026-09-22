@@ -14,7 +14,7 @@ export default async function BibliotecaImagensPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await getProfile(user.id);
-  const activeProduct = await getActiveProduct(user.id, profile?.role === "admin");
+  const activeProduct = await getActiveProduct(user.id);
 
   const [{ data: images }, { data: folders }] = await Promise.all([
     activeProduct

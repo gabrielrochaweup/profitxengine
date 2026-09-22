@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 
-  const activeProduct = await getActiveProduct(profile.userId, profile.role === "admin");
+  const activeProduct = await getActiveProduct(profile.userId);
 
   const { searchParams } = new URL(request.url);
   const before = searchParams.get("before");

@@ -13,7 +13,7 @@ export default async function AcessosPage() {
 
   const { data: profile } = await getProfile(user.id);
   const role = (profile?.role ?? "editor") as UserRole;
-  const activeProduct = await getActiveProduct(user.id, role === "admin");
+  const activeProduct = await getActiveProduct(user.id);
 
   if (!activeProduct) {
     return (

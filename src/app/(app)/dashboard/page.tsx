@@ -53,7 +53,7 @@ async function getData() {
   ]);
 
   const isAdmin = profileRes.data?.role === "admin";
-  const activeProduct = user ? await getActiveProduct(user.id, isAdmin) : null;
+  const activeProduct = user ? await getActiveProduct(user.id) : null;
 
   // A notícia e o resumo vão juntos: um depende de rede externa (feed RSS) e
   // o outro do banco, e não há motivo pra esperar um antes de pedir o outro.
