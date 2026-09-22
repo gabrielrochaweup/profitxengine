@@ -13,13 +13,26 @@ const PUBLIC_PATHS = ["/login", "/auth/callback", "/api/tracking", "/blog-public
 // exclusão porque os domínios de blog entram e saem pelo painel — manter uma
 // lista deles no código significaria um deploy a cada domínio novo.
 //
-// Se um dia a Engine ganhar domínio próprio, ele precisa entrar em
-// APP_HOSTS_EXTRA (variável de ambiente, separada por vírgula) — senão o app
-// inteiro passa a ser tratado como blog.
+// Os domínios PRÓPRIOS da Engine, ao contrário, mudam quase nunca — e por
+// isso ficam aqui no código, não só em variável de ambiente.
+//
+// Isso não é preferência de estilo: a Engine ganhou o domínio
+// engine.escolaprofitx.com num servidor onde APP_HOSTS_EXTRA não estava
+// definida, e o efeito foi o app INTEIRO virar "blog de cliente" — todo
+// request reescrito pra /blog-publico/engine.escolaprofitx.com/..., que não
+// existe. A tela caía em erro 500 sem nada no log que apontasse pro
+// middleware. Uma lista de hosts próprios no código transforma esse modo de
+// falha (silencioso, em produção, longe da causa) em nada.
+//
+// APP_HOSTS_EXTRA continua valendo e soma a esta lista: serve pra domínio
+// novo entrar sem deploy, ou pra ambiente de teste.
+const HOSTS_DO_APP = ["engine.escolaprofitx.com"];
+
 function ehHostDoApp(host: string): boolean {
   const limpo = host.split(":")[0].toLowerCase();
   if (limpo === "localhost" || limpo === "127.0.0.1") return true;
   if (limpo.endsWith(".vercel.app")) return true;
+  if (HOSTS_DO_APP.includes(limpo)) return true;
   const extras = (process.env.APP_HOSTS_EXTRA ?? "")
     .split(",")
     .map((h) => h.trim().toLowerCase())
