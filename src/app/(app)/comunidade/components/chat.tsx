@@ -376,7 +376,11 @@ export function Chat({
         </button>
       )}
 
-      <div className="border-t border-border p-3">
+      {/* pr-12 abaixo de xl: é onde o botão de ajuda flutua, no canto
+          inferior direito. Sem isso ele cobre o "Entrar na chamada" e o
+          enviar justamente nas telas em que o painel de membros está
+          escondido e o chat encosta na borda. */}
+      <div className="border-t border-border p-3 pr-[3.25rem] xl:pr-3">
         {/* A chamada vem antes do campo: é a ação mais consequente da sala e
             mora onde a mão já está. */}
         {acaoChamada}

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { getUser, getProfile } from "@/lib/supabase/server";
@@ -5,6 +6,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { ProductTabs } from "@/components/layout/product-tabs";
 import { ActiveProductProvider } from "@/components/layout/active-product-context";
 import { ChamadaProvider } from "@/app/(app)/comunidade/chamada-provider";
+import { AjudaFlutuante } from "@/components/layout/ajuda-flutuante";
 import { DEFAULT_PRODUCT_SLUG, isPathAccessible } from "@/lib/products";
 import { getAccessibleProducts, iniciarBuscaDeProdutos } from "@/lib/products-server";
 
@@ -77,6 +79,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </div>
+
+      {/* A ajuda mora no layout pra existir em toda página sem ninguém
+          precisar plugar. Suspense porque ela lê ?aba= da URL, e
+          useSearchParams sem fronteira faria o Next renderizar a árvore
+          inteira no cliente. */}
+      <Suspense fallback={null}>
+        <AjudaFlutuante />
+      </Suspense>
       </ChamadaProvider>
     </ActiveProductProvider>
   );

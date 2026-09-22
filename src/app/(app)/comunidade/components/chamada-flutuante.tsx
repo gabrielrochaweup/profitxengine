@@ -21,7 +21,9 @@ export function ChamadaFlutuante() {
 
   return (
     // No celular ela sobe acima do menu inferior; no desktop volta pro canto.
-    <div className="fixed bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5rem))] right-3 z-40 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-panel border border-border-strong bg-card px-3 py-2 shadow-popover md:bottom-4">
+    // E sai da frente do botão de ajuda, que mora no mesmo canto: no desktop
+    // abrindo espaço à direita, no celular subindo uma linha.
+    <div className="fixed bottom-[max(9rem,calc(env(safe-area-inset-bottom)+8.5rem))] right-3 z-40 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-panel border border-border-strong bg-card px-3 py-2 shadow-popover md:bottom-4 md:right-[4.25rem]">
       <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-button bg-accent-soft text-accent-text">
         <Headphones size={15} />
         <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-success" />
