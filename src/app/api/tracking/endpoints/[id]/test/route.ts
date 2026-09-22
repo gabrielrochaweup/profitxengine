@@ -171,8 +171,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     return NextResponse.json({ error: "Falha ao ler o token do endpoint." }, { status: 500 });
   }
 
-  const origin = new URL(request.url).origin;
-  const targetUrl = `${origin}/api/tracking/webhooks/${KIND_PATH[endpoint.kind]}/${endpoint.endpoint_slug}`;
+  const targetUrl = `${origemPraChamarAMimMesmo(request)}/api/tracking/webhooks/${KIND_PATH[endpoint.kind]}/${endpoint.endpoint_slug}`;
   const payload = buildTestPayload(endpoint.kind, endpoint.platform);
 
   let ok = false;
@@ -204,4 +203,25 @@ export async function POST(request: Request, { params }: { params: { id: string 
     .eq("id", params.id);
 
   return NextResponse.json(ok ? { ok: true } : { ok: false, error: detail });
+}
+
+/**
+ * O endereco que o servidor usa pra chamar a PROPRIA rota de webhook.
+ *
+ * Atras do nginx da VPS, request.url vira "https://localhost:3400/..." — o
+ * host e o interno (o nginx repassa Host: localhost:3400) mas o protocolo vem
+ * do x-forwarded-proto, que e https. Essa combinacao nao existe: o Next
+ * escuta HTTP puro naquela porta, entao o fetch morria no handshake TLS e o
+ * botao "Testar" reportava falha de um endpoint que estava perfeito.
+ *
+ * Usar x-forwarded-host pra montar o endereco publico resolveria o protocolo,
+ * mas seria pior: o header e controlado por quem chama, e este fetch leva o
+ * token do endpoint no Authorization — daria pra fazer a Engine entregar o
+ * token decifrado num servidor de fora. Corrigir so o protocolo do loopback
+ * mantem a chamada dentro da maquina.
+ */
+function origemPraChamarAMimMesmo(request: Request): string {
+  const url = new URL(request.url);
+  const ehLoopback = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  return ehLoopback ? `http://${url.host}` : url.origin;
 }

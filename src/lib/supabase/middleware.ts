@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { redirecionar } from "@/lib/redirecionar";
 
 // /api/tracking: chamado por navegadores de visitantes anônimos (pixel.js,
 // collect) e por sistemas externos sem sessão Supabase (webhooks da
@@ -98,18 +99,18 @@ export async function updateSession(request: NextRequest) {
 
   const isPublicPath = PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
+  // Os dois redirects abaixo sao RELATIVOS. request.nextUrl e montado a
+  // partir do header Host, e atras do nginx da VPS esse header e
+  // "localhost:3400" — um Location absoluto mandaria a pessoa pra
+  // https://localhost:3400/login. Detalhe completo em lib/redirecionar.ts.
   if (!user && !isPublicPath) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/login";
-    redirectUrl.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
+    const parametros = new URLSearchParams(request.nextUrl.search);
+    parametros.set("next", request.nextUrl.pathname);
+    return redirecionar(`/login?${parametros.toString()}`);
   }
 
   if (user && request.nextUrl.pathname === "/login") {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/dashboard";
-    redirectUrl.search = "";
-    return NextResponse.redirect(redirectUrl);
+    return redirecionar("/dashboard");
   }
 
   return supabaseResponse;
