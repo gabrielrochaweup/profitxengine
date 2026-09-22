@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { redirecionar } from "@/lib/redirecionar";
 
 // /api/tracking: chamado por navegadores de visitantes anônimos (pixel.js,
 // collect) e por sistemas externos sem sessão Supabase (webhooks da
@@ -99,18 +98,24 @@ export async function updateSession(request: NextRequest) {
 
   const isPublicPath = PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
-  // Os dois redirects abaixo sao RELATIVOS. request.nextUrl e montado a
-  // partir do header Host, e atras do nginx da VPS esse header e
-  // "localhost:3400" — um Location absoluto mandaria a pessoa pra
-  // https://localhost:3400/login. Detalhe completo em lib/redirecionar.ts.
+  // Aqui o redirect e ABSOLUTO, ao contrario das rotas de /auth, que usam
+  // Location relativo (lib/redirecionar.ts). Nao e inconsistencia: middleware
+  // roda noutro runtime, e ele faz `new URL()` no header Location antes de
+  // devolver a resposta. Location relativo derruba a requisicao inteira com
+  // "TypeError: Invalid URL" — 500 em toda rota protegida, testado e
+  // revertido. Em middleware, absoluto e a unica forma que funciona.
   if (!user && !isPublicPath) {
-    const parametros = new URLSearchParams(request.nextUrl.search);
-    parametros.set("next", request.nextUrl.pathname);
-    return redirecionar(`/login?${parametros.toString()}`);
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("next", request.nextUrl.pathname);
+    return NextResponse.redirect(redirectUrl);
   }
 
   if (user && request.nextUrl.pathname === "/login") {
-    return redirecionar("/dashboard");
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/dashboard";
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
   }
 
   return supabaseResponse;
