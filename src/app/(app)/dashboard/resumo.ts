@@ -56,6 +56,19 @@ export interface ResumoDoDia {
   movimentos: Movimento[];
   /** Nenhum evento hoje ainda — muda o texto da seção, não esconde ela. */
   diaVazio: boolean;
+  /**
+   * O que não deu pra ler, com o motivo.
+   *
+   * Existe porque a primeira versão tinha um try/catch só em volta de tudo:
+   * uma consulta falhando apagava o painel inteiro e deixava na tela
+   * "não deu pra montar o resumo", sem dizer o que falhou nem onde olhar.
+   * Foi exatamente o que aconteceu no servidor da VPS — e, de fora, era
+   * indistinguível de "o dia não tem dados".
+   *
+   * Agora cada bloco falha sozinho: o resto do painel continua de pé e o
+   * motivo aparece pra quem é admin.
+   */
+  problemas: string[];
 }
 
 /** Janela de um dia no fuso de Brasília (o app é só pra time no Brasil). */
@@ -193,6 +206,24 @@ export async function carregarResumoDoDia(productId: string, isAdmin: boolean): 
       .order("received_at", { ascending: false })
       .limit(50),
   ]);
+
+  /*
+    Cada leitura responde por si.
+
+    O supabase-js devolve { data, error } em vez de lançar, então sem
+    recolher esses erros eles passavam em silêncio — e o painel só dizia
+    "sem dados", que é a mesma cara de um dia parado.
+  */
+  const problemas: string[] = [];
+  const anotar = (rotulo: string, erro: { message: string } | null) => {
+    if (erro) problemas.push(`${rotulo}: ${erro.message}`);
+  };
+  anotar("números de hoje", relatorioHoje.error);
+  anotar("números de ontem", relatorioOntem.error);
+  anotar("eventos de hoje", eventosDeHoje.error);
+  anotar("eventos sem atribuição", semAtribuicao.error);
+  anotar("disparos", disparos.error);
+  anotar("chamadas de webhook", webhooks.error);
 
   const numerosHoje = somar(relatorioHoje.data as LinhaDoRelatorio[] | null);
   const numerosOntem = somar(relatorioOntem.data as LinhaDoRelatorio[] | null);
@@ -359,9 +390,14 @@ export async function carregarResumoDoDia(productId: string, isAdmin: boolean): 
     });
   }
 
-  if (isAdmin) {
-    const alunos = resumoDeAlunos(await carregarAlunos(createAdminClient(), productId));
+  /*
+    A lista de alunos é a parte mais frágil: precisa da chave de serviço
+    (que pode não existir num servidor novo) e varre várias páginas de
+    eventos. Isolada, o painel sobrevive à queda dela.
+  */
+  const alunos = isAdmin ? await lerAlunos(productId, problemas) : null;
 
+  if (alunos) {
     if (alunos.semContrato > 0) {
       alertas.push({
         chave: "sem-contrato",
@@ -439,5 +475,17 @@ export async function carregarResumoDoDia(productId: string, isAdmin: boolean): 
     alertas,
     movimentos,
     diaVazio: movimentos.length === 0 && numerosHoje.leads === 0,
+    problemas,
   };
+}
+
+async function lerAlunos(productId: string, problemas: string[]) {
+  try {
+    return resumoDeAlunos(await carregarAlunos(createAdminClient(), productId));
+  } catch (erro) {
+    // createAdminClient() joga quando SUPABASE_SERVICE_ROLE_KEY não está no
+    // ambiente — o caso mais provável num servidor recém-configurado.
+    problemas.push(`lista de alunos: ${erro instanceof Error ? erro.message : String(erro)}`);
+    return null;
+  }
 }

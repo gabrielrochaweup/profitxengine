@@ -110,6 +110,25 @@ export function ResumoDoDiaView({ resumo }: { resumo: ResumoDoDia }) {
         )}
       </section>
 
+      {/* O que não deu pra ler.
+          Fica no fim, discreto, e só aparece quando há algo: painel que
+          esconde a própria falha vira "sem dados" e manda a pessoa tomar
+          decisão com meia verdade. */}
+      {resumo.problemas.length > 0 && (
+        <div className="rounded-card border border-warning/30 bg-warning-soft/30 px-4 py-3">
+          <p className="text-[12px] font-medium text-warning">
+            Parte do resumo não carregou — o resto desta tela está completo.
+          </p>
+          <ul className="mt-1 space-y-0.5">
+            {resumo.problemas.map((p) => (
+              <li key={p} className="text-[11px] leading-relaxed text-text-tertiary">
+                {p}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* ── Acontecendo ── */}
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
