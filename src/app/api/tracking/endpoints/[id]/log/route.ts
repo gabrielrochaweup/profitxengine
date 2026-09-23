@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 

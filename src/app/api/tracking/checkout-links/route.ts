@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Os checkouts em uso, pra montar UTM sem caçar link em outra aba.
@@ -9,7 +9,7 @@ const CAMPOS = "id, plano, checkout, url, position, created_at";
 
 export async function GET(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 

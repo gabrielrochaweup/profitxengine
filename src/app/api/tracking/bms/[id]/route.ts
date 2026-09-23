@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 import { CAMPOS_BM, ehStatusBm } from "@/lib/tracking/bms";
@@ -8,7 +8,7 @@ type BmUpdate = Database["public"]["Tables"]["ad_business_managers"]["Update"];
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 
@@ -46,7 +46,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 

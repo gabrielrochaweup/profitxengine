@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto";
 import { testMetaCredentials, type MetaCredentials } from "@/lib/ads/meta-client";
@@ -25,7 +25,7 @@ interface PatchBody {
 // normalmente enquanto se recusa a entregar anúncio.
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 
@@ -93,7 +93,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 

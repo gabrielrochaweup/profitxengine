@@ -159,7 +159,7 @@ export const ANALYTICS_SUB_TABS = [
   { key: "visao", label: "Visão geral", adminOnly: false },
   { key: "campanhas", label: "Campanhas", adminOnly: false },
   { key: "eventos", label: "Eventos", adminOnly: false },
-  { key: "alunos", label: "Alunos e contratos", adminOnly: true },
+  { key: "alunos", label: "Alunos e contratos", adminOnly: false },
 ] as const;
 
 export type AnalyticsSubTab = (typeof ANALYTICS_SUB_TABS)[number]["key"];
@@ -190,7 +190,6 @@ export function AnalyticsTab({
   productId,
   initialReport,
   initialEvents,
-  isAdmin,
   subTab,
   tableTab = "campanhas",
   filtroAlunos,
@@ -198,7 +197,6 @@ export function AnalyticsTab({
   productId: string;
   initialReport: CampaignRow[];
   initialEvents: RecentEvent[];
-  isAdmin: boolean;
   subTab: AnalyticsSubTab;
   /** Qual recorte de Performance mostrar. Quem manda é a barra do módulo. */
   tableTab?: TableTab;
@@ -653,7 +651,7 @@ export function AnalyticsTab({
         </label>
       </BarraDeFiltros>
 
-      {listaDeAlunos && isAdmin && (
+      {listaDeAlunos && (
         <AlunosPanel
           productId={productId}
           de={janela.de}

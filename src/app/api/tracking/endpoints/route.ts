@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto";
 
@@ -16,7 +16,7 @@ const VALID_KINDS = ["checkout", "members_area", "broker", "contract", "tool"] a
 
 export async function GET(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 // segredo cifrado fica salvo, mesmo padrão de ai_credentials.
 export async function POST(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 

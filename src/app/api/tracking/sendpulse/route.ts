@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SENDPULSE_KEYS } from "@/lib/sendpulse/config-keys";
 
@@ -9,7 +9,7 @@ import { SENDPULSE_KEYS } from "@/lib/sendpulse/config-keys";
 
 export async function GET(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptSecret } from "@/lib/crypto";
 import { fetchMetaCampaignSpend, type MetaCredentials } from "@/lib/ads/meta-client";
@@ -15,7 +15,7 @@ function isoDate(d: Date): string {
 // ad_campaign_spend substitui o gasto do mesmo dia/campanha, não duplica.
 export async function POST(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 

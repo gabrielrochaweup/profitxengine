@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionProfile, hasRole } from "@/lib/auth";
+import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto";
 import { testMetaCredentials, type MetaCredentials } from "@/lib/ads/meta-client";
@@ -11,7 +11,7 @@ const SELECT_FIELDS = "id, platform, label, ad_account_id, is_valid, status, las
 
 export async function GET(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 
@@ -63,7 +63,7 @@ async function buildAndTest(body: CredentialsBody) {
 // atualiza a credencial dela em vez de duplicar.
 export async function POST(request: Request) {
   const profile = await getSessionProfile();
-  if (!profile || !hasRole(profile.role, "admin")) {
+  if (!ehAprovado(profile)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   }
 

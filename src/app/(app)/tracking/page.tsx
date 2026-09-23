@@ -39,19 +39,15 @@ export default async function TrackingPage() {
       .eq("product_id", activeProduct.id)
       .order("occurred_at", { ascending: false })
       .limit(50),
-    isAdmin
-      ? supabase
-          .from("tracking_webhook_endpoints")
-          .select("id, product_id, kind, platform, label, endpoint_slug, active, last_test_at, last_test_ok, created_at")
-          .eq("product_id", activeProduct.id)
-          .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [] }),
-    isAdmin
-      ? supabase
-          .from("ad_platform_credentials")
-          .select("id, platform, label, ad_account_id, is_valid, status, last_checked_at, last_synced_at")
-          .eq("product_id", activeProduct.id)
-      : Promise.resolve({ data: [] }),
+    supabase
+      .from("tracking_webhook_endpoints")
+      .select("id, product_id, kind, platform, label, endpoint_slug, active, last_test_at, last_test_ok, created_at")
+      .eq("product_id", activeProduct.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("ad_platform_credentials")
+      .select("id, platform, label, ad_account_id, is_valid, status, last_checked_at, last_synced_at")
+      .eq("product_id", activeProduct.id),
   ]);
 
   // Junta a UTM/campanha do lead em cada evento — a tabela de eventos

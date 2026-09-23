@@ -79,10 +79,10 @@ interface TrackingClientProps {
 const TABS = [
   { key: "visao", label: "Visão geral", icon: LayoutDashboard, adminOnly: false },
   { key: "performance", label: "Performance", icon: TrendingUp, adminOnly: false },
-  { key: "pessoas", label: "Pessoas", icon: Users, adminOnly: true },
+  { key: "pessoas", label: "Pessoas", icon: Users, adminOnly: false },
   { key: "eventos", label: "Eventos", icon: Activity, adminOnly: false },
   { key: "ferramentas", label: "Ferramentas", icon: Wrench, adminOnly: false },
-  { key: "configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
+  { key: "configuracoes", label: "Configurações", icon: Settings, adminOnly: false },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -297,7 +297,6 @@ export function TrackingClient({
           productId={productId}
           initialReport={initialReport}
           initialEvents={initialEvents}
-          isAdmin={isAdmin}
           subTab={abaDeAnalise}
           tableTab={performanceSubTab}
           filtroAlunos={filtroAlunos}
@@ -316,7 +315,7 @@ export function TrackingClient({
         </div>
       )}
 
-      {tab === "configuracoes" && isAdmin && (
+      {tab === "configuracoes" && (
         <div>
           {configSubTab === "fontes" && (
             <FontesDeDadosPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
