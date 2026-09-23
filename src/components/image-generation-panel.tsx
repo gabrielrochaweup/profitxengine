@@ -132,9 +132,15 @@ export function ImageGenerationPanel({
       setCharacters(c ?? []);
       setTones(to ?? []);
       setCtas(ct ?? []);
-      const specific = t?.find((tpl) => tpl.dynamic_id === dynamicId && tpl.msg_key === msgKey);
+      // Clean é sempre a pré-seleção — Apelativo nunca. Se a mensagem só tem
+      // Apelativo (ainda não ganhou versão clean), cai nele como reserva;
+      // do contrário a pessoa abriria o painel sem NENHUM template marcado.
+      const specificClean = t?.find(
+        (tpl) => tpl.dynamic_id === dynamicId && tpl.msg_key === msgKey && tpl.style === "clean"
+      );
+      const specificQualquerEstilo = t?.find((tpl) => tpl.dynamic_id === dynamicId && tpl.msg_key === msgKey);
       const fallback = t?.find((tpl) => !tpl.dynamic_id) ?? t?.[0];
-      const initial = specific ?? fallback;
+      const initial = specificClean ?? specificQualquerEstilo ?? fallback;
       if (initial) setTemplateId(initial.id);
       if (c && c.length > 0) setCharacterId(c[0].id);
       if (to && to.length > 0) setToneId(to[0].id);

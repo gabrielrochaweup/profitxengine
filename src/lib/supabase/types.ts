@@ -507,14 +507,17 @@ export interface Database {
           position: number;
           dynamic_id: string | null;
           msg_key: string | null;
+          /** 'clean' (padrão a partir da migration 0115) ou 'apelativo' (visual antigo, mantido como opção). */
+          style: "clean" | "apelativo";
           created_by: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["image_prompt_templates"]["Row"], "id" | "created_at" | "dynamic_id" | "msg_key"> & {
+        Insert: Omit<Database["public"]["Tables"]["image_prompt_templates"]["Row"], "id" | "created_at" | "dynamic_id" | "msg_key" | "style"> & {
           id?: string;
           created_at?: string;
           dynamic_id?: string | null;
           msg_key?: string | null;
+          style?: "clean" | "apelativo";
         };
         Update: Partial<Database["public"]["Tables"]["image_prompt_templates"]["Insert"]>;
         Relationships: [];
