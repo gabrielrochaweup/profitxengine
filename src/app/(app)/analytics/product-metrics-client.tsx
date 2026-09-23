@@ -21,7 +21,6 @@ interface ProductMetricsClientProps {
   initialEntries: MetricEntry[];
   productId: string | null;
   currentUserId: string;
-  isAdmin: boolean;
 }
 
 type Period = "hoje" | "ontem" | "7d" | "30d" | "90d" | "mes" | "tudo";
@@ -48,7 +47,6 @@ export function ProductMetricsClient({
   initialEntries,
   productId,
   currentUserId,
-  isAdmin,
 }: ProductMetricsClientProps) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -238,16 +236,14 @@ export function ProductMetricsClient({
       <Card className="p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-semibold text-text-primary">Preencher resultado do dia</h3>
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => setManagingFields((v) => !v)}
-              className="flex items-center gap-1.5 text-xs text-accent-text hover:underline"
-            >
-              <Settings2 size={13} />
-              {managingFields ? "Fechar gerenciar campos" : "Gerenciar campos"}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setManagingFields((v) => !v)}
+            className="flex items-center gap-1.5 text-xs text-accent-text hover:underline"
+          >
+            <Settings2 size={13} />
+            {managingFields ? "Fechar gerenciar campos" : "Gerenciar campos"}
+          </button>
         </div>
 
         {managingFields && (
@@ -335,9 +331,7 @@ export function ProductMetricsClient({
 
         {fields.length === 0 ? (
           <p className="text-xs text-text-muted">
-            {isAdmin
-              ? "Nenhum campo configurado ainda — clique em \"Gerenciar campos\" pra criar o primeiro."
-              : "Nenhum campo configurado ainda. Peça pra um admin criar em \"Gerenciar campos\"."}
+            Nenhum campo configurado ainda — clique em &quot;Gerenciar campos&quot; pra criar o primeiro.
           </p>
         ) : (
           <>

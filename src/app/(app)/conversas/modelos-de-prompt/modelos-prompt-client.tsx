@@ -25,7 +25,7 @@ interface ModelosPromptClientProps {
   initialVariations: Database["public"]["Tables"]["testimonial_prompt_variations"]["Row"][];
   initialImageVariants: Database["public"]["Tables"]["testimonial_prompt_image_variants"]["Row"][];
   currentUserId: string;
-  isAdmin: boolean;
+
 }
 
 export function ModelosPromptClient({
@@ -34,7 +34,7 @@ export function ModelosPromptClient({
   initialVariations,
   initialImageVariants,
   currentUserId,
-  isAdmin,
+
 }: ModelosPromptClientProps) {
   return (
     <div className="mt-6 space-y-8">
@@ -45,7 +45,7 @@ export function ModelosPromptClient({
         newLabel="Novo cenário"
         initialItems={initialTemplates}
         currentUserId={currentUserId}
-        isAdmin={isAdmin}
+
       />
       <PromptPartSection
         table="testimonial_prompt_styles"
@@ -54,7 +54,7 @@ export function ModelosPromptClient({
         newLabel="Novo estilo"
         initialItems={initialStyles}
         currentUserId={currentUserId}
-        isAdmin={isAdmin}
+
       />
       <PromptPartSection
         table="testimonial_prompt_variations"
@@ -63,7 +63,7 @@ export function ModelosPromptClient({
         newLabel="Nova variação"
         initialItems={initialVariations}
         currentUserId={currentUserId}
-        isAdmin={isAdmin}
+
       />
       <PromptPartSection
         table="testimonial_prompt_image_variants"
@@ -72,7 +72,7 @@ export function ModelosPromptClient({
         newLabel="Nova variante"
         initialItems={initialImageVariants}
         currentUserId={currentUserId}
-        isAdmin={isAdmin}
+
       />
     </div>
   );
@@ -85,7 +85,7 @@ function PromptPartSection({
   newLabel,
   initialItems,
   currentUserId,
-  isAdmin,
+
 }: {
   table: PromptPartTable;
   title: string;
@@ -93,7 +93,7 @@ function PromptPartSection({
   newLabel: string;
   initialItems: PromptPartRow[];
   currentUserId: string;
-  isAdmin: boolean;
+
 }) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -176,7 +176,7 @@ function PromptPartSection({
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
           <Tooltip text={description} />
         </div>
-        {isAdmin && (
+        {(
           <Button type="button" variant="secondary" size="sm" onClick={handleAdd}>
             <Plus size={14} />
             {newLabel}
@@ -217,7 +217,7 @@ function PromptPartSection({
               ) : (
                 <div className="flex items-center gap-2">
                   <span className="flex-1 truncate text-sm text-text-primary">{item.name}</span>
-                  {isAdmin && (
+                  {(
                     <div className="flex shrink-0 items-center gap-0.5">
                       <IconButton label="Mover pra cima" onClick={() => move(index, -1)}>
                         <ChevronUp size={13} />

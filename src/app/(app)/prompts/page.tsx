@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
 import { PageContainer, PageHeader } from "@/components/ui/page";
 import { PromptsClient } from "./prompts-client";
@@ -11,7 +11,6 @@ export default async function PromptsPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await getProfile(user.id);
   const activeProduct = await getActiveProduct(user.id);
 
   const [{ data: prompts }, { data: categories }] = await Promise.all([
@@ -38,7 +37,7 @@ export default async function PromptsPage() {
         initialPrompts={prompts ?? []}
         initialCategories={categories ?? []}
         currentUserId={user.id}
-        isAdmin={profile?.role === "admin"}
+
       />
     </PageContainer>
   );

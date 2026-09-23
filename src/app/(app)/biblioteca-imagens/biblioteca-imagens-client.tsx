@@ -36,14 +36,14 @@ interface BibliotecaImagensClientProps {
   initialImages: GeneratedImage[];
   initialFolders: ImageFolder[];
   currentUserId: string;
-  isAdmin: boolean;
+
 }
 
 export function BibliotecaImagensClient({
   initialImages,
   initialFolders,
   currentUserId,
-  isAdmin,
+
 }: BibliotecaImagensClientProps) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -106,7 +106,7 @@ export function BibliotecaImagensClient({
     setDragOverFolderId(null);
     const imageId = draggingImageId;
     setDraggingImageId(null);
-    if (!imageId || !isAdmin) return;
+    if (!imageId) return;
 
     const nextFolderId = folderId === UNFILED_ID ? null : folderId;
     const image = images.find((img) => img.id === imageId);
@@ -208,12 +208,12 @@ export function BibliotecaImagensClient({
     return (
       <div className="grid grid-cols-3 gap-1.5">
         {items.map((img) => {
-          const canDelete = isAdmin || img.created_by === currentUserId;
+          const canDelete = true;
           return (
             <button
               key={img.id}
               type="button"
-              draggable={isAdmin}
+              draggable
               onDragStart={(e) => {
                 setDraggingImageId(img.id);
                 e.dataTransfer.effectAllowed = "move";
@@ -225,7 +225,7 @@ export function BibliotecaImagensClient({
               onClick={() => setPreviewImage(img)}
               className={cn(
                 "group relative overflow-hidden rounded-lg border border-border text-left transition-opacity",
-                isAdmin ? "cursor-grab active:cursor-grabbing" : "",
+                "cursor-grab active:cursor-grabbing",
                 draggingImageId === img.id ? "opacity-40" : ""
               )}
             >
@@ -329,7 +329,7 @@ export function BibliotecaImagensClient({
             </h2>
           )}
 
-          {renamingId !== id && isAdmin && folder && (
+          {renamingId !== id && folder && (
             <div className="flex shrink-0 items-center gap-0.5">
               <IconButton onClick={() => moveFolder(folder, -1)} label="Mover pra esquerda">
                 <ChevronLeft size={13} />
@@ -413,7 +413,7 @@ export function BibliotecaImagensClient({
                         </button>
                       )}
 
-                      {renamingId !== child.id && isAdmin && (
+                      {renamingId !== child.id && (
                         <div className="flex shrink-0 items-center gap-0.5">
                           <IconButton onClick={() => moveFolder(child, -1)} label="Mover pra cima">
                             <ChevronUp size={13} />
@@ -448,7 +448,7 @@ export function BibliotecaImagensClient({
 
   return (
     <div>
-      {isAdmin && (
+      {(
         <div className="mb-3 flex justify-end">
           {addingFolder ? (
             <div className="flex items-center gap-1">

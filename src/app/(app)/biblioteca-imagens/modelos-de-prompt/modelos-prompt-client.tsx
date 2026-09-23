@@ -26,7 +26,7 @@ interface ModelosPromptClientProps {
   initialTones: Database["public"]["Tables"]["image_prompt_tones"]["Row"][];
   initialCtas: Database["public"]["Tables"]["image_prompt_ctas"]["Row"][];
   currentUserId: string;
-  isAdmin: boolean;
+
 }
 
 export function ModelosPromptClient({
@@ -35,7 +35,7 @@ export function ModelosPromptClient({
   initialTones,
   initialCtas,
   currentUserId,
-  isAdmin,
+
 }: ModelosPromptClientProps) {
   const { activeProductId } = useActiveProduct();
   return (
@@ -48,7 +48,7 @@ export function ModelosPromptClient({
         initialItems={initialTemplates}
         currentUserId={currentUserId}
         productId={activeProductId}
-        isAdmin={isAdmin}
+
       />
       <PromptPartSection
         table="image_prompt_characters"
@@ -58,7 +58,7 @@ export function ModelosPromptClient({
         initialItems={initialCharacters}
         currentUserId={currentUserId}
         productId={activeProductId}
-        isAdmin={isAdmin}
+
       />
       <PromptPartSection
         table="image_prompt_tones"
@@ -68,7 +68,7 @@ export function ModelosPromptClient({
         initialItems={initialTones}
         currentUserId={currentUserId}
         productId={activeProductId}
-        isAdmin={isAdmin}
+
       />
       <PromptPartSection
         table="image_prompt_ctas"
@@ -78,7 +78,7 @@ export function ModelosPromptClient({
         initialItems={initialCtas}
         currentUserId={currentUserId}
         productId={activeProductId}
-        isAdmin={isAdmin}
+
       />
     </div>
   );
@@ -92,7 +92,7 @@ function PromptPartSection({
   initialItems,
   currentUserId,
   productId,
-  isAdmin,
+
 }: {
   table: PromptPartTable;
   title: string;
@@ -101,7 +101,7 @@ function PromptPartSection({
   initialItems: PromptPartRow[];
   currentUserId: string;
   productId: string | null;
-  isAdmin: boolean;
+
 }) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -185,7 +185,7 @@ function PromptPartSection({
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
           <Tooltip text={description} />
         </div>
-        {isAdmin && (
+        {(
           <Button type="button" variant="secondary" size="sm" onClick={handleAdd}>
             <Plus size={14} />
             {newLabel}
@@ -226,7 +226,7 @@ function PromptPartSection({
               ) : (
                 <div className="flex items-center gap-2">
                   <span className="flex-1 truncate text-sm text-text-primary">{item.name}</span>
-                  {isAdmin && (
+                  {(
                     <div className="flex shrink-0 items-center gap-0.5">
                       <IconButton label="Mover pra cima" onClick={() => move(index, -1)}>
                         <ChevronUp size={13} />

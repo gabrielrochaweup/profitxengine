@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { ModelosPromptClient } from "./modelos-prompt-client";
 import { PageContainer, PageHeader } from "@/components/ui/page";
 
@@ -10,14 +10,12 @@ export default async function ModelosDePromptConversasPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const [{ data: templates }, { data: styles }, { data: variations }, { data: imageVariants }, { data: profile }] =
-    await Promise.all([
-      supabase.from("testimonial_prompt_templates").select("*").order("position"),
-      supabase.from("testimonial_prompt_styles").select("*").order("position"),
-      supabase.from("testimonial_prompt_variations").select("*").order("position"),
-      supabase.from("testimonial_prompt_image_variants").select("*").order("position"),
-      getProfile(user.id),
-    ]);
+  const [{ data: templates }, { data: styles }, { data: variations }, { data: imageVariants }] = await Promise.all([
+    supabase.from("testimonial_prompt_templates").select("*").order("position"),
+    supabase.from("testimonial_prompt_styles").select("*").order("position"),
+    supabase.from("testimonial_prompt_variations").select("*").order("position"),
+    supabase.from("testimonial_prompt_image_variants").select("*").order("position"),
+  ]);
 
   return (
     <PageContainer largura="padrao">
@@ -37,7 +35,7 @@ export default async function ModelosDePromptConversasPage() {
         initialVariations={variations ?? []}
         initialImageVariants={imageVariants ?? []}
         currentUserId={user.id}
-        isAdmin={profile?.role === "admin"}
+
       />
     </PageContainer>
   );

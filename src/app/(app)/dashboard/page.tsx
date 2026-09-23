@@ -52,7 +52,6 @@ async function getData() {
     supabase.from("prompts").select("id", { count: "exact", head: true }),
   ]);
 
-  const isAdmin = profileRes.data?.role === "admin";
   const activeProduct = user ? await getActiveProduct(user.id) : null;
 
   // A notícia e o resumo vão juntos: um depende de rede externa (feed RSS) e
@@ -64,7 +63,7 @@ async function getData() {
   const [noticia, resumo] = await Promise.all([
     getNicheNews(activeProduct?.niche).catch(() => ({ items: [], label: "" })),
     activeProduct
-      ? carregarResumoDoDia(activeProduct.id, isAdmin).catch((erro) => {
+      ? carregarResumoDoDia(activeProduct.id).catch((erro) => {
           console.error("[dashboard] falha ao montar o resumo do dia", erro);
           return null;
         })

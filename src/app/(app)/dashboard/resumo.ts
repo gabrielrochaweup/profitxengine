@@ -155,21 +155,20 @@ function somar(linhas: LinhaDoRelatorio[] | null) {
   return zero;
 }
 
-export async function carregarResumoDoDia(productId: string, isAdmin: boolean): Promise<ResumoDoDia> {
+export async function carregarResumoDoDia(productId: string): Promise<ResumoDoDia> {
   const supabase = createClient();
   const hoje = diaDeBrasilia(0);
   const ontem = diaDeBrasilia(1);
 
   /*
     Tudo com a sessão de quem está olhando, e não com a chave de serviço: o
-    RLS é quem decide o que cada pessoa enxerga, e ele já sabe que log de
-    webhook e log de disparo são de admin. Quem não é admin recebe lista
-    vazia dessas duas — e o cartão correspondente simplesmente não aparece,
-    em vez de eu reescrever a regra de permissão aqui.
+    RLS é quem decide o que cada pessoa enxerga.
 
-    A exceção é a lista de alunos, que precisa de chave de serviço pra reler
-    o payload dos eventos; por isso ela é chamada só quando isAdmin, que é o
-    mesmo critério da aba Pessoas onde ela mora.
+    Este painel é o resumo do dia pra QUEM TRABALHA no produto, então ele não
+    filtra mais por papel: os cartões de alunos (sem contrato, sem Pepe, sem
+    corretora, sem depósito) e o de disparos aparecem pra toda a equipe. O
+    contrário deixava o editor olhando uma tela que dizia "está tudo certo"
+    enquanto o alerta existia e estava escondido dele.
   */
   const [relatorioHoje, relatorioOntem, eventosDeHoje, semAtribuicao, disparos, webhooks] = await Promise.all([
     supabase.rpc("tracking_campaign_report", { p_product_id: productId, p_from: hoje.de, p_to: hoje.ate }),
@@ -395,7 +394,7 @@ export async function carregarResumoDoDia(productId: string, isAdmin: boolean): 
     (que pode não existir num servidor novo) e varre várias páginas de
     eventos. Isolada, o painel sobrevive à queda dela.
   */
-  const alunos = isAdmin ? await lerAlunos(productId, problemas) : null;
+  const alunos = await lerAlunos(productId, problemas);
 
   if (alunos) {
     if (alunos.semContrato > 0) {

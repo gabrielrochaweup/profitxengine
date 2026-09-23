@@ -22,10 +22,9 @@ interface PromptsClientProps {
   initialPrompts: Prompt[];
   initialCategories: PromptCategoryRow[];
   currentUserId: string;
-  isAdmin: boolean;
 }
 
-export function PromptsClient({ initialPrompts, initialCategories, currentUserId, isAdmin }: PromptsClientProps) {
+export function PromptsClient({ initialPrompts, initialCategories, currentUserId }: PromptsClientProps) {
   const toast = useToast();
   const confirm = useConfirm();
   const { activeProductId } = useActiveProduct();
@@ -70,8 +69,11 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
     return map;
   }, [filtered, categories]);
 
+  // A biblioteca de prompts é da equipe: quem está aprovado cria, edita e
+  // organiza. Antes isto era "só admin", e o efeito não era proteção — era
+  // um editor olhando prompts que não conseguia corrigir.
   function canEdit() {
-    return isAdmin;
+    return true;
   }
 
   function openNew(categoryId: string) {
@@ -280,7 +282,7 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
 
           {renamingId !== category.id && (
             <div className="flex shrink-0 items-center gap-0.5">
-              {isAdmin && (
+              {(
                 <>
                   <IconButton onClick={() => moveColumn(index, -1)} label="Mover pra esquerda" tone="accent">
                     <ChevronLeft size={13} />
@@ -343,11 +345,9 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
                 )}
 
                 <div className="mt-2 flex items-center justify-end gap-0.5 border-t border-border pt-2">
-                  {isAdmin && (
-                    <IconButton onClick={() => handleDuplicate(prompt)} label="Duplicar">
-                      <Copy size={13} />
-                    </IconButton>
-                  )}
+                  <IconButton onClick={() => handleDuplicate(prompt)} label="Duplicar">
+                    <Copy size={13} />
+                  </IconButton>
                   {canEdit() && (
                     <>
                       <IconButton
@@ -383,7 +383,6 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
           na busca, no meio da tela. */}
       <ActionBar
         acoes={
-          isAdmin &&
           (addingColumn ? (
             <div className="flex items-center gap-1">
               <Input
@@ -429,18 +428,12 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
       {categories.length === 0 ? (
         <EmptyState
           titulo="Nenhuma coluna ainda"
-          descricao={
-            isAdmin
-              ? "As colunas organizam os prompts por assunto — conversas, e-mails, criativos. Crie a primeira pra começar a guardar."
-              : "Um admin precisa criar a primeira coluna pra esta biblioteca começar a receber prompts."
-          }
+          descricao="As colunas organizam os prompts por assunto — conversas, e-mails, criativos. Crie a primeira pra começar a guardar."
           acao={
-            isAdmin ? (
-              <Button type="button" onClick={() => setAddingColumn(true)}>
-                <Plus size={14} />
-                Nova coluna
-              </Button>
-            ) : undefined
+            <Button type="button" onClick={() => setAddingColumn(true)}>
+              <Plus size={14} />
+              Nova coluna
+            </Button>
           }
         />
       ) : (

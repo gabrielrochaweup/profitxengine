@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
 import { ModelosPromptClient } from "./modelos-prompt-client";
 import { PageContainer, PageHeader } from "@/components/ui/page";
@@ -11,7 +11,6 @@ export default async function ModelosDePromptPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await getProfile(user.id);
   const activeProduct = await getActiveProduct(user.id);
 
   const emptyResult = Promise.resolve({ data: [] });
@@ -48,7 +47,7 @@ export default async function ModelosDePromptPage() {
         initialTones={tones ?? []}
         initialCtas={ctas ?? []}
         currentUserId={user.id}
-        isAdmin={profile?.role === "admin"}
+
       />
     </PageContainer>
   );

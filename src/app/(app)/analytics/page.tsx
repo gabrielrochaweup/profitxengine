@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient, getUser, getProfile } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
 import { productOwnsExclusiveRoute } from "@/lib/products";
 import { AnalyticsClient } from "./analytics-client";
@@ -13,8 +13,6 @@ export default async function AnalyticsPage() {
   } = await getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await getProfile(user.id);
-  const isAdmin = profile?.role === "admin";
   const activeProduct = await getActiveProduct(user.id);
   const hasDinamicas = !!activeProduct && productOwnsExclusiveRoute(activeProduct.slug, "/dinamicas-do-dia");
 
@@ -47,7 +45,7 @@ export default async function AnalyticsPage() {
           initialEntries={entries ?? []}
           productId={activeProduct?.id ?? null}
           currentUserId={user.id}
-          isAdmin={isAdmin}
+
         />
       </PageContainer>
     );
