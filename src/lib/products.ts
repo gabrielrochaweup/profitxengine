@@ -14,6 +14,7 @@ import {
   Radar,
   KeyRound,
   Newspaper,
+  Phone,
   type LucideIcon,
 } from "lucide-react";
 
@@ -72,6 +73,7 @@ const NAV_DADOS: NavItem[] = [
 const NAV_BIBLIOTECA: NavItem[] = [
   { href: "/prompts", label: "Prompts", icon: Library },
   { href: "/biblioteca-imagens", label: "Imagens", icon: Images },
+  { href: "/numeros", label: "Números", icon: Phone },
 ];
 
 // Acessos é só de admin: a tela existe pra abrir a senha das contas da

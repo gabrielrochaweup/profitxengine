@@ -278,13 +278,24 @@ const TUTORIAIS: Record<string, Tutorial> = {
   "/prompts": {
     titulo: "Biblioteca de Prompts",
     resumo:
-      "Prompts reutilizáveis nos módulos de conversas, calendário de engajamento e e-mails. As colunas são personalizáveis por quem é admin.",
+      "Prompts reutilizáveis nos módulos de conversas, calendário de engajamento e e-mails. Qualquer pessoa da equipe cria, edita e organiza as colunas.",
   },
 
   "/biblioteca-imagens": {
     titulo: "Biblioteca de Imagens",
     resumo:
       "Todas as imagens geradas por qualquer pessoa da equipe, em qualquer dispositivo. Arraste pra dentro das pastas pra organizar.",
+  },
+
+  "/numeros": {
+    titulo: "Números",
+    resumo:
+      "Registro manual dos números de WhatsApp/SendPulse usados pra falar com o cliente — sem função ativa, é só pra organizar quem cuida de qual número.",
+    passos: [
+      "Cadastre o número, dê um nome pra ele e escolha uma cor pra identificar rápido na lista.",
+      "Função é Suporte ou Comercial — separa os dois grupos na tela.",
+      "O responsável vem da lista de usuários aprovados do app, não de texto livre.",
+    ],
   },
 
   /* ─────────────────────────── operação ─────────────────────────── */

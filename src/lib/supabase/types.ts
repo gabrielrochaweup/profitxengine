@@ -1341,6 +1341,27 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["acessos"]["Insert"]>;
         Relationships: [];
       };
+      numeros_de_atendimento: {
+        Row: {
+          id: string;
+          product_id: string;
+          numero: string;
+          nome: string;
+          cor: string;
+          funcao: "suporte" | "comercial";
+          usuario_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["numeros_de_atendimento"]["Row"], "id" | "created_at" | "cor" | "usuario_id"> & {
+          id?: string;
+          created_at?: string;
+          cor?: string;
+          usuario_id?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["numeros_de_atendimento"]["Insert"]>;
+        Relationships: [];
+      };
       ad_business_managers: {
         Row: {
           id: string;
