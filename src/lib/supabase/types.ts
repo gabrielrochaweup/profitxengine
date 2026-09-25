@@ -1350,14 +1350,20 @@ export interface Database {
           cor: string;
           funcao: "suporte" | "comercial";
           usuario_id: string | null;
+          /** Conta do SendPulse em que este número está cadastrado. */
+          sendpulse_email: string | null;
           created_by: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["numeros_de_atendimento"]["Row"], "id" | "created_at" | "cor" | "usuario_id"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["numeros_de_atendimento"]["Row"],
+          "id" | "created_at" | "cor" | "usuario_id" | "sendpulse_email"
+        > & {
           id?: string;
           created_at?: string;
           cor?: string;
           usuario_id?: string | null;
+          sendpulse_email?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["numeros_de_atendimento"]["Insert"]>;
         Relationships: [];

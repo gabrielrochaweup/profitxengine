@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MessageCircle, Phone, User } from "lucide-react";
+import { MessageCircle, Phone, User, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ interface Campos {
   cor: string;
   funcao: Funcao;
   usuarioId: string;
+  sendpulseEmail: string;
 }
 
 const VAZIO: Campos = {
@@ -34,6 +35,7 @@ const VAZIO: Campos = {
   cor: COR_PADRAO,
   funcao: "suporte",
   usuarioId: "",
+  sendpulseEmail: "",
 };
 
 export function NumerosClient({
@@ -66,7 +68,7 @@ export function NumerosClient({
       if (filtro !== "todos" && n.funcao !== filtro) return false;
       if (!termo) return true;
       const responsavel = nomeDoUsuario(n.usuario_id) ?? "";
-      return [n.nome, n.numero, responsavel].some((c) => c.toLowerCase().includes(termo));
+      return [n.nome, n.numero, responsavel, n.sendpulse_email ?? ""].some((c) => c.toLowerCase().includes(termo));
     });
   }, [numeros, filtro, busca, nomeDoUsuario]);
 
@@ -173,6 +175,7 @@ export function NumerosClient({
             cor: editando.cor,
             funcao: editando.funcao,
             usuarioId: editando.usuario_id ?? "",
+            sendpulseEmail: editando.sendpulse_email ?? "",
           }}
           onFechar={() => setEditando(null)}
           onSalvo={(n) => {
@@ -242,6 +245,12 @@ function LinhaNumero({
           <User size={11} />
           {nomeResponsavel ?? "Sem responsável atribuído"}
         </p>
+        {numero.sendpulse_email && (
+          <p className="mt-1 flex items-center gap-1.5 text-[11px] text-text-muted">
+            <Mail size={11} />
+            {numero.sendpulse_email}
+          </p>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
@@ -310,6 +319,7 @@ function Formulario({
       cor: campos.cor,
       funcao: campos.funcao,
       usuario_id: campos.usuarioId || null,
+      sendpulse_email: campos.sendpulseEmail.trim() || null,
     };
 
     setSalvando(true);
@@ -363,6 +373,15 @@ function Formulario({
                 </option>
               ))}
             </Select>
+          </Field>
+
+          <Field label="Conta do SendPulse" hint="(opcional — o e-mail de login)" span={12}>
+            <Input
+              type="email"
+              value={campos.sendpulseEmail}
+              onChange={(e) => set("sendpulseEmail", e.target.value)}
+              placeholder="equipe@escolaprofitx.com"
+            />
           </Field>
 
           <Field label="Cor" span={12}>
