@@ -995,7 +995,7 @@ export interface Database {
           id: string;
           product_id: string;
           lead_id: string | null;
-          event_type: "page_view" | "initiate_checkout" | "purchase" | "members_access" | "broker_signup" | "broker_deposit" | "contract_signed" | "tool_signup" | "tool_access";
+          event_type: "page_view" | "initiate_checkout" | "purchase" | "members_access" | "broker_signup" | "broker_deposit" | "contract_signed" | "tool_signup" | "tool_access" | "members_reengagement_sent";
           source: string;
           email: string | null;
           amount_cents: number | null;

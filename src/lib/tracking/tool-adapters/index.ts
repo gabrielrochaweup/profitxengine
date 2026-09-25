@@ -1,4 +1,5 @@
 import { pepeAdapter } from "./pepe";
+import { sendpulseReengajamentoAdapter } from "./sendpulse-reengajamento";
 import type { ToolAdapter } from "./types";
 
 export type { ToolAdapter, NormalizedToolEvent } from "./types";
@@ -7,6 +8,7 @@ export type { ToolAdapter, NormalizedToolEvent } from "./types";
 // schema muda.
 export const TOOL_ADAPTERS: Record<string, ToolAdapter> = {
   pepe: pepeAdapter,
+  "sendpulse-reengajamento": sendpulseReengajamentoAdapter,
 };
 
 export const TOOL_PLATFORMS = Object.keys(TOOL_ADAPTERS);

@@ -88,6 +88,7 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   members_access: "Acesso à área de membros",
   tool_signup: "Cadastro no Pepe",
   tool_access: "Primeiro acesso no Pepe",
+  members_reengagement_sent: "Reengajamento enviado (SendPulse)",
   broker_signup: "Cadastro na corretora",
   broker_deposit: "Depósito",
 };
@@ -128,6 +129,7 @@ const EVENT_TYPE_FILTER_OPTIONS = [
   { value: "members_access", label: "Acesso à área de membros" },
   { value: "tool_signup", label: "Cadastro no Pepe" },
   { value: "tool_access", label: "Primeiro acesso no Pepe" },
+  { value: "members_reengagement_sent", label: "Reengajamento enviado (SendPulse)" },
   { value: "broker_signup", label: "Cadastro na corretora" },
   { value: "broker_deposit", label: "Depósito" },
 ];
