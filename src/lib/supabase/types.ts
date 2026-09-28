@@ -288,11 +288,14 @@ export interface Database {
           banca_copy: number;
           entrada_pepe: number;
           entrada_live: number;
+          /** Sobrescreve, em toda dinâmica, o número embutido no link de WhatsApp da Alavancagem. null = mantém o de cada dinâmica. */
+          numero_alavancagem_override: string | null;
           updated_by: string | null;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["trading_config"]["Row"], "updated_at"> & {
+        Insert: Omit<Database["public"]["Tables"]["trading_config"]["Row"], "updated_at" | "numero_alavancagem_override"> & {
           updated_at?: string;
+          numero_alavancagem_override?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["trading_config"]["Insert"]>;
         Relationships: [];

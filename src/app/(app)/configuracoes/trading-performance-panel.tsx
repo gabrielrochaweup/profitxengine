@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 import { useToast } from "@/components/ui/toast";
+import { apenasDigitos, linkWhatsapp } from "@/lib/numeros";
 import type { Database, TradingProduct, TradingWindow } from "@/lib/supabase/types";
 
 type StatsRow = Database["public"]["Tables"]["trading_performance_stats"]["Row"];
@@ -121,7 +122,9 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
 
     let configError = null;
     if (config) {
-      const res = await supabase.from("trading_config").update(config).eq("id", 1);
+      const numero = config.numero_alavancagem_override?.trim();
+      const configPayload = { ...config, numero_alavancagem_override: numero ? apenasDigitos(numero) : null };
+      const res = await supabase.from("trading_config").update(configPayload).eq("id", 1);
       configError = res.error;
     }
 
@@ -183,6 +186,36 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
             disabled={!canEdit}
             onChange={(v) => setConfig((c) => (c ? { ...c, entrada_live: v } : c))}
           />
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="mb-1 text-sm font-medium text-text-primary">Número da Alavancagem</h3>
+        <p className="mb-3 text-xs text-text-secondary">
+          O número que já está em cada dinâmica continua funcionando normalmente. Preencha aqui só quando precisar
+          trocar — o número novo passa a valer em toda dinâmica que chama pra participar da Alavancagem, sem
+          precisar editar uma por uma. Deixe em branco pra manter o número atual de cada uma.
+        </p>
+        <div className="max-w-xs space-y-1">
+          <label className="text-[11px] text-text-secondary">Novo número (com DDI)</label>
+          <Input
+            type="tel"
+            disabled={!canEdit}
+            value={config?.numero_alavancagem_override ?? ""}
+            onChange={(e) =>
+              setConfig((c) => (c ? { ...c, numero_alavancagem_override: e.target.value || null } : c))
+            }
+            placeholder="Ex: 15554745809"
+            className="h-8 text-xs"
+          />
+          {config?.numero_alavancagem_override?.trim() && (
+            <p className="text-[11px] text-text-muted">
+              Vai virar:{" "}
+              <code className="text-text-secondary">
+                {linkWhatsapp(config.numero_alavancagem_override) ?? "número curto demais"}
+              </code>
+            </p>
+          )}
         </div>
       </Card>
 

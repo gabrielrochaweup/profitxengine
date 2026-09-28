@@ -46,6 +46,14 @@ export interface RenderSlotInput {
   fonte: TradingWindow;
   rotatingBanks: RotatingBanks;
   extraVars: Record<string, string>;
+  /**
+   * Sobrescreve o número embutido em qualquer link de extraVars que aponte
+   * pra wa.me (o "link" da Alavancagem — nunca linkL/linkU, que não são
+   * WhatsApp). Vem de Configurações > Performance de Trading
+   * (trading_config.numero_alavancagem_override). null/undefined = mantém
+   * o número que já está gravado em cada dinâmica.
+   */
+  numeroAlavancagem?: string | null;
   vagasConfig: VagasConfig;
   stats: ProductStatsByWindow;
   config: TradingConfigValues;
@@ -90,6 +98,26 @@ function bankValue(banks: RotatingBanks, name: string, position: number): string
   return rotate(bank, position);
 }
 
+// Troca só a sequência de dígitos de um link "https://wa.me/<número>..." —
+// preserva todo o resto do link (o ?text=... próprio de cada dinâmica) e
+// ignora por completo qualquer valor que não comece assim (linkL do Meet,
+// linkU do grupo). Mesma lógica do replace() da migration 0118, só que em
+// tempo de render em vez de uma vez só no banco.
+function aplicarNumeroDaAlavancagem(
+  extraVars: Record<string, string>,
+  numeroOverride: string | null | undefined
+): Record<string, string> {
+  if (!numeroOverride) return extraVars;
+  const digitos = numeroOverride.replace(/\D/g, "");
+  if (!digitos) return extraVars;
+  return Object.fromEntries(
+    Object.entries(extraVars).map(([chave, valor]) => [
+      chave,
+      typeof valor === "string" ? valor.replace(/^(https:\/\/wa\.me\/)\d+/, `$1${digitos}`) : valor,
+    ])
+  );
+}
+
 export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
   const {
     template,
@@ -98,6 +126,7 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     fonte,
     rotatingBanks,
     extraVars,
+    numeroAlavancagem,
     vagasConfig,
     stats,
     config,
@@ -182,7 +211,7 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
     // Bancos rotativos genéricos — qualquer ${nomeDoBanco} definido em rotating_banks
     ...Object.fromEntries(Object.keys(rotatingBanks).map((name) => [name, bankValue(rotatingBanks, name, position)])),
     // Variáveis extras fixas/editáveis por dinâmica (links, cláusulas, etc.)
-    ...extraVars,
+    ...aplicarNumeroDaAlavancagem(extraVars, numeroAlavancagem),
     // Vagas
     vagasI: vagas.ignicao ?? 0,
     vagasT: vagas.turbo,

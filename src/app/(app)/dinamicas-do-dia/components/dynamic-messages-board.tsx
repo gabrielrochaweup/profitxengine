@@ -50,6 +50,8 @@ export interface DynamicMessagesBoardProps {
     entradaPepe: number;
     entradaLive: number;
   };
+  /** trading_config.numero_alavancagem_override — ver render-message.ts. */
+  numeroAlavancagem: string | null;
   depoimento: Depoimento | null;
   fonteOverrides: Record<string, TradingWindow>;
   textOverrides: Record<string, string>;
@@ -76,6 +78,7 @@ export function DynamicMessagesBoard({
   dateKey,
   stats,
   config,
+  numeroAlavancagem,
   depoimento,
   fonteOverrides,
   textOverrides,
@@ -153,6 +156,7 @@ export function DynamicMessagesBoard({
                     fonte,
                     rotatingBanks: selectedDynamic.rotating_banks,
                     extraVars: selectedDynamic.extra_vars,
+                    numeroAlavancagem,
                     vagasConfig: selectedDynamic.vagas_config,
                     stats,
                     config,

@@ -55,6 +55,7 @@ export function DynamicConsultaPanel() {
     entradaPepe: 10,
     entradaLive: 50,
   });
+  const [numeroAlavancagem, setNumeroAlavancagem] = useState<string | null>(null);
   const [fonteOverrides, setFonteOverrides] = useState<Record<string, TradingWindow>>({});
   const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
   const [depoimento, setDepoimento] = useState<Depoimento | null>(null);
@@ -104,6 +105,7 @@ export function DynamicConsultaPanel() {
           entradaPepe: configRow.entrada_pepe,
           entradaLive: configRow.entrada_live,
         });
+        setNumeroAlavancagem(configRow.numero_alavancagem_override);
       }
 
       setLoading(false);
@@ -196,6 +198,7 @@ export function DynamicConsultaPanel() {
           dateKey={toDateKey(new Date())}
           stats={stats}
           config={config}
+          numeroAlavancagem={numeroAlavancagem}
           depoimento={depoimento}
           fonteOverrides={fonteOverrides}
           textOverrides={textOverrides}
