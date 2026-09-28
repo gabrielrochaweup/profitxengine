@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Copy, Eye, EyeOff, MoreHorizontal } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, Lock, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /*
@@ -581,9 +581,18 @@ export function BotaoIcone({
   );
 }
 
+
 /**
- * Rótulo + valor + copiar, numa linha. Com `secreto`, o valor aparece
- * mascarado e ganha o olho pra revelar — copiar funciona sem revelar.
+ * Um valor pra copiar e colar em outro sistema: rótulo EM CIMA, valor
+ * dentro de uma caixa com cara de campo, e o "Copiar" DENTRO da caixa.
+ *
+ * O desenho é o que separa "isto é pra copiar" de "isto é texto": antes o
+ * rótulo ficava ao lado, com o mesmo peso do valor, e a linha inteira lia
+ * como um parágrafo. O botão confirma a cópia no próprio lugar ("Copiado")
+ * — um toast lá no canto não diz QUAL dos três campos foi copiado.
+ *
+ * Com `secreto`, o valor vem mascarado, com cadeado no rótulo e um olho pra
+ * revelar; copiar funciona sem revelar.
  */
 export function CampoCopiavel({
   rotulo,
@@ -596,29 +605,65 @@ export function CampoCopiavel({
 }: {
   rotulo: string;
   valor: string;
-  onCopiar: () => void;
+  /** Devolve false se a cópia não aconteceu (ex.: navegador bloqueou). */
+  onCopiar: () => Promise<boolean> | boolean;
   secreto?: boolean;
   revelado?: boolean;
   onAlternar?: () => void;
   carregando?: boolean;
 }) {
+  const [copiado, setCopiado] = useState(false);
+
+  useEffect(() => {
+    if (!copiado) return;
+    const t = setTimeout(() => setCopiado(false), 1600);
+    return () => clearTimeout(t);
+  }, [copiado]);
+
+  async function copiar() {
+    if (await onCopiar()) setCopiado(true);
+  }
+
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-28 shrink-0 text-[11px] font-medium text-text-tertiary">{rotulo}</span>
-      <code
-        className="min-w-0 flex-1 truncate rounded-input bg-input px-2.5 py-1.5 font-mono text-[11px] text-text-secondary"
-        title={secreto && !revelado ? undefined : valor}
-      >
-        {valor}
-      </code>
-      {secreto && onAlternar && (
-        <BotaoIcone titulo={revelado ? `Esconder ${rotulo.toLowerCase()}` : `Mostrar ${rotulo.toLowerCase()}`} onClick={onAlternar} disabled={carregando}>
-          {revelado ? <EyeOff size={14} /> : <Eye size={14} />}
-        </BotaoIcone>
-      )}
-      <BotaoIcone titulo={`Copiar ${rotulo.toLowerCase()}`} onClick={onCopiar} disabled={carregando}>
-        <Copy size={14} />
-      </BotaoIcone>
+    <div className="min-w-0">
+      <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
+        {secreto && <Lock size={10} />}
+        {rotulo}
+      </p>
+      <div className="flex items-stretch overflow-hidden rounded-input border border-border bg-input transition-colors hover:border-border-strong">
+        <code
+          className="min-w-0 flex-1 select-all truncate px-3 py-2 font-mono text-[12px] leading-5 text-text-primary"
+          title={secreto && !revelado ? undefined : valor}
+        >
+          {valor}
+        </code>
+        {secreto && onAlternar && (
+          <button
+            type="button"
+            onClick={onAlternar}
+            disabled={carregando}
+            title={revelado ? "Esconder" : "Mostrar"}
+            aria-label={revelado ? `Esconder ${rotulo}` : `Mostrar ${rotulo}`}
+            className="flex w-10 shrink-0 items-center justify-center border-l border-border text-text-tertiary transition-colors hover:bg-card-hover hover:text-text-primary disabled:opacity-50"
+          >
+            {revelado ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={copiar}
+          disabled={carregando}
+          aria-label={`Copiar ${rotulo}`}
+          className={cn(
+            "flex w-11 shrink-0 items-center justify-center gap-1.5 border-l border-border text-[12px] font-medium transition-colors disabled:opacity-50 sm:w-auto sm:min-w-[96px] sm:px-3",
+            copiado ? "bg-success-soft text-success" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+          )}
+        >
+          {copiado ? <Check size={13} /> : <Copy size={13} />}
+          {/* No celular fica só o ícone: o texto roubava o espaço do valor. */}
+          <span className="hidden sm:inline">{copiado ? "Copiado" : "Copiar"}</span>
+        </button>
+      </div>
     </div>
   );
 }

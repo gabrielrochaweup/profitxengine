@@ -1,7 +1,29 @@
 "use client";
 
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { Check, ChevronDown, Copy, FileJson, FlaskConical, Pencil, Plus, RefreshCw, Replace, Trash2, X } from "lucide-react";
+import {
+  BarChart3,
+  Check,
+  ChevronDown,
+  Copy,
+  FileJson,
+  FileSignature,
+  FlaskConical,
+  Globe,
+  GraduationCap,
+  Info,
+  Landmark,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Replace,
+  ShoppingCart,
+  Trash2,
+  Wrench,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -14,7 +36,7 @@ import { MEMBERS_AREA_PLATFORMS } from "@/lib/tracking/members-area-adapters";
 import { BROKER_PLATFORMS } from "@/lib/tracking/broker-adapters";
 import { CONTRACT_PLATFORMS } from "@/lib/tracking/contract-adapters";
 import { TOOL_PLATFORMS } from "@/lib/tracking/tool-adapters";
-import { Bloco, BotaoIcone, CampoCopiavel, Interruptor, Ponto } from "./ui";
+import { Bloco, BotaoIcone, CampoCopiavel, Interruptor } from "./ui";
 import { cn } from "@/lib/utils";
 
 export interface WebhookEndpoint {
@@ -87,6 +109,18 @@ function platformsFor(kind: WebhookEndpoint["kind"]): string[] {
   com "nenhum endpoint ainda" como se estivesse faltando alguma coisa.
 */
 type FonteKind = WebhookEndpoint["kind"] | "landing";
+
+// Um ícone por fonte: com oito linhas iguais, é ele que deixa achar a
+// corretora ou o checkout sem ler.
+const ICONE_DA_FONTE: Record<FonteKind, LucideIcon> = {
+  landing: Globe,
+  checkout: ShoppingCart,
+  members_area: GraduationCap,
+  contract: FileSignature,
+  broker: Landmark,
+  tool: Wrench,
+  daily_results: BarChart3,
+};
 
 interface Fonte {
   kind: FonteKind;
@@ -359,11 +393,10 @@ export function FontesDeDadosPanel({
     if (await obterToken(endpoint)) setTokenVisivelId(endpoint.id);
   }
 
-  async function copiarSegredo(endpoint: WebhookEndpoint, qual: "token" | "url") {
+  async function copiarSegredo(endpoint: WebhookEndpoint, qual: "token" | "url"): Promise<boolean> {
     const token = await obterToken(endpoint);
-    if (!token) return;
-    if (qual === "token") await copy(token, "Token copiado.");
-    else await copy(`${endpointUrl(endpoint)}?token=${token}`, "URL com token copiada.");
+    if (!token) return false;
+    return copy(qual === "token" ? token : `${endpointUrl(endpoint)}?token=${token}`);
   }
 
   async function toggleActive(endpoint: WebhookEndpoint) {
@@ -383,12 +416,16 @@ export function FontesDeDadosPanel({
   // Alguns navegadores recusam copiar depois de uma ida ao servidor (o
   // clique "expira"). Nesse caso o token já ficou guardado, e o segundo
   // clique copia na hora.
-  async function copy(text: string, mensagem = "Copiado.") {
+  // Nos campos, o próprio botão vira "Copiado" — um toast a mais só
+  // repetiria. A mensagem é pra quem copia de fora de um campo.
+  async function copy(text: string, mensagem?: string): Promise<boolean> {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success(mensagem);
+      if (mensagem) toast.success(mensagem);
+      return true;
     } catch {
       toast.error("O navegador bloqueou a cópia — clique de novo em copiar.");
+      return false;
     }
   }
 
@@ -411,97 +448,121 @@ export function FontesDeDadosPanel({
   }
 
   /**
-   * A linha de um endpoint — o nível técnico de uma fonte.
+   * O cartão de um endpoint — uma conexão com uma plataforma externa.
    *
-   * Tudo que se faz com uma conexão fica À VISTA: antes, copiar a URL e
-   * testar ficavam na linha e todo o resto (renomear, rotacionar, desligar,
-   * ver payloads) morava num "…" que dava a sensação de tela bloqueada —
-   * quem não abria o menu não sabia que dava pra fazer nada.
+   * Três faixas, cada uma com um papel: o cabeçalho diz QUAL conexão é e
+   * se está funcionando; o corpo tem o que se cola do outro lado; o rodapé
+   * tem o que se FAZ com ela. Antes era tudo uma linha corrida, e duas
+   * conexões seguidas se emendavam uma na outra.
    *
    * É uma função e não um componente porque fecha sobre os handlers que
    * vivem aqui em cima; como componente, seriam dez callbacks por prop.
    */
-  function linhaDeEndpoint(endpoint: WebhookEndpoint) {
+  function cartaoDeEndpoint(endpoint: WebhookEndpoint) {
     const url = endpointUrl(endpoint);
     const token = tokens[endpoint.id];
     const revelado = tokenVisivelId === endpoint.id && !!token;
     const buscando = buscandoTokenId === endpoint.id;
     const tokenNaTela = revelado ? token : MASCARA;
     const podeTrocarPlataforma = platformsFor(endpoint.kind).length > 1;
+    const Icone = ICONE_DA_FONTE[endpoint.kind];
 
     return (
-      <div key={endpoint.id} className={cn("space-y-3 px-4 py-4", !endpoint.active && "opacity-70")}>
-        {/* 1. Nome (editável no lugar) + estado */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          {renamingId === endpoint.id ? (
-            <form
-              className="flex items-center gap-1"
-              onSubmit={(e) => {
-                e.preventDefault();
-                saveLabel(endpoint);
-              }}
-            >
-              <Input
-                value={labelDraft}
-                onChange={(e) => setLabelDraft(e.target.value)}
-                onKeyDown={(e) => e.key === "Escape" && setRenamingId(null)}
-                placeholder={endpointSubtitle(endpoint)}
-                className="h-8 w-64 text-xs"
-                autoFocus
-              />
-              <BotaoIcone titulo="Salvar nome" type="submit">
-                <Check size={15} />
-              </BotaoIcone>
-              <BotaoIcone titulo="Cancelar" onClick={() => setRenamingId(null)}>
-                <X size={15} />
-              </BotaoIcone>
-            </form>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setLabelDraft(endpoint.label ?? "");
-                setRenamingId(endpoint.id);
-              }}
-              title="Editar o nome da conexão"
-              className="group inline-flex items-center gap-1.5 rounded-button py-0.5 text-left"
-            >
-              <span className="text-[14px] font-medium text-text-primary">{endpoint.label || endpointSubtitle(endpoint)}</span>
-              <Pencil size={13} className="text-text-tertiary transition-colors group-hover:text-text-primary" />
-            </button>
-          )}
+      <div
+        key={endpoint.id}
+        className={cn(
+          "overflow-hidden rounded-card border border-border bg-card shadow-card-sm transition-opacity",
+          !endpoint.active && "opacity-70"
+        )}
+      >
+        {/* ── Cabeçalho: qual conexão, e se ela está de pé ── */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-accent-soft text-accent-text">
+            <Icone size={16} />
+          </span>
 
-          {editingPlatformId === endpoint.id ? (
-            <div className="flex items-center gap-1">
-              <Select value={platformDraft} onChange={(e) => setPlatformDraft(e.target.value)} className="h-8 w-44 text-xs">
-                {platformsFor(endpoint.kind).map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </Select>
-              <BotaoIcone titulo="Salvar plataforma" onClick={() => savePlatform(endpoint)}>
-                <Check size={15} />
-              </BotaoIcone>
-              <BotaoIcone titulo="Cancelar" onClick={() => setEditingPlatformId(null)}>
-                <X size={15} />
-              </BotaoIcone>
-            </div>
-          ) : (
-            <span className="text-[11px] text-text-tertiary">{endpointSubtitle(endpoint)}</span>
-          )}
+          <div className="min-w-0">
+            {renamingId === endpoint.id ? (
+              <form
+                className="flex items-center gap-1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  saveLabel(endpoint);
+                }}
+              >
+                <Input
+                  value={labelDraft}
+                  onChange={(e) => setLabelDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Escape" && setRenamingId(null)}
+                  placeholder="Ex: Método TRIAD — Onprofit"
+                  className="h-8 w-64 text-xs"
+                  autoFocus
+                />
+                <BotaoIcone titulo="Salvar nome" type="submit">
+                  <Check size={15} />
+                </BotaoIcone>
+                <BotaoIcone titulo="Cancelar" onClick={() => setRenamingId(null)}>
+                  <X size={15} />
+                </BotaoIcone>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setLabelDraft(endpoint.label ?? "");
+                  setRenamingId(endpoint.id);
+                }}
+                title="Editar o nome da conexão"
+                className="group flex items-center gap-1.5 text-left"
+              >
+                {endpoint.label ? (
+                  <span className="text-[14px] font-semibold text-text-primary">{endpoint.label}</span>
+                ) : (
+                  <span className="text-[14px] italic text-text-tertiary">Sem nome</span>
+                )}
+                <Pencil size={13} className="text-text-tertiary transition-colors group-hover:text-accent-text" />
+              </button>
+            )}
 
-          <div className="ml-auto flex items-center gap-4">
-            <span className="inline-flex items-center gap-1.5 text-[11px]">
-              <Ponto tom={endpoint.last_test_ok === true ? "ok" : endpoint.last_test_ok === false ? "erro" : "neutro"} />
-              <span className={endpoint.last_test_ok === false ? "text-danger" : "text-text-tertiary"}>
-                {endpoint.last_test_ok === true
-                  ? `Testado${endpoint.last_test_at ? ` em ${quando(endpoint.last_test_at)}` : ""}`
-                  : endpoint.last_test_ok === false
-                    ? "Último teste falhou"
-                    : "Nunca testado"}
-              </span>
-            </span>
+            {editingPlatformId === endpoint.id ? (
+              <div className="mt-1 flex items-center gap-1">
+                <Select value={platformDraft} onChange={(e) => setPlatformDraft(e.target.value)} className="h-7 w-40 text-xs">
+                  {platformsFor(endpoint.kind).map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </Select>
+                <BotaoIcone titulo="Salvar plataforma" onClick={() => savePlatform(endpoint)} className="h-7 w-7">
+                  <Check size={14} />
+                </BotaoIcone>
+                <BotaoIcone titulo="Cancelar" onClick={() => setEditingPlatformId(null)} className="h-7 w-7">
+                  <X size={14} />
+                </BotaoIcone>
+              </div>
+            ) : (
+              <p className="mt-0.5 text-[11px] text-text-tertiary">
+                {KIND_LABEL[endpoint.kind]}
+                {endpoint.platform && (
+                  <>
+                    {" · "}
+                    <span className="font-mono text-text-secondary">{endpoint.platform}</span>
+                  </>
+                )}
+              </p>
+            )}
+          </div>
+
+          <div className="ml-auto flex items-center gap-3">
+            <Badge
+              tone={endpoint.last_test_ok === true ? "success" : endpoint.last_test_ok === false ? "danger" : "neutral"}
+            >
+              {endpoint.last_test_ok === true
+                ? `Testado${endpoint.last_test_at ? ` · ${quando(endpoint.last_test_at)}` : ""}`
+                : endpoint.last_test_ok === false
+                  ? "Último teste falhou"
+                  : "Nunca testado"}
+            </Badge>
             <Interruptor
               checked={endpoint.active}
               onChange={() => toggleActive(endpoint)}
@@ -510,35 +571,41 @@ export function FontesDeDadosPanel({
           </div>
         </div>
 
-        {/* 2. O que se cola do outro lado — cada um com seu botão de copiar */}
-        <div className="space-y-1.5 rounded-input border border-border bg-card p-2.5">
-          <CampoCopiavel rotulo="URL" valor={url} onCopiar={() => copy(url, "URL copiada.")} />
-          <CampoCopiavel
-            rotulo="Token"
-            valor={tokenNaTela}
-            secreto
-            revelado={revelado}
-            carregando={buscando}
-            onAlternar={() => alternarToken(endpoint)}
-            onCopiar={() => copiarSegredo(endpoint, "token")}
-          />
-          <CampoCopiavel
-            rotulo="URL com token"
-            valor={`${url}?token=${tokenNaTela}`}
-            secreto
-            revelado={revelado}
-            carregando={buscando}
-            onAlternar={() => alternarToken(endpoint)}
-            onCopiar={() => copiarSegredo(endpoint, "url")}
-          />
-          <p className="pl-[7.5rem] text-[10px] leading-relaxed text-text-muted">
-            Se a plataforma tem campo de token (ou &quot;Authorization&quot;), cole a URL e o Token separados. Se só
-            tem um campo de endereço, use a URL com token.
+        {/* ── Corpo: o que se cola na plataforma do outro lado ── */}
+        <div className="space-y-3 px-4 py-4">
+          <CampoCopiavel rotulo="URL do webhook" valor={url} onCopiar={() => copy(url)} />
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <CampoCopiavel
+              rotulo="Token"
+              valor={tokenNaTela}
+              secreto
+              revelado={revelado}
+              carregando={buscando}
+              onAlternar={() => alternarToken(endpoint)}
+              onCopiar={() => copiarSegredo(endpoint, "token")}
+            />
+            <CampoCopiavel
+              rotulo="URL com token embutido"
+              valor={`${url}?token=${tokenNaTela}`}
+              secreto
+              revelado={revelado}
+              carregando={buscando}
+              onAlternar={() => alternarToken(endpoint)}
+              onCopiar={() => copiarSegredo(endpoint, "url")}
+            />
+          </div>
+          <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-text-muted">
+            <Info size={12} className="mt-0.5 shrink-0" />
+            <span>
+              A plataforma tem campo de token (ou &quot;Authorization&quot;)? Cole a <strong className="font-medium text-text-secondary">URL do webhook</strong> e o{" "}
+              <strong className="font-medium text-text-secondary">Token</strong> separados. Só tem um campo de endereço? Use a{" "}
+              <strong className="font-medium text-text-secondary">URL com token embutido</strong>.
+            </span>
           </p>
         </div>
 
-        {/* 3. Ações — com ícone e nome, nada escondido */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        {/* ── Rodapé: o que se faz com a conexão ── */}
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-border bg-card-hover/50 px-4 py-2.5">
           <Button size="sm" variant="secondary" onClick={() => testEndpoint(endpoint)} disabled={testingId === endpoint.id}>
             <FlaskConical size={13} />
             {testingId === endpoint.id ? "Testando..." : "Testar"}
@@ -564,17 +631,17 @@ export function FontesDeDadosPanel({
               Trocar plataforma
             </Button>
           )}
-          <Button size="sm" variant="ghost" className="ml-auto text-danger hover:text-danger" onClick={() => deleteEndpoint(endpoint)}>
+          <Button size="sm" variant="ghost" className="ml-auto text-danger hover:bg-danger-soft hover:text-danger" onClick={() => deleteEndpoint(endpoint)}>
             <Trash2 size={13} />
             Excluir
           </Button>
         </div>
 
         {logsOpenId === endpoint.id && (
-          <div className="border-t border-border pt-3">
+          <div className="border-t border-border bg-app/40 px-4 py-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] font-medium text-text-tertiary">
-                Últimas chamadas reais recebidas (não inclui os cliques em &quot;Testar&quot;)
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
+                Últimas chamadas reais <span className="font-normal normal-case tracking-normal">(os cliques em &quot;Testar&quot; não entram)</span>
               </p>
               <Button size="sm" variant="ghost" onClick={() => loadLogs(endpoint)} disabled={loadingLogsId === endpoint.id}>
                 <RefreshCw size={13} />
@@ -586,35 +653,32 @@ export function FontesDeDadosPanel({
               <p className="text-xs text-text-tertiary">Carregando...</p>
             ) : (logsById[endpoint.id]?.length ?? 0) === 0 ? (
               <p className="max-w-[80ch] text-xs text-text-tertiary">
-                Nenhuma chamada real chegou ainda nesse endpoint. Assim que a plataforma externa disparar algo, aparece
-                aqui — mesmo que seja rejeitado.
+                Nenhuma chamada real chegou ainda. Assim que a plataforma externa disparar algo, aparece aqui — mesmo que
+                seja rejeitado.
               </p>
             ) : (
-              <div className="max-h-80 space-y-2 overflow-y-auto">
+              <div className="max-h-96 space-y-2 overflow-y-auto">
                 {logsById[endpoint.id].map((log) => (
-                  <div key={log.id} className="rounded-input border border-border bg-card-hover p-2.5">
-                    <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px]">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Ponto tom={log.accepted ? "ok" : "erro"} />
-                        <span className={log.accepted ? "text-text-tertiary" : "text-danger"}>
-                          {log.accepted ? "Aceito" : "Rejeitado"}
-                        </span>
-                      </span>
+                  <div key={log.id} className="overflow-hidden rounded-input border border-border bg-card">
+                    <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-1.5 text-[11px]">
+                      <Badge tone={log.accepted ? (log.error ? "warning" : "success") : "danger"}>
+                        {log.accepted ? (log.error ? "Aceito com aviso" : "Aceito") : "Rejeitado"}
+                      </Badge>
                       <span className="font-mono text-text-muted">{new Date(log.received_at).toLocaleString("pt-BR")}</span>
-                      <BotaoIcone
-                        titulo="Copiar payload"
-                        className="ml-auto h-6 w-6"
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="ml-auto h-6 px-2"
                         onClick={() => copy(JSON.stringify(log.raw_payload, null, 2), "Payload copiado.")}
                       >
                         <Copy size={12} />
-                      </BotaoIcone>
+                        Copiar
+                      </Button>
                     </div>
-                    {/* Aceito com observação é aviso, não erro — ex.: dia
-                        registrado mas acumulado sem placar. */}
                     {log.error && (
-                      <p className={cn("mb-1.5 text-[11px]", log.accepted ? "text-warning" : "text-danger")}>{log.error}</p>
+                      <p className={cn("px-3 pt-2 text-[11px]", log.accepted ? "text-warning" : "text-danger")}>{log.error}</p>
                     )}
-                    <pre className="overflow-x-auto whitespace-pre rounded-input bg-input px-2.5 py-2 font-mono text-[11px] text-text-secondary">
+                    <pre className="max-h-64 overflow-auto px-3 py-2 font-mono text-[11px] text-text-secondary">
                       {JSON.stringify(log.raw_payload, null, 2)}
                     </pre>
                   </div>
@@ -650,70 +714,105 @@ export function FontesDeDadosPanel({
       </p>
 
       {/* A lista fala a linguagem de quem configura: checkout, área de
-          membros, corretora. O endpoint — URL, token, payload — aparece ao
-          abrir a fonte, que é onde ele faz sentido. */}
-      <div className="divide-y divide-border rounded-card bg-card shadow-card [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
-        {FONTES.map((fonte) => {
+          membros, corretora. O técnico (URL, token, payload) aparece ao
+          abrir a fonte, dentro de um cartão por conexão. */}
+      <div className="overflow-hidden rounded-card border border-border bg-card shadow-card">
+        {FONTES.map((fonte, i) => {
           const estado = estadoDaFonte(fonte, endpoints);
           const doTipo = fonte.kind === "landing" ? [] : endpoints.filter((e) => e.kind === fonte.kind);
           const plataformas = Array.from(new Set(doTipo.map((e) => e.platform).filter(Boolean)));
           const aberta = fonteAberta === fonte.kind;
+          const Icone = ICONE_DA_FONTE[fonte.kind];
           return (
-            <div key={fonte.kind}>
+            <div key={fonte.kind} className={cn(i > 0 && "border-t border-border")}>
               <button
                 type="button"
                 onClick={() => setFonteAberta(aberta ? null : fonte.kind)}
-                className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3 text-left transition-colors hover:bg-card-hover"
-              >
-                <Ponto tom={estado.tom} />
-                <span className="text-[13px] font-medium text-text-primary">{fonte.nome}</span>
-                {/* O nome real da plataforma conectada, quando existe — é o
-                    que responde "conectado com o quê?" sem precisar abrir. */}
-                {plataformas.length > 0 && (
-                  <span className="text-[11px] text-text-secondary">{plataformas.join(" · ")}</span>
+                aria-expanded={aberta}
+                className={cn(
+                  "flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-left transition-colors hover:bg-card-hover",
+                  aberta && "bg-card-hover"
                 )}
-                <span className="text-[11px] text-text-tertiary">· {estado.texto}</span>
+              >
+                <span
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-button",
+                    estado.tom === "ok"
+                      ? "bg-success-soft text-success"
+                      : estado.tom === "alerta"
+                        ? "bg-warning-soft text-warning"
+                        : "bg-card-hover text-text-tertiary"
+                  )}
+                >
+                  <Icone size={15} />
+                </span>
+                <span className="text-[13px] font-semibold text-text-primary">{fonte.nome}</span>
+                {/* Com o quê está conectado — responde sem precisar abrir. */}
+                {plataformas.map((p) => (
+                  <span key={p} className="rounded-full border border-border px-2 py-0.5 font-mono text-[10px] text-text-secondary">
+                    {p}
+                  </span>
+                ))}
+                <span
+                  className={cn(
+                    "ml-auto text-[11px]",
+                    estado.tom === "ok" ? "text-success" : estado.tom === "alerta" ? "text-warning" : "text-text-tertiary"
+                  )}
+                >
+                  {estado.texto}
+                </span>
                 <ChevronDown
                   size={15}
-                  className={cn("ml-auto shrink-0 text-text-tertiary transition-transform", aberta && "rotate-180")}
+                  className={cn("shrink-0 text-text-tertiary transition-transform", aberta && "rotate-180")}
                 />
               </button>
 
               {aberta && (
-                <div className="border-t border-border bg-card-hover/40">
-                  <div className="px-4 py-3">
-                    <p className="max-w-[90ch] text-xs leading-relaxed text-text-secondary">{fonte.descricao}</p>
-                    {fonte.contrato && (
-                      <code className="mt-2 block overflow-x-auto whitespace-pre rounded-input border border-border bg-input px-3 py-2 font-mono text-[11px] text-text-secondary">
-                        {fonte.contrato}
-                      </code>
-                    )}
+                <div className="space-y-4 border-t border-border bg-app/50 px-4 py-4">
+                  {/* Sobre a fonte: explicação, não coisa pra copiar. */}
+                  <div className="flex gap-2.5 rounded-input border border-border bg-card px-3.5 py-3">
+                    <Info size={15} className="mt-0.5 shrink-0 text-accent-text" />
+                    <div className="min-w-0 space-y-2">
+                      <p className="max-w-[95ch] text-[12px] leading-relaxed text-text-secondary">{fonte.descricao}</p>
+                      {fonte.contrato && (
+                        <details className="group">
+                          <summary className="flex cursor-pointer list-none items-center gap-1 text-[11px] font-medium text-accent-text hover:underline">
+                            <ChevronDown size={12} className="-rotate-90 transition-transform group-open:rotate-0" />
+                            Ver o formato do payload esperado
+                          </summary>
+                          <code className="mt-2 block overflow-x-auto whitespace-pre rounded-input border border-border bg-input px-3 py-2 font-mono text-[11px] text-text-secondary">
+                            {fonte.contrato}
+                          </code>
+                        </details>
+                      )}
+                    </div>
                   </div>
 
                   {fonte.kind !== "landing" && (
-                    <div className="border-t border-border">
-                      <div className="flex items-center justify-between gap-2 px-4 py-2">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
-                          Endpoints desta fonte
+                          Conexões desta fonte <span className="text-text-secondary">· {doTipo.length}</span>
                         </p>
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="secondary"
+                          className="shrink-0 whitespace-nowrap"
                           onClick={() => {
                             setKindNovo(fonte.kind as WebhookEndpoint["kind"]);
                             setCreateOpen(true);
                           }}
                         >
                           <Plus size={13} />
-                          Adicionar
+                          Nova conexão
                         </Button>
                       </div>
                       {doTipo.length === 0 ? (
-                        <p className="px-4 pb-3 text-[11px] text-text-tertiary">
-                          Nenhum endpoint dessa fonte ainda.
-                        </p>
+                        <div className="rounded-card border border-dashed border-border px-4 py-6 text-center text-[12px] text-text-tertiary">
+                          Nenhuma conexão dessa fonte ainda. Crie uma e cole a URL e o token na plataforma.
+                        </div>
                       ) : (
-                        <div className="divide-y divide-border">{doTipo.map((e) => linhaDeEndpoint(e))}</div>
+                        <div className="space-y-3">{doTipo.map((e) => cartaoDeEndpoint(e))}</div>
                       )}
                     </div>
                   )}
