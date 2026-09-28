@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
-import { Bloco, Cartao, Ponto, Tabela, TabelaWrap, Td, Th, Tr, Vazio } from "./ui";
+import { Bloco, Cartao, Interruptor, Ponto, Tabela, TabelaWrap, Td, Th, Tr, Vazio } from "./ui";
 import {
   SENDPULSE_TIPOS,
   SENDPULSE_ALVOS,
@@ -22,51 +21,6 @@ const PLANOS_TESTE = SENDPULSE_ALVOS.filter((a) => a !== "geral").map((a) => ({
   label: ALVO_LABEL[a],
 }));
 
-/**
- * Interruptor de ligar/desligar a linha.
- *
- * Antes isto era um botão escrito "Inativo", que mostrava o estado em vez
- * da ação — não dava pra saber se era informação ou controle. Um
- * interruptor resolve sozinho: a posição diz o estado e a forma diz que
- * é clicável.
- */
-function Switch({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={onChange}
-      className="flex shrink-0 items-center gap-2"
-    >
-      <span
-        className={cn(
-          "relative h-5 w-9 rounded-full transition-colors",
-          checked ? "bg-accent" : "bg-card-hover"
-        )}
-      >
-        <span
-          className={cn(
-            "absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-card-sm transition-transform",
-            checked ? "translate-x-4" : "translate-x-0"
-          )}
-        />
-      </span>
-      <span className={cn("text-xs", checked ? "text-text-primary" : "text-text-muted")}>
-        {checked ? "Ativo" : "Inativo"}
-      </span>
-    </button>
-  );
-}
 
 interface SettingRow {
   key: string;
@@ -201,7 +155,7 @@ export function SendPulsePanel({ productId }: { productId: string }) {
                     placeholder="https://events.sendpulse.com/events/id/..."
                     className="h-8 flex-1 font-mono text-[11px]"
                   />
-                  <Switch
+                  <Interruptor
                     checked={row.enabled}
                     onChange={() => update(key, { enabled: !row.enabled })}
                     label={`${t.titulo} — ${ALVO_LABEL[alvo]}`}

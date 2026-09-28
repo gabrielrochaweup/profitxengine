@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { Copy, Eye, EyeOff, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /*
@@ -500,6 +500,125 @@ export function Distribuicao({
           </span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Interruptor de ligar/desligar.
+ *
+ * Um botão escrito "Inativo" mostra o estado em vez da ação — não dá pra
+ * saber se é informação ou controle. O interruptor resolve sozinho: a
+ * posição diz o estado e a forma diz que é clicável.
+ */
+export function Interruptor({
+  checked,
+  onChange,
+  label,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      title={label}
+      onClick={onChange}
+      disabled={disabled}
+      className="flex shrink-0 items-center gap-2 disabled:opacity-50"
+    >
+      <span className={cn("relative h-5 w-9 rounded-full transition-colors", checked ? "bg-accent" : "bg-card-hover")}>
+        <span
+          className={cn(
+            "absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-card-sm transition-transform",
+            checked ? "translate-x-4" : "translate-x-0"
+          )}
+        />
+      </span>
+      <span className={cn("text-xs", checked ? "text-text-primary" : "text-text-muted")}>
+        {checked ? "Ativo" : "Inativo"}
+      </span>
+    </button>
+  );
+}
+
+/** Botão só de ícone, sempre com rótulo pra leitor de tela e dica no hover. */
+export function BotaoIcone({
+  titulo,
+  onClick,
+  children,
+  type = "button",
+  disabled,
+  className,
+}: {
+  titulo: string;
+  onClick?: () => void;
+  children: ReactNode;
+  type?: "button" | "submit";
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      title={titulo}
+      aria-label={titulo}
+      className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-button text-text-tertiary transition-colors hover:bg-card-hover hover:text-text-primary disabled:opacity-50",
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Rótulo + valor + copiar, numa linha. Com `secreto`, o valor aparece
+ * mascarado e ganha o olho pra revelar — copiar funciona sem revelar.
+ */
+export function CampoCopiavel({
+  rotulo,
+  valor,
+  onCopiar,
+  secreto,
+  revelado,
+  onAlternar,
+  carregando,
+}: {
+  rotulo: string;
+  valor: string;
+  onCopiar: () => void;
+  secreto?: boolean;
+  revelado?: boolean;
+  onAlternar?: () => void;
+  carregando?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-28 shrink-0 text-[11px] font-medium text-text-tertiary">{rotulo}</span>
+      <code
+        className="min-w-0 flex-1 truncate rounded-input bg-input px-2.5 py-1.5 font-mono text-[11px] text-text-secondary"
+        title={secreto && !revelado ? undefined : valor}
+      >
+        {valor}
+      </code>
+      {secreto && onAlternar && (
+        <BotaoIcone titulo={revelado ? `Esconder ${rotulo.toLowerCase()}` : `Mostrar ${rotulo.toLowerCase()}`} onClick={onAlternar} disabled={carregando}>
+          {revelado ? <EyeOff size={14} /> : <Eye size={14} />}
+        </BotaoIcone>
+      )}
+      <BotaoIcone titulo={`Copiar ${rotulo.toLowerCase()}`} onClick={onCopiar} disabled={carregando}>
+        <Copy size={14} />
+      </BotaoIcone>
     </div>
   );
 }
