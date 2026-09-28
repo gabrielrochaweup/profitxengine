@@ -18,8 +18,13 @@ const PRODUCTS: { key: TradingProduct; label: string; icon: string }[] = [
   { key: "live", label: "Live", icon: "📺" },
   { key: "copy", label: "Copy Trader", icon: "💰" },
 ];
-// "Total" não é editável: é calculado automaticamente a partir de
-// Dia+Semana+Mês assim que essas três janelas são preenchidas.
+// "Total" não é editável: acompanha o Mês. Os resultados agora chegam da
+// Vortex (src/lib/resultados/vortex.ts), onde Semana = últimos 7 dias e
+// Mês = últimos 30 dias — janelas acumuladas, que JÁ incluem o dia. Somar
+// Dia+Semana+Mês, como era antes, contaria o mesmo dia três vezes; e a
+// Vortex não manda um acumulado desde o início. Total = Mês é o maior
+// número verdadeiro que existe, e salvar este painel (pra mudar a cotação,
+// por exemplo) não pode reescrever o Total com um valor inflado.
 const EDITABLE_WINDOWS: { key: Exclude<TradingWindow, "total">; label: string }[] = [
   { key: "dia", label: "Dia" },
   { key: "semana", label: "Semana" },
@@ -44,10 +49,8 @@ function computeAcerto(wins: number, losses: number, manualFallback: number): nu
 }
 
 function computeTotal(stats: StatsState[TradingProduct]): WindowStats {
-  const wins = stats.dia.wins + stats.semana.wins + stats.mes.wins;
-  const losses = stats.dia.losses + stats.semana.losses + stats.mes.losses;
-  const rendimentoPct = stats.dia.rendimentoPct + stats.semana.rendimentoPct + stats.mes.rendimentoPct;
-  return { wins, losses, acertoPct: computeAcerto(wins, losses, 0), rendimentoPct };
+  const { wins, losses, rendimentoPct, acertoPct } = stats.mes;
+  return { wins, losses, acertoPct: computeAcerto(wins, losses, acertoPct), rendimentoPct };
 }
 
 export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
@@ -235,7 +238,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
                 <div key={window} className="rounded-xl border border-border p-3">
                   <p className="mb-2 text-xs font-medium text-text-secondary">
                     {windowLabel}
-                    {isTotal && <span className="ml-1 font-normal text-text-muted">(automático)</span>}
+                    {isTotal && <span className="ml-1 font-normal text-text-muted">(igual ao Mês)</span>}
                   </p>
                   <div className="flex gap-2">
                     <div className="flex-1 space-y-1">

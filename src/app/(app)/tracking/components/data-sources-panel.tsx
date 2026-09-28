@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 export interface WebhookEndpoint {
   id: string;
   product_id: string;
-  kind: "checkout" | "members_area" | "broker" | "contract" | "tool";
+  kind: "checkout" | "members_area" | "broker" | "contract" | "tool" | "daily_results";
   platform: string | null;
   label: string | null;
   endpoint_slug: string;
@@ -36,6 +36,7 @@ const KIND_LABEL: Record<WebhookEndpoint["kind"], string> = {
   broker: "Corretora",
   contract: "Contrato assinado",
   tool: "Ferramenta",
+  daily_results: "Resultados do dia",
 };
 
 const KIND_PATH: Record<WebhookEndpoint["kind"], string> = {
@@ -44,6 +45,8 @@ const KIND_PATH: Record<WebhookEndpoint["kind"], string> = {
   broker: "broker",
   contract: "contract-signed",
   tool: "tool",
+  // A Vortex espera exatamente este caminho (tela dela: ".../resultados-do-dia/...").
+  daily_results: "resultados-do-dia",
 };
 
 function endpointUrl(endpoint: WebhookEndpoint): string {
@@ -60,6 +63,7 @@ function platformsFor(kind: WebhookEndpoint["kind"]): string[] {
   if (kind === "members_area") return MEMBERS_AREA_PLATFORMS;
   if (kind === "contract") return CONTRACT_PLATFORMS;
   if (kind === "tool") return TOOL_PLATFORMS;
+  if (kind === "daily_results") return ["vortex"];
   return BROKER_PLATFORMS;
 }
 
@@ -125,6 +129,14 @@ const FONTES: Fonte[] = [
     nome: "Ferramenta",
     descricao:
       "Cadastro e primeiro acesso do aluno na ferramenta (o Pepe). É o que alimenta a coluna Pepe na aba Pessoas e os cadastros por plano na Visão geral.",
+  },
+  {
+    kind: "daily_results",
+    nome: "Resultados do dia",
+    descricao:
+      'O placar de Live, PEPE e Copy que a equipe lança na Vortex. Assim que o dia é salvo lá, chega aqui e vai direto pras mensagens das Dinâmicas do Dia (Dia = placar do dia, Semana = últimos 7 dias, Mês e Total = últimos 30 dias). Cole a URL e o token na tela "Resultados do dia para o ProfitX Engine" da Vortex — o mesmo token é o que o botão "Atualizar resultados" usa pra ir buscar lá.',
+    contrato:
+      '{ "data": "2026-09-20", "preenchido": true, "texto": "...", "live" | "pepe" | "copy": { "operou": true, "placar", "taxa", "rentabilidade" (só copy), acumulado de 7 e 30 dias } }',
   },
 ];
 
@@ -763,6 +775,7 @@ function CreateEndpointModal({
             <option value="broker">Corretora</option>
             <option value="contract">Contrato assinado</option>
             <option value="tool">Ferramenta</option>
+            <option value="daily_results">Resultados do dia</option>
           </Select>
           {kind === "broker" && hasBroker && (
             <p className="mt-1 text-[11px] text-text-muted">

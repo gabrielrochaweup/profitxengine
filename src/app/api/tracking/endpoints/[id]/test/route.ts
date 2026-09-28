@@ -10,6 +10,7 @@ const KIND_PATH: Record<string, string> = {
   broker: "broker",
   contract: "contract-signed",
   tool: "tool",
+  daily_results: "resultados-do-dia",
 };
 
 // Payload sintético por kind/plataforma — mesmo formato que a plataforma
@@ -81,6 +82,33 @@ function buildTestPayload(kind: string, platform: string | null): unknown {
       external_id: testId,
       occurred_at: now.toISOString(),
     };
+  }
+
+  if (kind === "daily_results") {
+    return {
+      data: now.toISOString().slice(0, 10),
+      preenchido: true,
+      texto: "Resultados de teste · Lives com Traders: 9x1 · 90,0% de acerto",
+      live: { operou: true, placar: { vitorias: 9, derrotas: 1 }, taxa: 90.0, acumulado: { "7d": { placar: { vitorias: 40, derrotas: 8 } }, "30d": { placar: { vitorias: 150, derrotas: 30 } } } },
+      pepe: { operou: true, placar: { vitorias: 14, derrotas: 2 }, taxa: 87.5 },
+      copy: { operou: true, placar: { vitorias: 7, derrotas: 2 }, taxa: 77.8, rentabilidade: 3.2 },
+    };
+  }
+
+  // SendPulse manda um ARRAY com um objeto (ver
+  // tool-adapters/sendpulse-reengajamento.ts). Sem este caso, o teste desse
+  // endpoint recebia o formato do Pepe e acusava falha num endpoint certo.
+  if (kind === "tool" && platform === "sendpulse-reengajamento") {
+    return [
+      {
+        info: null,
+        service: "whatsapp",
+        title: "Teste ProfitX",
+        bot: { id: "profitx-self-test", name: "Teste" },
+        contact: { id: testId, name: "Teste ProfitX", email: "teste@profitx.com", phone: "5511999999999" },
+        date: Math.floor(now.getTime() / 1000),
+      },
+    ];
   }
 
   if (kind === "tool") {

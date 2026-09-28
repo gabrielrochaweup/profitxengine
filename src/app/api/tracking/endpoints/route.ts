@@ -12,7 +12,7 @@ function generateToken() {
   return randomBytes(24).toString("base64url");
 }
 
-const VALID_KINDS = ["checkout", "members_area", "broker", "contract", "tool"] as const;
+const VALID_KINDS = ["checkout", "members_area", "broker", "contract", "tool", "daily_results"] as const;
 
 export async function GET(request: Request) {
   const profile = await getSessionProfile();

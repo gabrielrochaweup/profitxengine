@@ -16,6 +16,7 @@ import {
 } from "@/lib/dynamics/calc-engine";
 import { type ProductStatsByWindow } from "@/lib/dynamics/render-message";
 import { DynamicMessagesBoard } from "./dynamic-messages-board";
+import { ResultadosSync } from "./resultados-sync";
 import type { Database, TradingWindow } from "@/lib/supabase/types";
 
 type MessageDynamic = Database["public"]["Tables"]["message_dynamics"]["Row"];
@@ -28,6 +29,33 @@ interface DynamicDayTableProps {
 
 function emptyStatsByWindow(): Record<TradingWindow, number> {
   return { dia: 0, semana: 0, mes: 0, total: 0 };
+}
+
+type StatsRow = Database["public"]["Tables"]["trading_performance_stats"]["Row"];
+
+// Fora do componente pra servir tanto ao carregamento inicial quanto ao
+// botão "Atualizar resultados", que recarrega só os números (sem piscar a
+// tela inteira nem perder a dinâmica escolhida).
+function montarStats(statsRows: StatsRow[]): ProductStatsByWindow {
+  const next: ProductStatsByWindow = {
+    pepe: emptyStatsByWindow(),
+    live: emptyStatsByWindow(),
+    copy: emptyStatsByWindow(),
+    copyRendimento: { dia: 0, semana: 0, mes: 0, total: 0 },
+    pepeWins: emptyStatsByWindow(),
+    pepeLosses: emptyStatsByWindow(),
+    liveWins: emptyStatsByWindow(),
+    liveLosses: emptyStatsByWindow(),
+    copyWins: emptyStatsByWindow(),
+    copyLosses: emptyStatsByWindow(),
+  };
+  statsRows.forEach((row) => {
+    next[row.product][row.time_window] = row.acerto_pct;
+    if (row.product === "copy") next.copyRendimento[row.time_window] = row.rendimento_pct ?? 0;
+    next[`${row.product}Wins`][row.time_window] = row.wins ?? 0;
+    next[`${row.product}Losses`][row.time_window] = row.losses ?? 0;
+  });
+  return next;
 }
 
 export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps) {
@@ -77,27 +105,7 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
 
       setDynamics(dyns ?? []);
 
-      if (statsRows) {
-        const next: ProductStatsByWindow = {
-          pepe: emptyStatsByWindow(),
-          live: emptyStatsByWindow(),
-          copy: emptyStatsByWindow(),
-          copyRendimento: { dia: 0, semana: 0, mes: 0, total: 0 },
-          pepeWins: emptyStatsByWindow(),
-          pepeLosses: emptyStatsByWindow(),
-          liveWins: emptyStatsByWindow(),
-          liveLosses: emptyStatsByWindow(),
-          copyWins: emptyStatsByWindow(),
-          copyLosses: emptyStatsByWindow(),
-        };
-        statsRows.forEach((row) => {
-          next[row.product][row.time_window] = row.acerto_pct;
-          if (row.product === "copy") next.copyRendimento[row.time_window] = row.rendimento_pct ?? 0;
-          next[`${row.product}Wins`][row.time_window] = row.wins ?? 0;
-          next[`${row.product}Losses`][row.time_window] = row.losses ?? 0;
-        });
-        setStats(next);
-      }
+      if (statsRows) setStats(montarStats(statsRows));
 
       if (configRow) {
         setConfig({
@@ -217,6 +225,12 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
     persistSelection({ textOverrides: next });
   }
 
+  async function recarregarStats() {
+    const supabase = createClient();
+    const { data } = await supabase.from("trading_performance_stats").select("*");
+    if (data) setStats(montarStats(data));
+  }
+
   if (loading) {
     return <LoadingState />;
   }
@@ -225,6 +239,8 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
 
   return (
     <div className="space-y-4">
+      <ResultadosSync onAtualizado={recarregarStats} />
+
       {isLocked && selectedDynamic ? (
         <div className="flex flex-wrap items-center gap-2 rounded-input border border-success/40 bg-success/10 px-3 py-2">
           <Check size={16} className="shrink-0 text-success" />

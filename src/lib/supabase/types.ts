@@ -1033,7 +1033,7 @@ export interface Database {
         Row: {
           id: string;
           product_id: string;
-          kind: "checkout" | "members_area" | "broker" | "contract" | "tool";
+          kind: "checkout" | "members_area" | "broker" | "contract" | "tool" | "daily_results";
           platform: string | null;
           label: string | null;
           endpoint_slug: string;
@@ -1342,6 +1342,35 @@ export interface Database {
           login_google?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["acessos"]["Insert"]>;
+        Relationships: [];
+      };
+      resultados_do_dia: {
+        Row: {
+          id: string;
+          product_id: string;
+          /** YYYY-MM-DD */
+          data: string;
+          preenchido: boolean;
+          texto: string | null;
+          resumo: Record<string, unknown> | null;
+          raw_payload: unknown;
+          origem: "webhook" | "botao";
+          aplicado: boolean;
+          motivo: string | null;
+          recebido_em: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["resultados_do_dia"]["Row"],
+          "id" | "recebido_em" | "texto" | "resumo" | "aplicado" | "motivo"
+        > & {
+          id?: string;
+          recebido_em?: string;
+          texto?: string | null;
+          resumo?: Record<string, unknown> | null;
+          aplicado?: boolean;
+          motivo?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["resultados_do_dia"]["Insert"]>;
         Relationships: [];
       };
       numeros_de_atendimento: {
