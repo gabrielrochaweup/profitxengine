@@ -124,6 +124,12 @@ export function ResultadosSync({ onAtualizado }: { onAtualizado: () => void }) {
         <p className={`mt-1.5 text-[12px] ${aviso.tom === "ok" ? "text-success" : "text-danger"}`}>{aviso.texto}</p>
       )}
 
+      {/* O que NÃO entrou fica visível o tempo todo, não só depois do botão:
+          "Resultados de 28/09" sozinho faria parecer que tudo está em dia,
+          quando Semana e Mês (as janelas que as mensagens usam) podem ter
+          ficado de fora. */}
+      {!aviso && ultimo?.motivo && <p className="mt-1.5 text-[12px] text-warning">{ultimo.motivo}</p>}
+
       {ultimo?.texto && (
         <details className="mt-1.5">
           <summary className="cursor-pointer text-[11px] text-text-muted hover:text-text-secondary">

@@ -46,6 +46,14 @@ export interface PilarLido {
   dia: JanelaLida | null;
   semana: JanelaLida | null;
   mes: JanelaLida | null;
+  /**
+   * % do acumulado quando ele veio SEM placar (o formato de set/2026:
+   * "acumulado": { "sete_dias": 87.9 }). Não é gravado — as mensagens
+   * mostram placar e % juntos, e % sozinha não fecha a conta. Fica só pra
+   * dizer na tela o que chegou.
+   */
+  semanaSoTaxa: number | null;
+  mesSoTaxa: number | null;
   /** Rentabilidade do dia (Copy). Pode vir mesmo com o placar vazio. */
   rentabilidadeDia: number | null;
 }
@@ -113,31 +121,62 @@ function lerJanela(obj: unknown): JanelaLida | null {
   return { ...placar, acerto, rendimento };
 }
 
-// Acha o bloco do acumulado de N dias, onde quer que ele esteja: dentro de
-// "acumulado"/"acumulados" ou solto no pilar, com a chave citando o número
-// ("7d", "acumulado_7d", "ultimos_7_dias"...). O \D em volta impede que o 7
-// case dentro de "70" ou o 30 dentro de "300".
-function acharAcumulado(pilar: Record<string, unknown>, dias: 7 | 30): Record<string, unknown> | null {
-  const padrao = new RegExp(`(^|\\D)${dias}(\\D|$)`);
+// Como a chave de cada acumulado pode estar escrita. O formato real da
+// Vortex usa por extenso ("sete_dias", "trinta_dias"); os dígitos cobrem
+// "7d", "acumulado_7d", "rentabilidade_30d". O [^0-9] em volta impede que o
+// 7 case dentro de "70" ou o 30 dentro de "300".
+const CHAVE_DO_ACUMULADO: Record<7 | 30, RegExp> = {
+  7: /(^|[^0-9])7([^0-9]|$)|sete/i,
+  30: /(^|[^0-9])30([^0-9]|$)|trinta/i,
+};
+
+// Campos que podem vir "soltos" com o sufixo da janela, no formato das
+// equipes do Copy ("rentabilidade_7d") ou num "vitorias_sete_dias".
+const CAMPOS_SOLTOS = ["vitorias", "derrotas", "wins", "losses", "placar", "taxa", "rentabilidade", "rendimento"];
+
+/**
+ * O acumulado de N dias, em qualquer dos formatos:
+ *   "acumulado": { "sete_dias": { "vitorias": 90, "derrotas": 10, ... } }  ← completo
+ *   "acumulado": { "sete_dias": 87.9 }                                       ← só a %
+ *   "vitorias_sete_dias": 90, "derrotas_sete_dias": 10                       ← solto
+ */
+function lerAcumulado(pilar: Record<string, unknown>, dias: 7 | 30): { janela: JanelaLida | null; soTaxa: number | null } {
+  const padrao = CHAVE_DO_ACUMULADO[dias];
+  let soTaxa: number | null = null;
+  const soltos: Record<string, unknown> = {};
+
   for (const fonte of [pilar.acumulado, pilar.acumulados, pilar]) {
     if (!isRecord(fonte)) continue;
     for (const [chave, valor] of Object.entries(fonte)) {
-      if (isRecord(valor) && padrao.test(chave)) return valor;
+      if (!padrao.test(chave)) continue;
+      if (isRecord(valor)) {
+        const janela = lerJanela(valor);
+        if (janela) return { janela, soTaxa: null };
+        soTaxa ??= numero(valor.taxa);
+        continue;
+      }
+      const campo = CAMPOS_SOLTOS.find((c) => chave.toLowerCase().startsWith(c));
+      if (campo) soltos[campo] = valor;
+      else if (numero(valor) !== null) soTaxa ??= numero(valor);
     }
   }
-  return null;
+
+  const janela = lerJanela(soltos);
+  return janela ? { janela, soTaxa: null } : { janela: null, soTaxa: soTaxa ?? numero(soltos.taxa) };
 }
 
 function lerPilar(obj: unknown): PilarLido | null {
   if (!isRecord(obj)) return null;
   const operou = obj.operou !== false;
-  const acumulado7 = acharAcumulado(obj, 7);
-  const acumulado30 = acharAcumulado(obj, 30);
+  const semana = lerAcumulado(obj, 7);
+  const mes = lerAcumulado(obj, 30);
   return {
     operou,
     dia: operou ? lerJanela(obj) : null,
-    semana: acumulado7 ? lerJanela(acumulado7) : null,
-    mes: acumulado30 ? lerJanela(acumulado30) : null,
+    semana: semana.janela,
+    mes: mes.janela,
+    semanaSoTaxa: semana.soTaxa,
+    mesSoTaxa: mes.soTaxa,
     rentabilidadeDia: numero(obj.rentabilidade) ?? numero(obj.rendimento),
   };
 }
@@ -249,21 +288,29 @@ export async function processarResultado(
     if (maisRecente && maisRecente.data > lido.data) {
       motivo = `Correção de ${lido.data} registrada; os resultados continuam com ${maisRecente.data}, que é mais recente.`;
     } else {
-      const escritas: { pilar: Pilar; janela: Janela; valores: JanelaLida }[] = [];
-      const faltando: string[] = [];
+      const escritas: { pilar: Pilar; janela: Janela; valores: JanelaLida; naoOperou?: boolean }[] = [];
+      const semPlacarDoDia: Pilar[] = [];
+      const soComTaxa: string[] = [];
+      const ausentes: string[] = [];
       for (const pilar of PILARES) {
         const p = lido.pilares[pilar];
         if (!p) continue;
-        if (p.operou && !p.dia) faltando.push(`placar do dia de ${pilar}`);
-        if (!p.semana) faltando.push(`7 dias de ${pilar}`);
-        if (!p.mes) faltando.push(`30 dias de ${pilar}`);
-        // Pilar que não operou: o dia vai como placar vazio, SEM inventar
-        // taxa — e a escolha automática das mensagens nunca usa o Dia.
-        const dia: JanelaLida | null = p.operou
-          ? p.dia
-          : { wins: 0, losses: 0, acerto: 0, rendimento: p.rentabilidadeDia };
-        if (dia) {
-          escritas.push({ pilar, janela: "dia", valores: { ...dia, rendimento: dia.rendimento ?? p.rentabilidadeDia } });
+        if (p.operou && !p.dia) semPlacarDoDia.push(pilar);
+        for (const [janela, lidoJ, taxa] of [
+          ["7 dias", p.semana, p.semanaSoTaxa],
+          ["30 dias", p.mes, p.mesSoTaxa],
+        ] as const) {
+          if (lidoJ) continue;
+          if (taxa !== null) soComTaxa.push(`${pilar} ${janela} (${taxa}%)`);
+          else ausentes.push(`${pilar} ${janela}`);
+        }
+        // Pilar que não operou: o dia vai como placar vazio, SEM taxa e SEM
+        // rentabilidade inventadas — e a escolha automática das mensagens
+        // nunca usa o Dia.
+        if (!p.operou) {
+          escritas.push({ pilar, janela: "dia", valores: { wins: 0, losses: 0, acerto: 0, rendimento: null }, naoOperou: true });
+        } else if (p.dia) {
+          escritas.push({ pilar, janela: "dia", valores: { ...p.dia, rendimento: p.dia.rendimento ?? p.rentabilidadeDia } });
         }
         if (p.semana) escritas.push({ pilar, janela: "semana", valores: p.semana });
         if (p.mes) {
@@ -273,10 +320,12 @@ export async function processarResultado(
       }
 
       const falhas: string[] = [];
-      for (const { pilar, janela, valores } of escritas) {
+      for (const { pilar, janela, valores, naoOperou } of escritas) {
         // rendimento_pct fica FORA do objeto quando não veio: no upsert,
         // coluna ausente mantém o valor que já estava — ausente não é 0%.
-        const linha: Omit<StatsInsert, "rendimento_pct"> & { rendimento_pct?: number } = {
+        // A exceção é o dia de quem não operou: ali a rentabilidade antiga
+        // não vale mais, e fica vazia de propósito.
+        const linha: Omit<StatsInsert, "rendimento_pct"> & { rendimento_pct?: number | null } = {
           product: pilar,
           time_window: janela,
           wins: valores.wins,
@@ -285,7 +334,8 @@ export async function processarResultado(
           updated_by: null,
           updated_at: new Date().toISOString(),
         };
-        if (pilar === "copy" && valores.rendimento !== null) linha.rendimento_pct = valores.rendimento;
+        if (pilar === "copy" && naoOperou) linha.rendimento_pct = null;
+        else if (pilar === "copy" && valores.rendimento !== null) linha.rendimento_pct = valores.rendimento;
 
         const { error } = await admin
           .from("trading_performance_stats")
@@ -297,8 +347,12 @@ export async function processarResultado(
       aplicado = escritas.length > 0 && falhas.length === 0;
       const avisos = [
         falhas.length ? `Falha ao gravar ${falhas.join(", ")}.` : null,
-        naoLidos.length ? `Não reconhecido no payload: ${naoLidos.join(", ")}.` : null,
-        faltando.length ? `Não veio ou não foi reconhecido: ${faltando.join(", ")}.` : null,
+        naoLidos.length ? `Pilar não reconhecido no payload: ${naoLidos.join(", ")}.` : null,
+        semPlacarDoDia.length ? `Placar do dia não reconhecido: ${semPlacarDoDia.join(", ")}.` : null,
+        soComTaxa.length
+          ? `Semana/Mês NÃO atualizados: o acumulado veio só com a % e sem placar (${soComTaxa.join(", ")}). As mensagens mostram placar e % juntos — com placar antigo ou 0x0 a conta não fecharia.`
+          : null,
+        ausentes.length ? `Acumulado não veio: ${ausentes.join(", ")}.` : null,
       ].filter(Boolean);
       motivo = avisos.length ? avisos.join(" ") : null;
     }

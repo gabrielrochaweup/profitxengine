@@ -84,14 +84,20 @@ function buildTestPayload(kind: string, platform: string | null): unknown {
     };
   }
 
+  // Mesmo formato do payload real da Vortex (28/09/2026).
   if (kind === "daily_results") {
     return {
+      event: "resultados_do_dia",
       data: now.toISOString().slice(0, 10),
+      fuso: "America/Sao_Paulo",
       preenchido: true,
-      texto: "Resultados de teste · Lives com Traders: 9x1 · 90,0% de acerto",
-      live: { operou: true, placar: { vitorias: 9, derrotas: 1 }, taxa: 90.0, acumulado: { "7d": { placar: { vitorias: 40, derrotas: 8 } }, "30d": { placar: { vitorias: 150, derrotas: 30 } } } },
-      pepe: { operou: true, placar: { vitorias: 14, derrotas: 2 }, taxa: 87.5 },
-      copy: { operou: true, placar: { vitorias: 7, derrotas: 2 }, taxa: 77.8, rentabilidade: 3.2 },
+      houve_operacao: true,
+      texto: "Resultados de teste · Lives com Traders: 3x1 · 75,0% de acerto",
+      pilares: {
+        live: { nome: "Lives com Traders", operou: true, placar: "3x1", vitorias: 3, derrotas: 1, taxa: 75, acumulado: { sete_dias: 72.2, trinta_dias: 72.2 } },
+        pepe: { nome: "PEPE Signal", operou: true, placar: "10x2", vitorias: 10, derrotas: 2, taxa: 83.3, acumulado: { sete_dias: 87.9, trinta_dias: 87.9 } },
+        copy: { nome: "Copy Trader", operou: false, placar: "", vitorias: 0, derrotas: 0, taxa: 0, rentabilidade: 0, acumulado: { sete_dias: 81.8, trinta_dias: 81.8 } },
+      },
     };
   }
 
