@@ -8,6 +8,22 @@ export interface GenerateTextParams {
   /** Resumo de aprovação (Dia/Semana/Mês/Geral) das mensagens anteriores, anexado ao system prompt. */
   performanceContext?: string;
   maxTokens?: number;
+  /**
+   * Histórico de uma conversa (chat). Quando vem, substitui o `prompt` como
+   * o que é enviado ao modelo — a última mensagem é a pergunta nova.
+   */
+  messages?: ChatMessage[];
+  /**
+   * O system é grande e igual a cada mensagem (ex.: a Egi manda o manual
+   * inteiro): pede cache ao provedor. A Anthropic precisa do pedido
+   * explícito; OpenAI e Google cacheiam prefixo repetido sozinhos.
+   */
+  cacheSystem?: boolean;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
 }
 
 export interface GenerateTextResult {

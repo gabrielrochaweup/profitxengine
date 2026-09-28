@@ -298,6 +298,19 @@ const TUTORIAIS: Record<string, Tutorial> = {
     ],
   },
 
+  "/egi": {
+    titulo: "Egi — IA de atendimento",
+    resumo:
+      "Cole a pergunta do aluno como ele escreveu e a Egi devolve a resposta pronta, com o nível de alerta, com base no manual de atendimento.",
+    passos: [
+      "Confira o selo antes de enviar: 🟢 pode responder, 🟡 acolha primeiro, 🔴 não envie sem aprovação.",
+      "“Copiar resposta pro aluno” copia só o texto que vai pro aluno — sem os cuidados e o resto que é pra equipe.",
+      "Resposta boa? “Salvar no FAQ”: ela vira referência pra toda a equipe e a Egi passa a usá-la nas próximas.",
+      "Suas conversas são só suas. O FAQ é da equipe inteira.",
+      "O prompt e o manual ficam em Configurações → Egi — IA.",
+    ],
+  },
+
   /* ─────────────────────────── operação ─────────────────────────── */
 
   "/acessos": {

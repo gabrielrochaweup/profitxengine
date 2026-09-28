@@ -28,7 +28,10 @@ export async function generateText(
 
   const response = await client.models.generateContent({
     model: params.model,
-    contents: params.prompt,
+    // No Gemini, a vez do modelo se chama "model", não "assistant".
+    contents: params.messages
+      ? params.messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }))
+      : params.prompt,
     config: {
       ...(system ? { systemInstruction: system } : {}),
       // 4096 em vez de 2048 — dá mais folga pra respostas mais longas (ex:

@@ -60,7 +60,7 @@ export async function generateText(
       : { max_tokens: maxTokens }),
     messages: [
       ...(system ? [{ role: "system" as const, content: system }] : []),
-      { role: "user" as const, content: params.prompt },
+      ...(params.messages ?? [{ role: "user" as const, content: params.prompt }]),
     ],
   });
 

@@ -8,13 +8,17 @@ export async function generateText(
 ): Promise<GenerateTextResult> {
   const client = new Anthropic({ apiKey });
 
+  const system = combineSystem(params);
   const message = await client.messages.create({
     model: params.model,
     // 4096 em vez de 2048 — dá mais folga pra respostas mais longas (ex:
     // conversas com várias mensagens em JSON) não cortarem no meio.
     max_tokens: params.maxTokens ?? 4096,
-    system: combineSystem(params),
-    messages: [{ role: "user", content: params.prompt }],
+    system:
+      system && params.cacheSystem
+        ? [{ type: "text", text: system, cache_control: { type: "ephemeral" } }]
+        : system,
+    messages: params.messages ?? [{ role: "user", content: params.prompt }],
   });
 
   const text = message.content

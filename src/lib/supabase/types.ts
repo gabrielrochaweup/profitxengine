@@ -8,7 +8,7 @@ export type Platform = "whatsapp" | "instagram" | "crm";
 export type EngagementStatus = "rascunho" | "aprovada" | "enviada";
 export type EngagementResult = "funcionou" | "nao_funcionou" | null;
 export type EmailStatus = "rascunho" | "pronto" | "enviado";
-export type AiModule = "conversa" | "mensagem" | "imagem" | "email" | "blog";
+export type AiModule = "conversa" | "mensagem" | "imagem" | "email" | "blog" | "egi";
 export type ImageContextType = "dinamica_slot" | "livre_engagement" | "x1_message" | "email" | "criativo" | "carrossel";
 export type ImageAspectRatio = "1:1" | "3:2" | "4:3" | "9:16" | "16:9";
 export type ImageQuality = "low" | "medium" | "high";
@@ -1372,6 +1372,109 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["resultados_do_dia"]["Insert"]>;
         Relationships: [];
+      };
+      egi_config: {
+        Row: {
+          product_id: string;
+          prompt: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: { product_id: string; prompt?: string; updated_by?: string | null; updated_at?: string };
+        Update: Partial<Database["public"]["Tables"]["egi_config"]["Insert"]>;
+        Relationships: [];
+      };
+      egi_arquivos: {
+        Row: {
+          id: string;
+          product_id: string;
+          nome: string;
+          conteudo: string;
+          ativo: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          nome: string;
+          conteudo: string;
+          ativo?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["egi_arquivos"]["Insert"]>;
+        Relationships: [];
+      };
+      egi_faq: {
+        Row: {
+          id: string;
+          product_id: string;
+          pergunta: string;
+          resposta: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          pergunta: string;
+          resposta: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["egi_faq"]["Insert"]>;
+        Relationships: [];
+      };
+      egi_conversas: {
+        Row: {
+          id: string;
+          product_id: string;
+          user_id: string;
+          titulo: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          user_id: string;
+          titulo?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["egi_conversas"]["Insert"]>;
+        Relationships: [];
+      };
+      egi_mensagens: {
+        Row: {
+          id: string;
+          conversa_id: string;
+          papel: "user" | "assistant";
+          conteudo: string;
+          faq_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversa_id: string;
+          papel: "user" | "assistant";
+          conteudo: string;
+          faq_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["egi_mensagens"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "egi_mensagens_conversa_id_fkey";
+            columns: ["conversa_id"];
+            isOneToOne: false;
+            referencedRelation: "egi_conversas";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       numeros_de_atendimento: {
         Row: {

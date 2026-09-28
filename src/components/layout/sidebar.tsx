@@ -15,6 +15,7 @@ import {
   Boxes,
   ChevronRight,
   LogOut,
+  Sparkles,
   X,
   PanelLeftClose,
   PanelLeftOpen,
@@ -168,6 +169,15 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
               ))}
             </nav>
 
+            <Link
+              href="/egi"
+              onClick={() => setMobileOpen(false)}
+              className="mb-3 mt-2 flex h-11 items-center gap-2.5 rounded-button bg-accent px-3 text-[14px] font-semibold text-accent-contrast shadow-card-sm transition-colors hover:bg-accent-hover"
+            >
+              <Sparkles size={17} className="shrink-0" />
+              Egi - IA
+            </Link>
+
             <div className="border-t border-border pt-3">
               <div className="flex items-center gap-2 px-1 pb-2">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-accent-contrast">
@@ -283,6 +293,23 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
             </div>
           ))}
         </nav>
+
+        {/* Egi fica fora das seções do menu, colada no rodapé: é ferramenta
+            de toda hora, pra qualquer tela, e o azul cheio faz ela ser achada
+            sem procurar. */}
+        <Link
+          href="/egi"
+          title="Egi - IA"
+          aria-label="Egi - IA"
+          className={cn(
+            "mt-2 flex items-center gap-2.5 rounded-button bg-accent font-semibold text-accent-contrast shadow-card-sm transition-colors hover:bg-accent-hover",
+            collapsed ? "h-10 w-10 justify-center self-center" : "h-10 px-3",
+            pathname.startsWith("/egi") && "ring-2 ring-accent-text ring-offset-2 ring-offset-sidebar"
+          )}
+        >
+          <Sparkles size={17} className="shrink-0" />
+          {!collapsed && <span className="truncate whitespace-nowrap text-[13px]">Egi - IA</span>}
+        </Link>
 
         <div className={cn("relative mt-2 flex flex-col gap-1.5 border-t border-border pt-3", collapsed ? "items-center" : "items-stretch")}>
           {collapsed ? (

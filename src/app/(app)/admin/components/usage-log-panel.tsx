@@ -14,6 +14,7 @@ const MODULE_LABEL: Record<AiModule, string> = {
   imagem: "Imagem",
   email: "E-mail",
   blog: "Blog",
+  egi: "Egi (atendimento)",
 };
 
 const PROVIDER_LABEL: Record<string, string> = {
