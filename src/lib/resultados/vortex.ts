@@ -39,6 +39,13 @@ export interface JanelaLida {
   acerto: number;
   /** Só Copy. null = não veio — não é zero. */
   rendimento: number | null;
+  /**
+   * Janela sem nenhuma operação. A Vortex manda "placar": "" e "taxa": null
+   * — e avisou de propósito: 0% diria que erramos tudo num período em que
+   * talvez nada tenha acontecido. Aqui ela vira placar vazio, e a escolha
+   * automática da mensagem não usa janela vazia (o score dela é zero).
+   */
+  semOperacao?: boolean;
 }
 
 export interface PilarLido {
@@ -118,7 +125,19 @@ function lerJanela(obj: unknown): JanelaLida | null {
   const taxa = numero(obj.taxa);
   const acerto = total > 0 ? Math.round((placar.wins / total) * 100) : taxa !== null ? Math.round(taxa) : 0;
   const rendimento = numero(obj.rentabilidade) ?? numero(obj.rendimento);
-  return { ...placar, acerto, rendimento };
+  return { ...placar, acerto, rendimento, semOperacao: total === 0 && taxa === null };
+}
+
+// Janela que veio, mas vazia: "placar": "" e "taxa": null, sem vitórias
+// nem derrotas. É diferente de janela que não veio.
+function janelaVazia(obj: Record<string, unknown>): JanelaLida | null {
+  const semPlacar = obj.placar === "" || obj.placar === null || obj.placar === undefined;
+  const semTaxa = obj.taxa === null || obj.taxa === undefined;
+  const semContagem = !(numero(obj.vitorias) ?? 0) && !(numero(obj.derrotas) ?? 0);
+  if (!(semPlacar && semTaxa && semContagem)) return null;
+  // O Copy pode ter rentabilidade medida mesmo sem placar lançado.
+  const rendimento = numero(obj.rentabilidade) ?? numero(obj.rendimento);
+  return { wins: 0, losses: 0, acerto: 0, rendimento, semOperacao: true };
 }
 
 // Como a chave de cada acumulado pode estar escrita. O formato real da
@@ -150,7 +169,7 @@ function lerAcumulado(pilar: Record<string, unknown>, dias: 7 | 30): { janela: J
     for (const [chave, valor] of Object.entries(fonte)) {
       if (!padrao.test(chave)) continue;
       if (isRecord(valor)) {
-        const janela = lerJanela(valor);
+        const janela = lerJanela(valor) ?? janelaVazia(valor);
         if (janela) return { janela, soTaxa: null };
         soTaxa ??= numero(valor.taxa);
         continue;
@@ -334,8 +353,12 @@ export async function processarResultado(
           updated_by: null,
           updated_at: new Date().toISOString(),
         };
-        if (pilar === "copy" && naoOperou) linha.rendimento_pct = null;
-        else if (pilar === "copy" && valores.rendimento !== null) linha.rendimento_pct = valores.rendimento;
+        if (pilar === "copy") {
+          if (naoOperou) linha.rendimento_pct = null;
+          else if (valores.rendimento !== null) linha.rendimento_pct = valores.rendimento;
+          // Janela vazia sem rentabilidade: fica vazia, não herda a antiga.
+          else if (valores.semOperacao) linha.rendimento_pct = null;
+        }
 
         const { error } = await admin
           .from("trading_performance_stats")
