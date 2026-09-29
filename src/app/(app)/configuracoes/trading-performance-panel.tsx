@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 import { useToast } from "@/components/ui/toast";
 import { apenasDigitos, linkWhatsapp } from "@/lib/numeros";
+import { ENTRADA_COPY_PCT_PADRAO, estimarRendimentoCopyPct } from "@/lib/dynamics/calc-engine";
 import type { Database, TradingProduct, TradingWindow } from "@/lib/supabase/types";
 
 type StatsRow = Database["public"]["Tables"]["trading_performance_stats"]["Row"];
@@ -152,7 +153,7 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
     <div className="space-y-4">
       <Card className="p-5">
         <h3 className="mb-3 text-sm font-medium text-text-primary">Configuração global</h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
           <ConfigField
             label="Cotação R$/USD"
             value={config?.cotacao ?? 5.5}
@@ -189,7 +190,17 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
             disabled={!canEdit}
             onChange={(v) => setConfig((c) => (c ? { ...c, entrada_live: v } : c))}
           />
+          <ConfigField
+            label="Entrada Copy (% da banca)"
+            value={config?.entrada_copy_pct ?? ENTRADA_COPY_PCT_PADRAO}
+            disabled={!canEdit}
+            onChange={(v) => setConfig((c) => (c ? { ...c, entrada_copy_pct: v } : c))}
+          />
         </div>
+        <p className="mt-3 text-[11px] text-text-muted">
+          Copy sem rendimento informado: o R$ das mensagens é calculado do placar —
+          (vitórias × payout − derrotas) × entrada. Rendimento preenchido (ou vindo da Vortex) vale sempre.
+        </p>
       </Card>
 
       <Card className="p-5">
@@ -234,6 +245,15 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
               const fieldsDisabled = !canEdit || isTotal;
               const acertoFromPlacar = !isTotal && s.wins + s.losses > 0;
               const acertoDisplay = isTotal ? s.acertoPct : computeAcerto(s.wins, s.losses, s.acertoPct);
+              const estimativaDoPlacar =
+                product === "copy" && s.rendimentoPct === 0
+                  ? estimarRendimentoCopyPct(
+                      s.wins,
+                      s.losses,
+                      config?.payout_copy ?? 72,
+                      config?.entrada_copy_pct ?? ENTRADA_COPY_PCT_PADRAO
+                    )
+                  : null;
               return (
                 <div key={window} className="rounded-xl border border-border p-3">
                   <p className="mb-2 text-xs font-medium text-text-secondary">
@@ -280,7 +300,12 @@ export function TradingPerformancePanel({ canEdit }: { canEdit: boolean }) {
                   </div>
                   {product === "copy" && (
                     <div className="mt-2 space-y-1">
-                      <label className="text-[11px] text-text-secondary">Rendimento (%)</label>
+                      <label className="text-[11px] text-text-secondary">
+                        Rendimento (%)
+                        {estimativaDoPlacar !== null && (
+                          <span className="ml-1 font-normal text-text-muted">(vazio = {estimativaDoPlacar}% do placar)</span>
+                        )}
+                      </label>
                       <Input
                         type="number"
                         step="0.1"

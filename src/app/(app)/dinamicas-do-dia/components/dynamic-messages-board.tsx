@@ -49,6 +49,7 @@ export interface DynamicMessagesBoardProps {
     bancaCopy: number;
     entradaPepe: number;
     entradaLive: number;
+    entradaCopyPct: number;
   };
   /** trading_config.numero_alavancagem_override — ver render-message.ts. */
   numeroAlavancagem: string | null;

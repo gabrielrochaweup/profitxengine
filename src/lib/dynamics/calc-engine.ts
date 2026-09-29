@@ -18,6 +18,8 @@ export interface TradingConfigValues {
   bancaCopy: number;
   entradaPepe: number;
   entradaLive: number;
+  /** % da banca arriscada por operação no Copy — base da estimativa do rendimento a partir do placar. */
+  entradaCopyPct: number;
 }
 
 const WINDOW_LABEL: Record<TradingWindow, string> = {
@@ -68,6 +70,64 @@ export function toReais(usd: number, cotacao: number): number {
 
 export function calcRendimentoCopy(banca: number, rendimentoPct: number): number {
   return banca * (rendimentoPct / 100);
+}
+
+// ============================================================
+// RENDIMENTO DO COPY LIGADO AO PLACAR — o "R$ X no dia" das mensagens sai
+// de rendimento% × banca, e esse rendimento% era um campo à parte do placar:
+// mudava-se o V x D (e o % de acerto junto) e o R$ continuava parado.
+//
+// Regra única, usada em toda mensagem e no melhor cenário:
+//   • rendimento informado (≠ 0) — vindo da Vortex ou digitado — vale sempre;
+//   • sem rendimento informado mas com placar, ele é estimado do próprio
+//     placar: (vitórias × payout − derrotas) × % da banca por operação.
+//     Placar ruim dá estimativa baixa ou negativa (e o guard bloqueia a
+//     mensagem se prometer lucro negativo), nunca um número "bonito";
+//   • sem placar e sem rendimento, 0.
+// ============================================================
+export const ENTRADA_COPY_PCT_PADRAO = 1;
+
+export function estimarRendimentoCopyPct(
+  wins: number,
+  losses: number,
+  payoutPct: number,
+  entradaPct: number
+): number | null {
+  if (!(wins + losses > 0)) return null;
+  const saldoEmEntradas = wins * (payoutPct / 100) - losses;
+  return Math.round(saldoEmEntradas * entradaPct * 100) / 100;
+}
+
+export function rendimentoCopyEfetivo(
+  informado: number | null | undefined,
+  wins: number,
+  losses: number,
+  payoutPct: number,
+  entradaPct: number
+): number {
+  if (typeof informado === "number" && Number.isFinite(informado) && informado !== 0) return informado;
+  return estimarRendimentoCopyPct(wins, losses, payoutPct, entradaPct) ?? 0;
+}
+
+// ============================================================
+// % DE ACERTO CONSOLIDADO (TRIAD) — o "TOTAL" que aparece logo abaixo dos
+// três placares tem que sair DELES: vitórias somadas ÷ operações somadas.
+// Antes era a média simples dos três %, que não bate com nenhum placar
+// (Pepe 145x17, Live 15x6 e Copy 7x5 dão 86%, não 73%) e ainda era puxada
+// pra baixo por um produto sem operação na janela. Sem contagem em algum
+// produto que tenha %, cai na média dos produtos que têm % (só os que
+// operaram).
+// ============================================================
+export function acertoConsolidado(produtos: { wins: number; losses: number; acerto: number }[]): number {
+  const comAcerto = produtos.filter((p) => p.acerto > 0 || p.wins + p.losses > 0);
+  if (comAcerto.length === 0) return 0;
+  const todosComContagem = comAcerto.every((p) => p.wins + p.losses > 0);
+  if (todosComContagem) {
+    const wins = comAcerto.reduce((soma, p) => soma + p.wins, 0);
+    const operacoes = comAcerto.reduce((soma, p) => soma + p.wins + p.losses, 0);
+    return Math.round((wins / operacoes) * 100);
+  }
+  return Math.round(comAcerto.reduce((soma, p) => soma + p.acerto, 0) / comAcerto.length);
 }
 
 export function fonteFrasePlacar(fonte: TradingWindow): string {
@@ -162,7 +222,9 @@ export function calcularMelhorCenarioTriad(
   acertoPepe: Record<TradingWindow, number>,
   acertoLive: Record<TradingWindow, number>,
   acertoCopy: Record<TradingWindow, number>,
-  rendimentoCopy: Record<TradingWindow, number>
+  rendimentoCopy: Record<TradingWindow, number>,
+  // % consolidado por janela (soma dos placares) — só pra exibir no badge.
+  acertoConsolidadoPorJanela?: Record<TradingWindow, number>
 ): MelhorCenario | null {
   let best: MelhorCenario | null = null;
   for (const { window, peso } of CASCADE_WEIGHTS) {
@@ -174,7 +236,11 @@ export function calcularMelhorCenarioTriad(
     const geral = Math.min(pepe, live, copyScore);
     const score = geral * peso;
     if (!best || score > best.score) {
-      best = { fonte: window, acerto: Math.round((pepe + live + copy) / 3), score };
+      best = {
+        fonte: window,
+        acerto: acertoConsolidadoPorJanela?.[window] ?? Math.round((pepe + live + copy) / 3),
+        score,
+      };
     }
   }
   return best;

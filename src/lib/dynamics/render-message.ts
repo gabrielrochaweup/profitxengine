@@ -1,5 +1,6 @@
 import type { RotatingBanks, TradingWindow, VagasConfig } from "@/lib/supabase/types";
 import {
+  acertoConsolidado,
   acertoDestaqueTexto,
   calcAlavancagem,
   calcRendimentoCopy,
@@ -8,6 +9,7 @@ import {
   fonteFrasePlacar,
   getResult,
   produtoEmDestaque,
+  rendimentoCopyEfetivo,
   rotate,
   snipersExtras,
   tierCeilingPct,
@@ -37,6 +39,43 @@ export interface ProductStatsByWindow {
   liveLosses: Record<TradingWindow, number>;
   copyWins: Record<TradingWindow, number>;
   copyLosses: Record<TradingWindow, number>;
+}
+
+const JANELAS: TradingWindow[] = ["dia", "semana", "mes", "total"];
+
+// Rendimento do Copy por janela já ligado ao placar (ver calc-engine.ts) —
+// é ESTE que alimenta o "R$ X" das mensagens e a escolha do melhor cenário,
+// pra os dois nunca discordarem.
+export function rendimentosCopyEfetivos(
+  stats: ProductStatsByWindow,
+  config: Pick<TradingConfigValues, "payoutCopy" | "entradaCopyPct">
+): Record<TradingWindow, number> {
+  return Object.fromEntries(
+    JANELAS.map((janela) => [
+      janela,
+      rendimentoCopyEfetivo(
+        stats.copyRendimento[janela],
+        stats.copyWins[janela] ?? 0,
+        stats.copyLosses[janela] ?? 0,
+        config.payoutCopy,
+        config.entradaCopyPct
+      ),
+    ])
+  ) as Record<TradingWindow, number>;
+}
+
+// % de acerto do TRIAD por janela, somando os três placares.
+export function acertosConsolidadosPorJanela(stats: ProductStatsByWindow): Record<TradingWindow, number> {
+  return Object.fromEntries(
+    JANELAS.map((janela) => [
+      janela,
+      acertoConsolidado([
+        { wins: stats.pepeWins[janela] ?? 0, losses: stats.pepeLosses[janela] ?? 0, acerto: stats.pepe[janela] ?? 0 },
+        { wins: stats.liveWins[janela] ?? 0, losses: stats.liveLosses[janela] ?? 0, acerto: stats.live[janela] ?? 0 },
+        { wins: stats.copyWins[janela] ?? 0, losses: stats.copyLosses[janela] ?? 0, acerto: stats.copy[janela] ?? 0 },
+      ]),
+    ])
+  ) as Record<TradingWindow, number>;
 }
 
 export interface RenderSlotInput {
@@ -139,10 +178,10 @@ export function renderSlot(input: RenderSlotInput): RenderSlotOutput {
   const pepe = getResult(stats.pepe[fonte], fonte);
   const live = getResult(stats.live[fonte], fonte);
   const copy = getResult(stats.copy[fonte], fonte);
-  const rendPct = stats.copyRendimento[fonte] ?? 0;
+  const rendPct = rendimentosCopyEfetivos(stats, config)[fonte];
 
   const rendimentoCopy = calcRendimentoCopy(config.bancaCopy, rendPct) * config.cotacao;
-  const acertoTotal = Math.round((pepe.acerto + live.acerto + copy.acerto) / 3);
+  const acertoTotal = acertosConsolidadosPorJanela(stats)[fonte];
   const melhorProduto = produtoEmDestaque(pepe.acerto, live.acerto, copy.acerto);
 
   const vagasMode = vagasConfig.mode ?? "tiered";

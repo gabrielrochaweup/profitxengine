@@ -288,13 +288,19 @@ export interface Database {
           banca_copy: number;
           entrada_pepe: number;
           entrada_live: number;
+          /** % da banca arriscada por operação no Copy — base da estimativa do R$ quando o rendimento não vem informado. */
+          entrada_copy_pct: number;
           /** Sobrescreve, em toda dinâmica, o número embutido no link de WhatsApp da Alavancagem. null = mantém o de cada dinâmica. */
           numero_alavancagem_override: string | null;
           updated_by: string | null;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["trading_config"]["Row"], "updated_at" | "numero_alavancagem_override"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["trading_config"]["Row"],
+          "updated_at" | "numero_alavancagem_override" | "entrada_copy_pct"
+        > & {
           updated_at?: string;
+          entrada_copy_pct?: number;
           numero_alavancagem_override?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["trading_config"]["Insert"]>;

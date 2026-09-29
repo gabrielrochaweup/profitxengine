@@ -14,7 +14,11 @@ import {
   type Depoimento,
   type MelhorCenario,
 } from "@/lib/dynamics/calc-engine";
-import { type ProductStatsByWindow } from "@/lib/dynamics/render-message";
+import {
+  acertosConsolidadosPorJanela,
+  rendimentosCopyEfetivos,
+  type ProductStatsByWindow,
+} from "@/lib/dynamics/render-message";
 import { DynamicMessagesBoard } from "./dynamic-messages-board";
 import { ResultadosSync } from "./resultados-sync";
 import type { Database, TradingWindow } from "@/lib/supabase/types";
@@ -83,6 +87,7 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
     bancaCopy: 5000,
     entradaPepe: 10,
     entradaLive: 50,
+    entradaCopyPct: 1,
   });
   const [numeroAlavancagem, setNumeroAlavancagem] = useState<string | null>(null);
   const [fonteOverrides, setFonteOverrides] = useState<Record<string, TradingWindow>>({});
@@ -115,6 +120,7 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
           bancaCopy: configRow.banca_copy,
           entradaPepe: configRow.entrada_pepe,
           entradaLive: configRow.entrada_live,
+          entradaCopyPct: configRow.entrada_copy_pct ?? 1,
         });
         setNumeroAlavancagem(configRow.numero_alavancagem_override);
       }
@@ -157,13 +163,17 @@ export function DynamicDayTable({ dateKey, currentUserId }: DynamicDayTableProps
 
   const melhorPepe: MelhorCenario | null = useMemo(() => calcularMelhorCenario(stats.pepe), [stats.pepe]);
   const melhorLive: MelhorCenario | null = useMemo(() => calcularMelhorCenario(stats.live), [stats.live]);
+  // Rendimento do Copy já ligado ao placar e % consolidado somando os três
+  // placares — os MESMOS que o renderSlot usa nas mensagens.
+  const rendimentoCopy = useMemo(() => rendimentosCopyEfetivos(stats, config), [stats, config]);
   const melhorCopy: MelhorCenario | null = useMemo(
-    () => calcularMelhorCenarioCopy(stats.copy, stats.copyRendimento),
-    [stats.copy, stats.copyRendimento]
+    () => calcularMelhorCenarioCopy(stats.copy, rendimentoCopy),
+    [stats.copy, rendimentoCopy]
   );
   const melhorTriad: MelhorCenario | null = useMemo(
-    () => calcularMelhorCenarioTriad(stats.pepe, stats.live, stats.copy, stats.copyRendimento),
-    [stats.pepe, stats.live, stats.copy, stats.copyRendimento]
+    () =>
+      calcularMelhorCenarioTriad(stats.pepe, stats.live, stats.copy, rendimentoCopy, acertosConsolidadosPorJanela(stats)),
+    [stats, rendimentoCopy]
   );
 
   async function persistSelection(patch: {
