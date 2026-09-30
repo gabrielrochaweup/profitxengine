@@ -22,6 +22,7 @@ export const FILTROS_DE_ALUNO = [
   { chave: "sem-pepe", rotulo: "Sem Pepe" },
   { chave: "sem-corretora", rotulo: "Sem corretora" },
   { chave: "sem-deposito", rotulo: "Conta sem depósito" },
+  { chave: "ja-depositou", rotulo: "Já depositou" },
 ] as const;
 
 export type FiltroDeAluno = (typeof FILTROS_DE_ALUNO)[number]["chave"];
@@ -38,6 +39,9 @@ function passaNoFiltro(a: Aluno, filtro: FiltroDeAluno): boolean {
   // abriu está na fila anterior, e misturar as duas daria uma lista que não
   // serve pra nenhuma das duas conversas.
   if (filtro === "sem-deposito") return a.corretora && !a.depositou;
+  // O espelho do anterior: quem já pôs dinheiro. Serve pra agradecer, dar o
+  // próximo passo e separar quem já virou depositante de quem ainda não.
+  if (filtro === "ja-depositou") return a.depositou;
   return true;
 }
 

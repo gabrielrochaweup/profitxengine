@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,7 @@ const TOM: Record<NivelDeAlerta, { barra: string; texto: string; fundo: string }
   neutro: { barra: "bg-border-strong", texto: "text-text-tertiary", fundo: "bg-card-hover/40" },
 };
 
-export function ResumoDoDiaView({ resumo }: { resumo: ResumoDoDia }) {
+export function ResumoDoDiaView({ resumo, depositantes }: { resumo: ResumoDoDia; depositantes?: ReactNode }) {
   const criticos = resumo.alertas.filter((a) => a.nivel === "critico").length;
 
   return (
@@ -73,6 +74,9 @@ export function ResumoDoDiaView({ resumo }: { resumo: ResumoDoDia }) {
           ))}
         </div>
       </section>
+
+      {/* ── Depositantes (em destaque, logo abaixo dos números do dia) ── */}
+      {depositantes}
 
       {/* ── Precisa de atenção ── */}
       <section>

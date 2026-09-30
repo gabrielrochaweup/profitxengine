@@ -3,9 +3,12 @@ import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { getNicheNews } from "@/lib/news/niche-feeds";
 import { getActiveProduct } from "@/lib/products-server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { carregarDepositantes, type Depositante } from "@/lib/tracking/depositantes";
 import { PageContainer } from "@/components/ui/page";
 import { carregarResumoDoDia, type ResumoDoDia } from "./resumo";
 import { ResumoDoDiaView } from "./components/resumo-do-dia";
+import { DepositantesDestaque } from "./components/depositantes";
 
 /*
   O Dashboard deixou de ser um menu.
@@ -60,11 +63,19 @@ async function getData() {
   // O resumo não pode derrubar a home: se uma das leituras falhar (função
   // que não existe ainda no banco, rede caindo), a saudação e a notícia
   // continuam de pé e a seção some.
-  const [noticia, resumo] = await Promise.all([
+  const [noticia, resumo, depositantes] = await Promise.all([
     getNicheNews(activeProduct?.niche).catch(() => ({ items: [], label: "" })),
     activeProduct
       ? carregarResumoDoDia(activeProduct.id).catch((erro) => {
           console.error("[dashboard] falha ao montar o resumo do dia", erro);
+          return null;
+        })
+      : Promise.resolve(null),
+    // Lista própria, não pedaço do resumo: se ela falhar o resto da home
+    // continua de pé e o cartão diz que não carregou.
+    activeProduct
+      ? carregarDepositantes(createAdminClient(), activeProduct.id).catch((erro) => {
+          console.error("[dashboard] falha ao listar os depositantes", erro);
           return null;
         })
       : Promise.resolve(null),
@@ -77,6 +88,7 @@ async function getData() {
     topNews: noticia.items[0] ?? null,
     newsLabel: noticia.label,
     resumo: resumo as ResumoDoDia | null,
+    depositantes: depositantes as Depositante[] | null,
     temProduto: !!activeProduct,
   };
 }
@@ -128,7 +140,18 @@ export default async function DashboardPage() {
       </div>
 
       {data.resumo ? (
-        <ResumoDoDiaView resumo={data.resumo} />
+        <ResumoDoDiaView
+          resumo={data.resumo}
+          depositantes={
+            data.depositantes ? (
+              <DepositantesDestaque depositantes={data.depositantes} />
+            ) : (
+              <div className="rounded-card bg-card px-4 py-4 text-[12px] text-text-tertiary shadow-card">
+                Não deu pra carregar os depositantes agora. Atualize a página em alguns segundos.
+              </div>
+            )
+          }
+        />
       ) : (
         <Card className="px-5 py-4 text-sm text-text-secondary">
           {data.temProduto
