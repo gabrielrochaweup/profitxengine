@@ -1,0 +1,18 @@
+<style>
+.plano{box-sizing:border-box;width:100%;max-width:640px;margin:0 auto;background:#fff;border:4px solid #34c759;border-radius:28px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif}
+.plano *{box-sizing:border-box;margin:0;padding:0}
+.plano__faixa{background:#34c759;color:#fff;text-align:center;font-weight:800;font-size:20px;letter-spacing:.3px;text-transform:uppercase;padding:8px 12px 9px}
+.plano__corpo{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 24px 20px}
+.plano__nome{font-size:34px;line-height:1.1;font-weight:800;color:#0b0b0f}
+.preco{flex-shrink:0;background:#f0f0f1;border-radius:22px;padding:14px 22px 12px;min-width:190px}
+.preco__desconto,.preco__condicao{display:block;color:#8a8a93;font-size:18px;line-height:1.2}
+.preco__condicao{text-align:right}
+.preco__valor{display:flex;align-items:baseline;gap:6px;color:#0b0b0f;font-weight:800;line-height:1.05}
+.preco__moeda{font-size:22px}
+.preco__numero{font-size:46px;letter-spacing:-.5px}
+.plano__acao{padding:0 24px 26px}
+.plano .botao{display:block;width:100%;background:#34c759;color:#fff;text-align:center;text-decoration:none;font-weight:800;font-size:22px;line-height:1.2;padding:16px 20px;border-radius:18px;box-shadow:0 6px 0 #25a244;transition:transform .1s,box-shadow .1s,filter .15s}
+.plano .botao:hover{filter:brightness(1.05)}
+.plano .botao:active{transform:translateY(4px);box-shadow:0 2px 0 #25a244}
+@media(max-width:520px){.plano{border-radius:24px}.plano__faixa{font-size:17px}.plano__corpo{flex-direction:column;align-items:stretch;gap:16px;padding:18px 16px 20px}.plano__nome{font-size:28px}.preco{min-width:0}.preco__numero{font-size:42px}.plano__acao{padding:0 16px 20px}.plano .botao{font-size:17px;padding:15px 12px}}
+</style>

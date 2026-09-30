@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { ORIGEM_PUBLICA_DO_APP } from "@/lib/app-host";
 import { Bloco, Cartao } from "./ui";
 
 // O produto vem de "vem de múltiplos sites" — em vez de eu colar o script
@@ -10,9 +10,8 @@ import { Bloco, Cartao } from "./ui";
 // e qualquer site cola essa mesma tag, trocando só o data-product.
 export function TrackingScriptPanel({ productSlug }: { productSlug: string }) {
   const toast = useToast();
-  const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
-
-  const snippet = `<script src="${origin}/api/tracking/pixel.js" data-product="${productSlug}" async></script>`;
+  // Sempre o endereço oficial, não o de quem abriu a tela (ver lib/app-host.ts).
+  const snippet = `<script src="${ORIGEM_PUBLICA_DO_APP}/api/tracking/pixel.js" data-product="${productSlug}" async></script>`;
 
   function copy() {
     navigator.clipboard.writeText(snippet);

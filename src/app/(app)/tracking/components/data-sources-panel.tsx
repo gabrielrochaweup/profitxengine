@@ -36,6 +36,7 @@ import { MEMBERS_AREA_PLATFORMS } from "@/lib/tracking/members-area-adapters";
 import { BROKER_PLATFORMS } from "@/lib/tracking/broker-adapters";
 import { CONTRACT_PLATFORMS } from "@/lib/tracking/contract-adapters";
 import { TOOL_PLATFORMS } from "@/lib/tracking/tool-adapters";
+import { ORIGEM_PUBLICA_DO_APP } from "@/lib/app-host";
 import { Bloco, BotaoIcone, CampoCopiavel, Interruptor } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -72,8 +73,8 @@ const KIND_PATH: Record<WebhookEndpoint["kind"], string> = {
 };
 
 function endpointUrl(endpoint: WebhookEndpoint): string {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  return `${origin}/api/tracking/webhooks/${KIND_PATH[endpoint.kind]}/${endpoint.endpoint_slug}`;
+  // Sempre o endereço oficial, não o de quem abriu a tela (ver lib/app-host.ts).
+  return `${ORIGEM_PUBLICA_DO_APP}/api/tracking/webhooks/${KIND_PATH[endpoint.kind]}/${endpoint.endpoint_slug}`;
 }
 
 // O token só sai do servidor quando alguém pede pra ver ou copiar; até lá

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Método TRIAD</title>
+<style>
+  :root {
+    --verde: #34c759;
+    --verde-escuro: #16a34a;
+    --texto: #0b0b0f;
+    --cinza-texto: #8a8a93;
+    --cinza-caixa: #f0f0f1;
+    --fundo: #f3f4f6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    background: var(--fundo);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+
+  /* ---------- CARD ---------- */
+  .plano {
+    width: 100%;
+    max-width: 640px;
+    background: #fff;
+    border: 4px solid var(--verde);
+    border-radius: 28px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .plano:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(52, 199, 89, .25); }
+
+  .plano__faixa {
+    background: var(--verde);
+    color: #fff;
+    text-align: center;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    padding: 8px 12px 9px;
+  }
+
+  .plano__corpo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 22px 24px 20px;
+  }
+
+  .plano__nome {
+    font-size: 34px;
+    line-height: 1.1;
+    font-weight: 800;
+    color: var(--texto);
+  }
+
+  /* Linha verde de benefícios (opcional) — descomente no HTML se quiser usar */
+  .plano__beneficios {
+    margin-top: 10px;
+    color: var(--verde-escuro);
+    font-weight: 800;
+    font-size: 20px;
+    line-height: 1.3;
+  }
+
+  /* ---------- CAIXA DE PREÇO ---------- */
+  .preco {
+    flex-shrink: 0;
+    background: var(--cinza-caixa);
+    border-radius: 22px;
+    padding: 14px 22px 12px;
+    min-width: 190px;
+  }
+  .preco__desconto {
+    display: block;
+    color: var(--cinza-texto);
+    font-size: 18px;
+    line-height: 1.2;
+  }
+  .preco__valor {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    color: var(--texto);
+    font-weight: 800;
+    line-height: 1.05;
+  }
+  .preco__moeda { font-size: 22px; }
+  .preco__numero { font-size: 46px; letter-spacing: -.5px; }
+  .preco__condicao {
+    display: block;
+    text-align: right;
+    color: var(--cinza-texto);
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  /* ---------- BOTÃO ---------- */
+  .plano__acao { padding: 0 24px 26px; }
+  .botao {
+    display: block;
+    width: 100%;
+    background: var(--verde);
+    color: #fff;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 22px;
+    line-height: 1.2;
+    padding: 16px 20px;
+    border-radius: 18px;
+    box-shadow: 0 6px 0 #25a244;
+    transition: transform .1s ease, box-shadow .1s ease, filter .15s ease;
+  }
+  .botao:hover { filter: brightness(1.05); }
+  .botao:active { transform: translateY(4px); box-shadow: 0 2px 0 #25a244; }
+
+  /* ---------- CELULAR ---------- */
+  @media (max-width: 520px) {
+    .plano { border-radius: 24px; }
+    .plano__faixa { font-size: 17px; }
+    .plano__corpo { flex-direction: column; align-items: stretch; gap: 16px; padding: 18px 16px 20px; }
+    .plano__nome { font-size: 28px; }
+    .preco { min-width: 0; }
+    .preco__numero { font-size: 42px; }
+    .plano__acao { padding: 0 16px 20px; }
+    .botao { font-size: 17px; padding: 15px 12px; }
+  }
+</style>
+</head>
+<body>
+
+  <article class="plano">
+    <div class="plano__faixa">Mais vendido</div>
+
+    <div class="plano__corpo">
+      <div>
+        <h2 class="plano__nome">Método TRIAD</h2>
+        <!-- <p class="plano__beneficios">Escreva aqui os benefícios do plano</p> -->
+      </div>
+
+      <div class="preco">
+        <span class="preco__desconto">40% off</span>
+        <div class="preco__valor">
+          <span class="preco__moeda">R$</span>
+          <span class="preco__numero">77,00</span>
+        </div>
+        <span class="preco__condicao">à vista</span>
+      </div>
+    </div>
+
+    <div class="plano__acao">
+      <a class="botao" href="https://pay.onprofit.com.br/0c1LryyT?off=qjo4cq&sck=&pxevt=checkout">Adquira agora o Método TRIAD</a>
+    </div>
+  </article>
+
+</body>
+</html>

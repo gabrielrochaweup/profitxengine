@@ -15,6 +15,7 @@ import { ContentGrid, EmptyState, Field } from "@/components/ui/page";
 import { useToast } from "@/components/ui/toast";
 import { createClient } from "@/lib/supabase/client";
 import { markdownParaHtml } from "@/lib/blog-render";
+import { HOST_PUBLICO_DO_APP } from "@/lib/app-host";
 import {
   MODOS,
   MODO_LABEL,
@@ -26,10 +27,10 @@ import {
   type ModoBlog,
 } from "@/lib/blog";
 
-// Host onde a Engine responde — é o alvo do proxy e do CNAME. Vem de env
-// porque muda entre o domínio da Vercel e um domínio próprio, e um valor
-// errado aqui manda o cliente configurar o servidor dele apontando pro nada.
-const APP_HOST = process.env.NEXT_PUBLIC_APP_HOST || "profitxengine-one.vercel.app";
+// Host onde a Engine responde — é o alvo do proxy e do CNAME. Fixo no endereço
+// oficial (lib/app-host.ts): um valor errado aqui manda o cliente configurar o
+// servidor dele apontando pro domínio errado.
+const APP_HOST = HOST_PUBLICO_DO_APP;
 
 const ABAS = [
   { key: "posts", label: "Posts" },
