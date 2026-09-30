@@ -29,11 +29,20 @@ interface CollectPayload {
   fbclid?: string | null;
   gclid?: string | null;
   meta_campaign_id?: string | null;
+  utm_id?: string | null;
+  ad_id?: string | null;
+  adset_id?: string | null;
+  placement?: string | null;
+  site_source_name?: string | null;
   google_campaign_id?: string | null;
   fbp?: string | null;
   fbc?: string | null;
   landing_url?: string | null;
   referrer?: string | null;
+}
+
+function ehOrigemMeta(source: string | null | undefined): boolean {
+  return /^(meta|facebook|fb|instagram|ig)$/i.test((source ?? "").trim());
 }
 
 export async function POST(request: Request) {
@@ -72,7 +81,11 @@ export async function POST(request: Request) {
       utm_term: body.utm_term || null,
       fbclid: body.fbclid || null,
       gclid: body.gclid || null,
-      meta_campaign_id: body.meta_campaign_id || null,
+      // "mcid" continua mandando. Sem ele, o utm_id da UTM automática da Meta
+      // (= {{campaign.id}}) é o ID da campanha — mas só quando a origem é
+      // Meta, porque utm_id é um parâmetro genérico que outros canais usam
+      // com outro significado.
+      meta_campaign_id: body.meta_campaign_id || (ehOrigemMeta(body.utm_source) ? body.utm_id : null) || null,
       google_campaign_id: body.google_campaign_id || null,
       fbp: body.fbp || null,
       fbc: body.fbc || null,

@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { Tooltip } from "@/components/ui/tooltip";
-import { normalizarValorUtm } from "@/lib/tracking/utm-presets";
+import { normalizarValorUtm, PARAMETROS_META_DINAMICOS } from "@/lib/tracking/utm-presets";
 
 export interface UtmPreset {
   id: string;
@@ -95,6 +95,8 @@ export function UtmPresetsPanel({
       <p className="-mt-1 mb-3 text-[11px] text-text-tertiary">
         Clique num canal pra preencher os campos acima. O link de destino continua sendo você quem escolhe.
       </p>
+
+      <MetaAutomatico />
 
       {presets.length === 0 ? (
         <Cartao>
@@ -206,6 +208,49 @@ export function UtmPresetsPanel({
         />
       )}
     </Bloco>
+  );
+}
+
+/**
+ * Meta Ads com UTM automática: uma string pra colar uma vez no anúncio.
+ * Nada pra preencher — a Meta troca cada {{macro}} pelo nome/ID real da
+ * campanha, do conjunto e do anúncio que gerou o clique.
+ */
+function MetaAutomatico() {
+  const toast = useToast();
+  const [copiado, setCopiado] = useState(false);
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(PARAMETROS_META_DINAMICOS);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 1800);
+    } catch {
+      toast.error("O navegador bloqueou a cópia. Selecione o texto e copie à mão.");
+    }
+  }
+
+  return (
+    <Cartao className="mb-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold text-text-primary">Meta Ads — UTMs automáticas</p>
+          <p className="mt-0.5 max-w-[78ch] text-[11px] leading-relaxed text-text-tertiary">
+            Nada pra preencher. Cole no anúncio, no campo <strong className="font-medium text-text-secondary">Parâmetros
+            de URL</strong> (em Rastreamento), e a Meta troca cada {"{{...}}"} pelo nome ou ID real da campanha, do
+            conjunto e do anúncio que gerou o clique. Serve pra todas as campanhas.
+          </p>
+        </div>
+        <Button size="sm" onClick={copiar}>
+          {copiado ? "Copiado ✓" : "Copiar"}
+        </Button>
+      </div>
+      <code
+        className="mt-3 block select-all break-all rounded-input border border-border bg-input px-3 py-2 font-mono text-[11px] leading-5 text-text-primary"
+      >
+        {PARAMETROS_META_DINAMICOS}
+      </code>
+    </Cartao>
   );
 }
 

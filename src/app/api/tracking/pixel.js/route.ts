@@ -230,6 +230,13 @@ const PIXEL_SCRIPT = `
     fbclid: params.get("fbclid"),
     gclid: params.get("gclid"),
     meta_campaign_id: params.get("mcid"),
+    // Parâmetros dinâmicos da Meta (UTMs automáticas): ficam guardados no
+    // registro da visita; o ID da campanha também vem em utm_id.
+    utm_id: params.get("utm_id"),
+    ad_id: params.get("ad_id"),
+    adset_id: params.get("adset_id"),
+    placement: params.get("placement"),
+    site_source_name: params.get("site_source_name"),
     google_campaign_id: params.get("gcid"),
     fbp: getCookie("_fbp"),
     fbc: getCookie("_fbc"),

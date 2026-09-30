@@ -18,3 +18,31 @@ export function normalizarValorUtm(valor: unknown): string {
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9._|/-]/g, "");
 }
+
+/**
+ * Parâmetros de URL da Meta com UTM "vazia": em vez de digitar o nome de cada
+ * campanha, conjunto e anúncio, cola-se esta string UMA vez no campo
+ * "Parâmetros de URL" do anúncio e a Meta troca cada {{...}} pelo valor real
+ * na hora do clique.
+ *
+ * Fica fora do preset de propósito: normalizarValorUtm tira chaves e ponto
+ * (é o que mantém "Instagram" e "instagram" numa linha só), e isso
+ * destruiria os {{macros}}. Também não passa pelo gerador de link, que
+ * codifica as chaves na URL (%7B%7B) — a Meta só reconhece a macro escrita
+ * como está.
+ *
+ * utm_source e utm_medium são os do canal "Meta Ads" (meta · cpc). Os demais
+ * são as macros dinâmicas da própria Meta.
+ */
+export const PARAMETROS_META_DINAMICOS = [
+  "utm_source=meta",
+  "utm_medium=cpc",
+  "utm_content={{adset.name}}",
+  "utm_campaign={{campaign.name}}",
+  "utm_term={{ad.name}}",
+  "utm_id={{campaign.id}}",
+  "ad_id={{ad.id}}",
+  "adset_id={{adset.id}}",
+  "placement={{placement}}",
+  "site_source_name={{site_source_name}}",
+].join("&");
