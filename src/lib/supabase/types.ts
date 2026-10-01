@@ -1627,6 +1627,42 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["tracking_pixels"]["Insert"]>;
         Relationships: [];
       };
+      tracking_capi_log: {
+        Row: {
+          id: string;
+          product_id: string;
+          event_name: string;
+          pixel_id: string | null;
+          lead_id: string | null;
+          external_id: string | null;
+          amount_cents: number | null;
+          currency: string | null;
+          ok: boolean;
+          events_received: number | null;
+          fbtrace_id: string | null;
+          erro: string | null;
+          teste: boolean;
+          enviado_em: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          event_name: string;
+          pixel_id?: string | null;
+          lead_id?: string | null;
+          external_id?: string | null;
+          amount_cents?: number | null;
+          currency?: string | null;
+          ok: boolean;
+          events_received?: number | null;
+          fbtrace_id?: string | null;
+          erro?: string | null;
+          teste?: boolean;
+          enviado_em?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tracking_capi_log"]["Insert"]>;
+        Relationships: [];
+      };
       ad_entity_names: {
         Row: {
           product_id: string;

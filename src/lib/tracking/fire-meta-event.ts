@@ -3,6 +3,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { sendMetaConversionEvent, type DadosDoLead } from "./meta-capi";
 import { decryptSecret } from "@/lib/crypto";
 import { lerConfigDoScript } from "./script-config";
+import { registrarEnvioCapi } from "./capi-log";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -62,13 +63,32 @@ export async function fireMetaEventForProduct(
       .eq("platform", "meta")
       .eq("active", true)
       .not("encrypted_capi_token", "is", null);
-    if (!metaPixels?.length) return;
+
+    const base = {
+      productId,
+      eventName: NOME_NA_META[evento],
+      leadId: params.leadId ?? null,
+      externalId: params.externalId,
+      amountCents: params.amountCents,
+      currency: params.currency,
+    };
+
+    // Evento ligado, mas sem pixel com token: antes sumia sem aviso.
+    if (!metaPixels?.length) {
+      await registrarEnvioCapi(admin, {
+        ...base,
+        pixelId: null,
+        ok: false,
+        erro: "Nenhum pixel da Meta ativo com token da API de Conversões — o evento não foi enviado.",
+      });
+      return;
+    }
 
     const lead = await dadosDoLead(admin, params.leadId ?? null);
 
     for (const pixel of metaPixels) {
       if (!pixel.encrypted_capi_token) continue;
-      await sendMetaConversionEvent({
+      const resultado = await sendMetaConversionEvent({
         pixelId: pixel.pixel_id,
         accessToken: decryptSecret(pixel.encrypted_capi_token),
         eventName: NOME_NA_META[evento],
@@ -79,6 +99,14 @@ export async function fireMetaEventForProduct(
         externalId: params.externalId,
         occurredAt: params.occurredAt,
         lead,
+      });
+      await registrarEnvioCapi(admin, {
+        ...base,
+        pixelId: pixel.pixel_id,
+        ok: resultado.ok,
+        eventsReceived: resultado.eventsReceived,
+        fbtraceId: resultado.fbtraceId,
+        erro: resultado.error,
       });
     }
   } catch {

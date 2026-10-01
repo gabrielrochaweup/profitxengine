@@ -41,6 +41,8 @@ interface CollectPayload {
   fbc?: string | null;
   landing_url?: string | null;
   referrer?: string | null;
+  /** Segunda chamada, depois do pixel carregar: só completa fbp/fbc do lead. */
+  completar_ids_meta?: boolean;
 }
 
 // IP de quem chamou, atrás do proxy (VPS/Vercel). Só o primeiro da lista:
@@ -81,6 +83,20 @@ export async function POST(request: Request) {
   const { data: product } = await admin.from("products").select("id").eq("slug", productSlug).maybeSingle();
   if (!product) {
     return NextResponse.json({ error: "Produto não encontrado." }, { status: 404, headers });
+  }
+
+  // O pixel da Meta só cria os cookies _fbp/_fbc quando termina de carregar,
+  // DEPOIS da primeira chamada daqui — na 1ª visita eles chegam vazios. O
+  // script volta com eles; aqui só PREENCHE o que está vazio, nunca troca um
+  // valor que já existe.
+  if (body.completar_ids_meta) {
+    if (body.fbp) {
+      await admin.from("tracking_leads").update({ fbp: body.fbp }).eq("id", leadId).eq("product_id", product.id).is("fbp", null);
+    }
+    if (body.fbc) {
+      await admin.from("tracking_leads").update({ fbc: body.fbc }).eq("id", leadId).eq("product_id", product.id).is("fbc", null);
+    }
+    return NextResponse.json({ ok: true }, { headers });
   }
 
   // ignoreDuplicates: o primeiro clique é quem vale — se esse lead_id já

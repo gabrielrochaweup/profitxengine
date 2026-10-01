@@ -347,6 +347,37 @@ const PIXEL_SCRIPT = `
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   }).catch(function () {});
+
+  // O pixel da Meta cria os cookies _fbp/_fbc só quando termina de carregar,
+  // e isso acontece DEPOIS do envio acima — na 1ª visita eles iam vazios, e
+  // são as chaves que mais ajudam a Meta a ligar a compra ao anúncio. Espera
+  // o cookie aparecer (até ~6s) e completa o lead. Quem já tinha o cookie
+  // (visita de volta) não precisa de nada disso.
+  var veioFbclid = !!params.get("fbclid");
+  if (!payload.fbp || (veioFbclid && !payload.fbc)) {
+    var tentativas = 0;
+    var espera = setInterval(function () {
+      tentativas++;
+      var fbp = getCookie("_fbp");
+      var fbc = getCookie("_fbc");
+      var pronto = !!fbp && (!veioFbclid || !!fbc);
+      if (!pronto && tentativas < 10) return;
+      clearInterval(espera);
+      if (!fbp && !fbc) return;
+      fetch(collectUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lead_id: leadId,
+          product_slug: productSlug,
+          completar_ids_meta: true,
+          fbp: payload.fbp ? null : fbp,
+          fbc: payload.fbc ? null : fbc,
+        }),
+        keepalive: true,
+      }).catch(function () {});
+    }, 600);
+  }
 })();
 `.trim();
 

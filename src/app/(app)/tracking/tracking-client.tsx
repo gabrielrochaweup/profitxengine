@@ -16,6 +16,7 @@ import { SendPulsePanel } from "./components/sendpulse-panel";
 import { AdsSettings, type AdAccount } from "./components/ads-settings";
 import { TrackingScriptPanel } from "./components/tracking-script-panel";
 import { EventosMetaPanel } from "./components/eventos-meta-panel";
+import { EnviosCapiPanel } from "./components/envios-capi-panel";
 import { UtmBuilder } from "./components/utm-builder";
 import { LinkBuilder } from "./components/link-builder";
 import { Bloco } from "./components/ui";
@@ -355,6 +356,7 @@ export function TrackingClient({
         <>
           <TrackingScriptPanel productSlug={productSlug} />
           <EventosMetaPanel productId={productId} />
+          <EnviosCapiPanel productId={productId} />
         </>
       )}
 
