@@ -43,6 +43,14 @@ const config: Config = {
         "warning-soft": "var(--warning-soft)",
         "danger-soft": "var(--danger-soft)",
         "accent-soft": "var(--accent-soft)",
+        ok: "var(--ok)",
+        "ok-soft": "var(--ok-soft)",
+        series: {
+          1: "var(--series-1)",
+          2: "var(--series-2)",
+          3: "var(--series-3)",
+          4: "var(--series-4)",
+        },
       },
       // Nada de pílula. O raio grande fazia cada botão parecer um chip
       // solto; em 8px o controle lê como controle e a tela ganha densidade.

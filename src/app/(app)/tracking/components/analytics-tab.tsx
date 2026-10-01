@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw } from "lucide-react";
+import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw, Megaphone } from "lucide-react";
+import { SegmentedControl } from "@/components/ui/panel";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import {
   CartaoComTopo,
   CartaoDividido,
   Distribuicao,
+  ehValorVazio,
   FiltroCampo,
   MetadeCartao,
   Ponto,
@@ -145,12 +147,21 @@ const EVENT_TYPE_FILTER_OPTIONS = [
  * hierarquia inteira e faria parecer que o produto só sabe campanha.
  */
 export const PERFORMANCE_SUB_TABS = [
-  { key: "contas", label: "Contas" },
   { key: "campanhas", label: "Campanhas" },
+  { key: "paginas", label: "Páginas" },
+  { key: "contas", label: "Contas" },
   { key: "conjuntos", label: "Conjuntos" },
   { key: "anuncios", label: "Anúncios" },
-  { key: "paginas", label: "Páginas" },
 ] as const;
+
+/** Seções da Visão geral abaixo do resumo — uma por vez, em vez de uma rolagem com tudo. */
+const SECOES_VISAO = [
+  { key: "funil", label: "Funil" },
+  { key: "origens", label: "Origens" },
+  { key: "horarios", label: "Horários" },
+  { key: "vendas", label: "Vendas" },
+] as const;
+type SecaoVisao = (typeof SECOES_VISAO)[number]["key"];
 
 export type TableTab = (typeof PERFORMANCE_SUB_TABS)[number]["key"];
 
@@ -197,11 +208,14 @@ export function AnalyticsTab({
   subTab,
   tableTab = "campanhas",
   filtroAlunos,
+  onIrParaAnuncios,
 }: {
   productId: string;
   initialReport: CampaignRow[];
   initialEvents: RecentEvent[];
   subTab: AnalyticsSubTab;
+  /** Leva pra área Anúncios (onde se conecta e sincroniza a conta de anúncio). */
+  onIrParaAnuncios?: () => void;
   /** Qual recorte de Performance mostrar. Quem manda é a barra do módulo. */
   tableTab?: TableTab;
   /** Fila de alunos que veio no endereço (o Dashboard linka direto pra ela). */
@@ -232,6 +246,7 @@ export function AnalyticsTab({
   const [funilLinhas, setFunilLinhas] = useState<LinhaFunil[]>([]);
   const [atividade, setAtividade] = useState<LinhaAtividade[]>([]);
   const [etapaSelecionada, setEtapaSelecionada] = useState<string | null>(null);
+  const [secaoVisao, setSecaoVisao] = useState<SecaoVisao>("funil");
   const [metricaTempo, setMetricaTempo] = useState<MetricaTempo>("purchase");
   const [salesByPageType, setSalesByPageType] = useState<{ page_type: string; purchases: number; revenue_cents: number }[]>(
     []
@@ -674,13 +689,13 @@ export function AnalyticsTab({
       )}
 
       {subTab === "visao" && (
-        <div className="space-y-8">
+        <div className="space-y-5">
           {/* ── A. Resultado financeiro ──
               Abre a página: quanto entrou e o que sobrou. O funil explica
               COMO isso aconteceu, e explicação vem depois do resultado.
               Lucro, ROAS e ROI só aparecem com gasto sincronizado. */}
-          <Bloco titulo="Resultado financeiro">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_200px]">
+          <Bloco titulo="Resultado financeiro" descricao="Quanto entrou no período e, com o gasto sincronizado, quanto sobrou.">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_220px]">
               <HeroStat
                 label="Curso — faturamento (R$)"
                 value={fmtBRL(kpis.purchaseRevenue)}
@@ -710,7 +725,17 @@ export function AnalyticsTab({
                 <FinanceTile
                   label="Gasto com anúncios"
                   value={hasSpend ? fmtBRL(kpis.spend) : "—"}
-                  hint={hasSpend ? "Base dos ROIs ao lado" : "Sincronize em Contas Meta/Google"}
+                  hint={
+                    hasSpend ? (
+                      "Base dos ROIs ao lado"
+                    ) : onIrParaAnuncios ? (
+                      <button type="button" onClick={onIrParaAnuncios} className="text-accent-text hover:underline">
+                        Sincronizar em Anúncios →
+                      </button>
+                    ) : (
+                      "Sincronize em Anúncios"
+                    )
+                  }
                 />
                 <FinanceTile
                   label="Cotação USD/BRL"
@@ -719,7 +744,6 @@ export function AnalyticsTab({
                 />
               </div>
             </div>
-          </Bloco>
 
           {/* ── B. KPIs principais ──
               A faixa que responde as cinco primeiras perguntas do gestor sem
@@ -730,7 +754,7 @@ export function AnalyticsTab({
               a linha de apoio é a de PESSOAS, que é o que o funil conta.
               Quando os dois divergem, o texto diz qual é qual em vez de
               escolher um e esconder o outro. */}
-          <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-card bg-card shadow-card sm:grid-cols-4 xl:grid-cols-8 xl:divide-y-0">
+          <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4 2xl:grid-cols-8">
             <KpiTile
               icon={Users}
               label="Leads"
@@ -790,11 +814,19 @@ export function AnalyticsTab({
               tone="accent"
             />
           </div>
+          </Bloco>
+
+          {/* Uma seção por vez: o resumo acima fica fixo, o resto se escolhe aqui. */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">Detalhamento</p>
+            <SegmentedControl label="Seções da visão geral" options={SECOES_VISAO} value={secaoVisao} onChange={setSecaoVisao} />
+          </div>
 
           {/* ── C. Funil completo ──
               A espinha dorsal da página: as oito etapas na ordem da jornada,
               em duas linhas de quatro. Clicar numa etapa foca a matriz de
               origem e os gráficos de horário nela. */}
+          {secaoVisao === "funil" && (
           <Bloco
             titulo="Funil"
             dica={
@@ -814,36 +846,44 @@ export function AnalyticsTab({
               )
             }
           >
+            {piorEtapa && piorEtapa.fracaoDaAnterior !== null && (
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-danger-soft px-3 py-2 text-[12px] text-text-secondary">
+                <span className="rounded-md bg-danger px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  Maior perda
+                </span>
+                <span>
+                  <span className="font-medium text-text-primary">
+                    {piorEtapa.rotuloAnterior} → {piorEtapa.rotulo}
+                  </span>
+                  : passaram {porcentagem(piorEtapa.fracaoDaAnterior)} das pessoas.
+                </span>
+              </div>
+            )}
+
             <Funil etapas={etapasDoFunil} selecionada={etapaSelecionada} onSelecionar={setEtapaSelecionada} />
 
             {/* Os dois caminhos que saem de "Leads", um ao lado do outro. */}
             <CartaoDividido className="mt-4">
               <MetadeCartao>
                 <p className="mb-1 text-[11px] font-medium text-text-tertiary">Funil do curso</p>
-                <ConversionFunnel data={funilDoCurso} color="var(--accent-text)" />
+                <ConversionFunnel data={funilDoCurso} color="var(--series-1)" />
               </MetadeCartao>
               <MetadeCartao>
                 <p className="mb-1 text-[11px] font-medium text-text-tertiary">Funil da corretora</p>
-                <ConversionFunnel data={funilDaCorretora} color="var(--success)" />
+                <ConversionFunnel data={funilDaCorretora} color="var(--series-2)" />
               </MetadeCartao>
             </CartaoDividido>
 
-            {piorEtapa && piorEtapa.fracaoDaAnterior !== null && (
-              <p className="mt-2 text-[11px] text-text-tertiary">
-                Maior perda entre etapas:{" "}
-                <span className="font-medium text-text-secondary">
-                  {piorEtapa.rotuloAnterior} → {piorEtapa.rotulo}
-                </span>
-                , onde passaram {porcentagem(piorEtapa.fracaoDaAnterior)} das pessoas.
-              </p>
-            )}
           </Bloco>
+
+          )}
 
           {/* ── D. De onde vêm os resultados ──
               Uma matriz no lugar de quatro recortes soltos (leads por fonte,
               depósitos por fonte, depósitos por campanha, vendas por UTM):
               a linha inteira, da entrada ao depósito, e a campanha por baixo
               quando se pede. */}
+          {secaoVisao === "origens" && (
           <Bloco
             titulo="De onde vêm os resultados"
             dica={
@@ -876,9 +916,12 @@ export function AnalyticsTab({
             </CartaoComTopo>
           </Bloco>
 
+          )}
+
           {/* ── E. Quando os resultados acontecem ──
               Os mesmos dois gráficos respondendo quatro perguntas: a métrica
               é um seletor, não quatro componentes iguais empilhados. */}
+          {secaoVisao === "horarios" && (
           <Bloco
             titulo="Quando os resultados acontecem"
             acoes={
@@ -894,23 +937,27 @@ export function AnalyticsTab({
                 <SimpleBarChart
                   data={porHoraChart}
                   valueLabel={METRICAS_DE_TEMPO.find((m) => m.key === metricaTempo)?.label ?? ""}
-                  color="var(--accent-text)"
+                  color="var(--series-1)"
                 />
               </CartaoComTopo>
               <CartaoComTopo titulo="Por dia da semana">
                 <SimpleBarChart
                   data={porDiaChart}
                   valueLabel={METRICAS_DE_TEMPO.find((m) => m.key === metricaTempo)?.label ?? ""}
-                  color="var(--accent-pink)"
+                  color="var(--series-3)"
                 />
               </CartaoComTopo>
             </div>
           </Bloco>
 
+          )}
+
           {/* ── F. Detalhamentos secundários ──
               Importantes, mas não podem competir com o funil: viraram quatro
               distribuições compactas numa superfície só. Eram quatro donuts
               de 260px — um deles pra mostrar uma categoria única. */}
+          {secaoVisao === "vendas" && (
+          <>
           <Bloco titulo="Detalhes das vendas">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <CartaoComTopo titulo="Por produto">
@@ -987,6 +1034,8 @@ export function AnalyticsTab({
               </Cartao>
             </Bloco>
           )}
+          </>
+          )}
         </div>
       )}
       {subTab === "campanhas" && tableTab === "paginas" && (
@@ -998,9 +1047,18 @@ export function AnalyticsTab({
           <Cartao>
             {/* Nada inventado: esse recorte só existe com o gasto vindo da
                 plataforma, e é isso que a tela diz. */}
-            <Vazio>
+            <Vazio
+              icone={Megaphone}
+              acao={
+                onIrParaAnuncios ? (
+                  <Button size="sm" onClick={onIrParaAnuncios}>
+                    Conectar em Anúncios
+                  </Button>
+                ) : undefined
+              }
+            >
               {MOTIVO_SEM_DADO}. Até lá, o resultado por campanha está em{" "}
-              <span className="text-text-secondary">Performance → Campanhas</span>.
+              <span className="text-text-primary">Performance → Campanhas</span>.
             </Vazio>
           </Cartao>
         </Bloco>
@@ -1015,13 +1073,13 @@ export function AnalyticsTab({
           </Bloco>
 
           {/* A tabela do recorte escolhido lá em cima, na barra do módulo. */}
-          <div className="rounded-card bg-card shadow-card">
-            <div className="p-4">
+          <Bloco titulo="Resultado por campanha">
+            <Cartao>
               {filteredReport.length === 0 ? (
                 <Vazio>Sem dados suficientes nesse período.</Vazio>
               ) : (
                 <TabelaWrap>
-                  <Tabela>
+                  <Tabela fixarPrimeira>
                     <thead>
                       {/* Ordem das colunas = ordem da decisão: quem é a
                           campanha, quanto custou, quanto voltou. O resto do
@@ -1097,7 +1155,7 @@ export function AnalyticsTab({
                             </Td>
                             <Td num>
                               {rowRoiCurso !== null ? (
-                                <span className={rowRoiCurso >= 0 ? "text-success" : "text-danger"}>
+                                <span className={rowRoiCurso >= 0 ? "text-ok" : "text-danger"}>
                                   {rowRoiCurso >= 0 ? "+" : ""}
                                   {(rowRoiCurso * 100).toFixed(0)}%
                                 </span>
@@ -1107,7 +1165,7 @@ export function AnalyticsTab({
                             </Td>
                             <Td num>
                               {rowRoiCorretora !== null ? (
-                                <span className={rowRoiCorretora >= 0 ? "text-success" : "text-danger"}>
+                                <span className={rowRoiCorretora >= 0 ? "text-ok" : "text-danger"}>
                                   {rowRoiCorretora >= 0 ? "+" : ""}
                                   {(rowRoiCorretora * 100).toFixed(0)}%
                                 </span>
@@ -1131,8 +1189,8 @@ export function AnalyticsTab({
                   </Tabela>
                 </TabelaWrap>
               )}
-            </div>
-          </div>
+            </Cartao>
+          </Bloco>
         </div>
       )}
 
@@ -1212,7 +1270,13 @@ function KpiTile({
       <p
         className={cn(
           "text-[17px] font-semibold leading-none tabular-nums",
-          tone === "accent" ? "text-accent-text" : tone === "success" ? "text-success" : "text-text-primary"
+          ehValorVazio(value)
+            ? "text-text-muted"
+            : tone === "accent"
+              ? "text-accent-text"
+              : tone === "success"
+                ? "text-series-2"
+                : "text-text-primary"
         )}
       >
         {value}
@@ -1227,8 +1291,8 @@ function KpiTile({
         type="button"
         onClick={onClick}
         className={cn(
-          "min-w-0 px-3 py-3 text-left transition-colors duration-150 hover:bg-card-hover",
-          destaque && "bg-card-hover/40"
+          "min-w-0 rounded-xl border bg-app px-3 py-3 text-left transition-colors duration-150 hover:border-border-strong hover:bg-card-hover",
+          destaque ? "border-border-strong" : "border-border"
         )}
       >
         {content}
@@ -1236,7 +1300,11 @@ function KpiTile({
     );
   }
 
-  return <div className={cn("min-w-0 px-3 py-3", destaque && "bg-card-hover/40")}>{content}</div>;
+  return (
+    <div className={cn("min-w-0 rounded-xl border bg-app px-3 py-3", destaque ? "border-border-strong" : "border-border")}>
+      {content}
+    </div>
+  );
 }
 
 // Tabela de eventos compartilhada entre "Eventos recentes" e o popup de
@@ -1246,7 +1314,7 @@ function EventsTable({ events }: { events: RecentEvent[] }) {
     return <Vazio>Nenhum evento nesse período/tipo.</Vazio>;
   }
   return (
-    <TabelaWrap>
+    <TabelaWrap alta>
       <Tabela>
         <thead>
           <tr className="border-b border-border">
@@ -1334,7 +1402,7 @@ function HeroStat({
   return (
     // O bloco de lucro era um cartão dentro do cartão. Um fio separa igual e
     // não desenha mais uma caixa em volta de três números.
-    <div className="rounded-card bg-card p-4 shadow-card">
+    <div className="rounded-xl border border-border bg-app p-4">
       <p className="mb-1.5 text-[11px] font-medium text-text-tertiary">{label}</p>
       <p className="text-[30px] font-bold leading-none tabular-nums text-text-primary">{value}</p>
       {sub && <div className="mt-1.5 text-[11px] text-text-tertiary">{sub}</div>}
@@ -1343,7 +1411,7 @@ function HeroStat({
         <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2 border-t border-border pt-3">
           <div>
             <p className="text-[10px] uppercase tracking-wide text-text-tertiary">Lucro</p>
-            <p className={cn("text-[15px] font-bold tabular-nums", lucro.positivo ? "text-success" : "text-danger")}>
+            <p className={cn("text-[15px] font-bold tabular-nums", lucro.positivo ? "text-ok" : "text-danger")}>
               {lucro.valor}
             </p>
           </div>
@@ -1366,9 +1434,9 @@ function HeroStat({
 }
 
 /** Indicador de apoio: mesma família dos heróis, peso deliberadamente menor. */
-function FinanceTile({ label, value, hint }: { label: string; value: string; hint: string }) {
+function FinanceTile({ label, value, hint }: { label: string; value: string; hint: ReactNode }) {
   return (
-    <div className="flex-1 rounded-card bg-card px-3 py-2.5 shadow-card">
+    <div className="flex-1 rounded-xl border border-border bg-app px-3 py-2.5">
       <div className="mb-1 flex items-center gap-1.5 text-text-tertiary">
         <Percent size={12} className="shrink-0" />
         <p className="truncate text-[11px]">{label}</p>

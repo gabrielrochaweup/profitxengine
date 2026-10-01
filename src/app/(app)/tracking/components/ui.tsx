@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Copy, Eye, EyeOff, Lock, MoreHorizontal } from "lucide-react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { Check, Copy, Eye, EyeOff, Lock, MoreHorizontal, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /*
@@ -18,59 +18,98 @@ import { cn } from "@/lib/utils";
   Nada aqui recebe ou transforma dado. São só invólucros.
 */
 
-/** Título de bloco do módulo. 13px, não 16 — é rótulo de seção num painel denso. */
+/*
+  Três níveis de superfície (ver src/components/ui/panel.tsx):
+    página  → fundo do app
+    painel  → o Bloco: um degrau acima, com borda
+    dentro  → Cartao, listas, tabelas e gráficos voltam ao tom do fundo
+
+  O contexto diz a cada peça em que nível ela está, pra a mesma peça servir
+  solta na página ou dentro de um painel sem cada tela ter que lembrar.
+*/
+type Nivel = "pagina" | "painel";
+const NivelCtx = createContext<Nivel>("pagina");
+
+/** Título de seção. Num painel é o cabeçalho dele; dentro de um painel, um subtítulo. */
 export function BlocoTitulo({
   titulo,
   dica,
   acoes,
+  descricao,
+  sub,
   className,
 }: {
   titulo: ReactNode;
   dica?: ReactNode;
   acoes?: ReactNode;
+  descricao?: ReactNode;
+  /** Subseção dentro de um painel: menor, sem peso de cabeçalho. */
+  sub?: boolean;
   className?: string;
 }) {
   return (
-    // A barrinha do accent à esquerda existe porque, numa página com seis
-    // seções seguidas no mesmo tom de fundo, um título de 13px no meio do
-    // escuro não separa nada: a tela vira um bloco contínuo. Dois pixels de
-    // cor marcam onde um assunto começa sem precisar de mais uma caixa.
-    <div className={cn("mb-3 flex flex-wrap items-center justify-between gap-2", className)}>
-      <h3 className="flex items-center gap-2 text-[14px] font-semibold text-text-primary">
-        <span className="h-4 w-0.5 shrink-0 rounded-full bg-accent" aria-hidden />
-        {titulo}
-        {dica}
-      </h3>
+    <div className={cn("flex flex-wrap items-start justify-between gap-x-3 gap-y-2", sub ? "mb-2.5" : "mb-4", className)}>
+      <div className="min-w-0 flex-1">
+        <h3
+          className={cn(
+            "flex items-center gap-1.5 font-semibold",
+            sub ? "text-[11px] uppercase tracking-wide text-text-tertiary" : "text-[15px] text-text-primary"
+          )}
+        >
+          {titulo}
+          {dica}
+        </h3>
+        {descricao && <p className="mt-1 max-w-[72ch] text-[12px] leading-relaxed text-text-tertiary">{descricao}</p>}
+      </div>
       {acoes && <div className="flex shrink-0 flex-wrap items-center gap-2">{acoes}</div>}
     </div>
   );
 }
 
 /**
- * Bloco sem caixa: título + conteúdo, direto sobre o fundo.
- *
- * É o padrão do módulo. Use `Cartao` só quando a área precisar de superfície
- * própria (tabela longa, grupo que se lê como uma unidade).
+ * Painel do módulo (nível 1): superfície um degrau acima do fundo, com
+ * borda, e o título como cabeçalho. Um Bloco dentro de outro vira subseção
+ * — sem caixa nova, só o subtítulo.
  */
 export function Bloco({
   titulo,
   dica,
   acoes,
+  descricao,
   className,
   children,
 }: {
   titulo?: ReactNode;
   dica?: ReactNode;
   acoes?: ReactNode;
+  descricao?: ReactNode;
   className?: string;
   children: ReactNode;
 }) {
+  const nivel = useContext(NivelCtx);
+  if (nivel === "painel") {
+    return (
+      <section className={className}>
+        {titulo && <BlocoTitulo sub titulo={titulo} dica={dica} acoes={acoes} descricao={descricao} />}
+        {children}
+      </section>
+    );
+  }
   return (
-    <section className={className}>
-      {titulo && <BlocoTitulo titulo={titulo} dica={dica} acoes={acoes} />}
-      {children}
-    </section>
+    <NivelCtx.Provider value="painel">
+      <section className={cn("min-w-0 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5", className)}>
+        {titulo && <BlocoTitulo titulo={titulo} dica={dica} acoes={acoes} descricao={descricao} />}
+        {children}
+      </section>
+    </NivelCtx.Provider>
   );
+}
+
+/** Classe da superfície de um bloco interno, conforme o nível em que está. */
+function useSuperficieInterna(): string {
+  return useContext(NivelCtx) === "painel"
+    ? "rounded-xl border border-border bg-app"
+    : "rounded-2xl border border-border bg-card shadow-card";
 }
 
 /**
@@ -80,7 +119,8 @@ export function Bloco({
  * gráfico vira meia tela de nada quando são dez gráficos.
  */
 export function Cartao({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("rounded-card bg-card p-4 shadow-card", className)}>{children}</div>;
+  const superficie = useSuperficieInterna();
+  return <div className={cn(superficie, "p-4", className)}>{children}</div>;
 }
 
 /**
@@ -106,9 +146,10 @@ export function CartaoComTopo({
   corpoClassName?: string;
   children: ReactNode;
 }) {
+  const superficie = useSuperficieInterna();
   return (
-    <div className={cn("overflow-hidden rounded-card bg-card shadow-card", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-card-hover/40 px-4 py-2">
+    <div className={cn("overflow-hidden", superficie, className)}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
           {titulo}
           {dica}
@@ -135,10 +176,12 @@ export function CartaoDividido({
   className?: string;
   children: ReactNode;
 }) {
+  const superficie = useSuperficieInterna();
   return (
     <div
       className={cn(
-        "grid grid-cols-1 divide-y divide-border rounded-card bg-card shadow-card lg:grid-cols-2 lg:divide-x lg:divide-y-0",
+        "grid grid-cols-1 divide-y divide-border lg:grid-cols-2 lg:divide-x lg:divide-y-0",
+        superficie,
         className
       )}
     >
@@ -168,10 +211,12 @@ export function BarraDeFiltros({
   direita?: ReactNode;
   className?: string;
 }) {
+  // Painel compacto e fixo no topo da área de conteúdo: deixa claro que os
+  // filtros valem pra tela inteira, e continuam à mão ao rolar.
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-3",
+        "flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-border bg-card px-3 py-2.5 shadow-card lg:sticky lg:top-0 lg:z-20",
         className
       )}
     >
@@ -217,18 +262,20 @@ export function Segmentado<T extends string>({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex h-8 items-center gap-0.5 rounded-input border border-border bg-input p-0.5">
+    <div role="radiogroup" className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl bg-input p-1">
       {opcoes.map((o) => (
         <button
           key={o.key}
           type="button"
+          role="radio"
+          aria-checked={ativo === o.key}
           onClick={() => onChange(o.key)}
           disabled={disabled}
           className={cn(
-            "h-7 rounded-[6px] px-2.5 text-[11px] font-medium transition-colors duration-150 disabled:opacity-50",
+            "shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors duration-150 disabled:opacity-50",
             ativo === o.key
-              ? "bg-accent text-accent-contrast"
-              : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+              ? "bg-card text-text-primary shadow-card"
+              : "text-text-tertiary hover:text-text-secondary"
           )}
         >
           {o.label}
@@ -241,12 +288,52 @@ export function Segmentado<T extends string>({
 /* ─────────────────────────── tabelas ─────────────────────────── */
 
 /** Casca de tabela: rolagem horizontal quando não couber, sem quebrar o layout. */
-export function TabelaWrap({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("-mx-4 overflow-x-auto px-4", className)}>{children}</div>;
+export function TabelaWrap({
+  className,
+  alta,
+  children,
+}: {
+  className?: string;
+  /** Lista longa: rola por dentro e o cabeçalho fica fixo. */
+  alta?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("-mx-4 overflow-x-auto", alta && "max-h-[70vh] overflow-y-auto", className)}>{children}</div>
+  );
 }
 
-export function Tabela({ className, children }: { className?: string; children: ReactNode }) {
-  return <table className={cn("w-full min-w-full text-left text-xs", className)}>{children}</table>;
+export function Tabela({
+  className,
+  fixarPrimeira,
+  children,
+}: {
+  className?: string;
+  /** Tabela larga: a primeira coluna (o nome) fica parada ao rolar pro lado. */
+  fixarPrimeira?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <table
+      className={cn(
+        "w-full min-w-full text-left text-xs",
+        fixarPrimeira &&
+          "[&_td:first-child]:sticky [&_td:first-child]:left-0 [&_td:first-child]:z-[1] [&_td:first-child]:bg-app [&_th:first-child]:left-0 [&_th:first-child]:z-[3]",
+        className
+      )}
+    >
+      {children}
+    </table>
+  );
+}
+
+// Zero e "—" não podem ter o mesmo peso de um número que importa.
+export function ehValorVazio(children: ReactNode): boolean {
+  if (children === 0) return true;
+  if (typeof children !== "string") return false;
+  const t = children.trim();
+  // pt-BR formata moeda com espaço inseparável ("R$ 0"), por isso \s.
+  return /^(—|-|0|0%|0,0%|R\$\s?0(,00)?|US\$\s?0([.,]00)?|\$\s?0([.,]00)?)$/.test(t);
 }
 
 /**
@@ -270,7 +357,7 @@ export function Th({
   return (
     <th
       className={cn(
-        "whitespace-nowrap px-2 py-2 text-[10px] font-semibold uppercase tracking-wide first:pl-0 last:pr-0",
+        "sticky top-0 z-[2] whitespace-nowrap border-b border-border bg-card-hover px-3 py-2 text-[10px] font-semibold uppercase tracking-wide first:pl-4 last:pr-4",
         fraco ? "text-text-muted" : "text-text-tertiary",
         num && "text-right",
         className
@@ -301,9 +388,15 @@ export function Td({
     <td
       title={title}
       className={cn(
-        "whitespace-nowrap px-2 py-2 first:pl-0 last:pr-0",
+        "whitespace-nowrap px-3 py-2 first:pl-4 last:pr-4",
         num && "text-right tabular-nums",
-        forte ? "font-medium text-text-primary" : fraco ? "text-text-tertiary" : "text-text-secondary",
+        ehValorVazio(children)
+          ? "text-text-muted"
+          : forte
+            ? "font-medium text-text-primary"
+            : fraco
+              ? "text-text-tertiary"
+              : "text-text-secondary",
         className
       )}
     >
@@ -315,15 +408,35 @@ export function Td({
 /** Linha de dados com hover — dá o rastro do olho em tabela larga. */
 export function Tr({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <tr className={cn("border-b border-border/60 transition-colors last:border-0 hover:bg-card-hover", className)}>
+    <tr className={cn("border-b border-border transition-colors last:border-0 hover:bg-card-hover", className)}>
       {children}
     </tr>
   );
 }
 
 /** Linha única de "não tem nada aqui" — sem cartão gigante em volta. */
-export function Vazio({ children }: { children: ReactNode }) {
-  return <p className="py-6 text-center text-xs text-text-tertiary">{children}</p>;
+export function Vazio({
+  children,
+  icone: Icone,
+  acao,
+}: {
+  children: ReactNode;
+  icone?: LucideIcon;
+  /** Próximo passo (ex: botão "Adicionar BM"). */
+  acao?: ReactNode;
+}) {
+  if (!Icone && !acao) return <p className="py-6 text-center text-xs text-text-tertiary">{children}</p>;
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 px-4 py-7 text-center">
+      {Icone && (
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-input text-text-tertiary">
+          <Icone size={18} />
+        </span>
+      )}
+      <p className="max-w-[48ch] text-[12px] text-text-secondary">{children}</p>
+      {acao && <div className="mt-1">{acao}</div>}
+    </div>
+  );
 }
 
 /* ─────────────────────────── menu "•••" ─────────────────────────── */

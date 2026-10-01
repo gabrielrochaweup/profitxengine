@@ -152,7 +152,7 @@ export function MatrizDeOrigem({
 
   return (
     <TabelaWrap>
-      <Tabela>
+      <Tabela fixarPrimeira>
         <thead>
           <tr className="border-b border-border">
             <Th>Origem</Th>

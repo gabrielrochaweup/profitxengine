@@ -472,7 +472,7 @@ export function FontesDeDadosPanel({
       <div
         key={endpoint.id}
         className={cn(
-          "overflow-hidden rounded-card border border-border bg-card shadow-card-sm transition-opacity",
+          "overflow-hidden rounded-xl border border-border bg-app transition-opacity",
           !endpoint.active && "opacity-70"
         )}
       >
@@ -717,7 +717,7 @@ export function FontesDeDadosPanel({
       {/* A lista fala a linguagem de quem configura: checkout, área de
           membros, corretora. O técnico (URL, token, payload) aparece ao
           abrir a fonte, dentro de um cartão por conexão. */}
-      <div className="overflow-hidden rounded-card border border-border bg-card shadow-card">
+      <div className="overflow-hidden rounded-xl border border-border bg-app">
         {FONTES.map((fonte, i) => {
           const estado = estadoDaFonte(fonte, endpoints);
           const doTipo = fonte.kind === "landing" ? [] : endpoints.filter((e) => e.kind === fonte.kind);

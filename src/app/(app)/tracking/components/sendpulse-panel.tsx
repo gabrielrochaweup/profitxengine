@@ -140,7 +140,7 @@ export function SendPulsePanel({ productId }: { productId: string }) {
       {SENDPULSE_TIPOS.map((t) => (
         <Bloco key={t.tipo} titulo={t.titulo}>
           <p className="-mt-1 mb-3 max-w-[80ch] text-[11px] text-text-tertiary">{t.descricao}</p>
-          <div className="divide-y divide-border overflow-hidden rounded-card bg-card shadow-card">
+          <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-app">
             {SENDPULSE_ALVOS.map((alvo) => {
               const key = sendpulseKey(t.tipo as SendPulseTipo, alvo);
               const row = rowFor(key);

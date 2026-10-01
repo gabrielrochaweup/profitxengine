@@ -224,8 +224,8 @@ export function AlunosPanel({
               : "Nenhum aluno encontrado."}
           </Vazio>
         ) : (
-          <TabelaWrap>
-            <Tabela>
+          <TabelaWrap alta>
+            <Tabela fixarPrimeira>
               <thead>
                 <tr className="border-b border-border">
                   <Th>Aluno</Th>

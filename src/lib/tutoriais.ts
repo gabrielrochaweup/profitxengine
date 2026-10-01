@@ -14,7 +14,7 @@
   vira paisagem, e aí ninguém lê o que importa.
 
   A CHAVE é a rota, e opcionalmente a aba: "/tracking", "/tracking:pessoas",
-  "/tracking:configuracoes/automacoes". Quem resolve isso é `tutorialDaTela`,
+  "/tracking:integracoes/automacoes". Quem resolve isso é `tutorialDaTela`,
   que cai da chave mais específica pra mais genérica — então uma aba sem
   verbete próprio mostra o da página, em vez de nada.
 */
@@ -159,20 +159,21 @@ const TUTORIAIS: Record<string, Tutorial> = {
       "O funil completo do lead: anúncio → landing → checkout → área de membros → corretora → depósito. Ele existe pra responder o que painel de anúncio nenhum responde — de onde veio quem chegou até o fim.",
     passos: [
       "Visão geral: o resultado e o funil.",
-      "Performance: o resultado por campanha.",
+      "Performance: o resultado por campanha e por página.",
       "Pessoas: quem comprou e em que pé está.",
       "Eventos: o log cru do que chegou.",
-      "Ferramentas: o gerador de link e o script do site.",
-      "Configurações: webhooks, contas de anúncio e automações.",
+      "Anúncios: as contas da Meta e do Google, os pixels e as BMs.",
+      "Rastreamento: o script do site, os eventos que vão pra Meta e os links.",
+      "Integrações: webhooks e automações de WhatsApp.",
     ],
     atencao:
-      "O filtro de período e de fonte, no topo, vale pra tudo que está abaixo dele — inclusive as outras abas.",
+      "A barra de filtros (período, fonte) vale pra Visão geral, Performance, Pessoas e Eventos ao mesmo tempo. O selo amarelo “!” na coluna da esquerda marca a área que precisa de atenção.",
   },
 
   "/tracking:visao": {
     titulo: "Tracking · Visão geral",
     resumo:
-      "O painel do funil. De cima pra baixo: quanto entrou, as oito etapas em pessoas, de onde vieram os resultados, quando acontecem e os detalhes da venda.",
+      "O painel do funil. No topo, sempre à vista: quanto entrou e os KPIs. Embaixo, uma seção por vez: Funil, Origens, Horários e Vendas.",
     passos: [
       "Clique numa etapa do funil: a tabela de origem reordena por ela e os gráficos de horário passam a contar aquela etapa.",
       "Na matriz de origem, clique na origem pra abrir as campanhas dela.",
@@ -184,7 +185,8 @@ const TUTORIAIS: Record<string, Tutorial> = {
 
   "/tracking:performance": {
     titulo: "Tracking · Performance",
-    resumo: "O resultado por campanha: gasto, leads, compras, receita, depósitos e o retorno de cada uma.",
+    resumo:
+      "O resultado por campanha (gasto, leads, compras, receita, depósitos e retorno) e por página (quem chegou em cada página com o script e de onde veio).",
     atencao:
       "ROI, ROAS e lucro só aparecem depois de conectar Meta Ads / Google Ads e sincronizar o gasto. Sem gasto, a tela mostra faturamento — que já é conhecido — em vez de inventar um retorno.",
   },
@@ -210,12 +212,12 @@ const TUTORIAIS: Record<string, Tutorial> = {
       "“Não atribuído” quer dizer que o evento chegou mas não casou com nenhum lead — ele conta nos totais e fica fora do resultado por campanha. Muito disso significa que o link do checkout está perdendo o parâmetro de rastreio.",
   },
 
-  "/tracking:ferramentas": {
-    titulo: "Tracking · Ferramentas",
-    resumo: "As duas peças que fazem o rastreio funcionar do lado de fora: o gerador de link e o script do site.",
+  "/tracking:rastreamento": {
+    titulo: "Tracking · Rastreamento",
+    resumo: "As peças que fazem o rastreio funcionar do lado de fora: o script do site, os eventos que vão pra Meta e os links.",
   },
 
-  "/tracking:ferramentas/utms": {
+  "/tracking:rastreamento/links": {
     titulo: "Tracking · Gerador de link",
     resumo:
       "Monta o link com as UTMs e com o parâmetro que carrega o lead até o checkout. É esse parâmetro que liga a venda ao anúncio.",
@@ -225,20 +227,20 @@ const TUTORIAIS: Record<string, Tutorial> = {
     ],
   },
 
-  "/tracking:ferramentas/rastreamento": {
-    titulo: "Tracking · Script do site",
+  "/tracking:rastreamento/script": {
+    titulo: "Tracking · Script e eventos",
     resumo:
-      "O código que se cola na landing. Ele cria o lead na primeira visita, guarda as UTMs e carimba o lead no link do checkout.",
+      "O código que se cola em cada página (landing, quiz, checkout) e a escolha de quais eventos vão pra Meta. O script cria o lead na primeira visita, registra a visita em cada página e carimba o lead no link do checkout.",
     atencao:
-      "Sem esse script no site, o funil começa vazio: a compra chega por webhook mas não tem de onde ter vindo.",
+      "Cada evento da Meta deve sair de UM lugar só. Se o checkout ou o construtor da página também tiver o pixel disparando o mesmo evento, deixe desligado aqui — senão a conversão conta duas vezes.",
   },
 
-  "/tracking:configuracoes": {
-    titulo: "Tracking · Configurações",
-    resumo: "Onde as integrações são ligadas: fontes de dados, contas de anúncio e automações de mensagem.",
+  "/tracking:integracoes": {
+    titulo: "Tracking · Integrações",
+    resumo: "Onde as integrações são ligadas: fontes de dados (webhooks) e automações de mensagem.",
   },
 
-  "/tracking:configuracoes/fontes": {
+  "/tracking:integracoes/fontes": {
     titulo: "Tracking · Fontes de dados",
     resumo:
       "Os endpoints de webhook, um por origem (checkout, área de membros, corretora, ferramenta, contrato). Cada um tem endereço e token próprios, e um botão de teste.",
@@ -251,13 +253,20 @@ const TUTORIAIS: Record<string, Tutorial> = {
       "Chamada “não reconhecida” no log não é erro: é a plataforma mandando um tipo de evento que a gente não escuta. Muitas delas seguidas, porém, é sinal de que a plataforma mudou o formato.",
   },
 
-  "/tracking:configuracoes/anuncios": {
+  "/tracking:anuncios": {
     titulo: "Tracking · Anúncios",
     resumo:
-      "As contas de Meta Ads e Google Ads. É a conexão delas que traz o gasto e destrava ROI, ROAS e lucro no resto do módulo.",
+      "As contas de Meta Ads e Google Ads, os pixels e as BMs. É a conexão das contas que traz o gasto e destrava ROI, ROAS e lucro no resto do módulo.",
+    passos: [
+      "Escolha Meta Ads ou Google Ads nos cartões do topo.",
+      "Conecte a conta de anúncio e clique em “Sincronizar gasto”.",
+      "Confira o pixel (com o token da API de Conversões, pra Purchase e Deposit saírem pelo servidor).",
+    ],
+    atencao:
+      "O selo da coluna da esquerda fica amarelo quando alguma conta não responde, está restrita/bloqueada ou não sincroniza há mais de 24h.",
   },
 
-  "/tracking:configuracoes/automacoes": {
+  "/tracking:integracoes/automacoes": {
     titulo: "Tracking · Automações",
     resumo:
       "Os disparos automáticos de mensagem (boas-vindas e pós-contrato) e o histórico de cada tentativa.",

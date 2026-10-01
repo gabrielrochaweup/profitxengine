@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Trash2, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -135,10 +135,19 @@ export function BmsPanel({ productId, platform }: { productId: string; platform:
     >
       {daPlataforma.length === 0 ? (
         <Cartao>
-          <Vazio>Nenhuma {termo} cadastrada ainda.</Vazio>
+          <Vazio
+            icone={Building2}
+            acao={
+              <Button size="sm" variant="secondary" onClick={() => setCriando(true)}>
+                Adicionar {termo}
+              </Button>
+            }
+          >
+            Nenhuma {termo} cadastrada ainda.
+          </Vazio>
         </Cartao>
       ) : (
-        <div className="divide-y divide-border rounded-card bg-card shadow-card [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
+        <div className="divide-y divide-border rounded-xl border border-border bg-app [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
           {daPlataforma.map((bm) => {
             const temDetalhe = !!(bm.contas.trim() || bm.paginas.trim() || bm.observacoes);
             const aberto = aberta === bm.id;

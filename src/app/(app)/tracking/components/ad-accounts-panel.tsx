@@ -2,7 +2,7 @@
 
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { Input } from "@/components/ui/input";
-import { Pencil, KeyRound, Trash2 } from "lucide-react";
+import { Pencil, KeyRound, Trash2, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Bloco, Cartao, ItemMenu, MenuMais, Ponto, Vazio } from "./ui";
 import { Modal } from "@/components/ui/modal";
@@ -121,10 +121,19 @@ function PlatformSection({
     >
       {accounts.length === 0 ? (
         <Cartao>
-          <Vazio>Nenhuma conta conectada ainda.</Vazio>
+          <Vazio
+            icone={Megaphone}
+            acao={
+              <Button size="sm" onClick={() => setCreateOpen(true)}>
+                Conectar conta de anúncio
+              </Button>
+            }
+          >
+            Nenhuma conta conectada. Sem ela não entra gasto, ROI nem campanha no Tracking.
+          </Vazio>
         </Cartao>
       ) : (
-        <div className="divide-y divide-border rounded-card bg-card shadow-card [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
+        <div className="divide-y divide-border rounded-xl border border-border bg-app [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
           {accounts.map((account) => (
             <AccountRow key={account.id} platform={platform} account={account} onUpsert={onUpsert} onRemove={onRemove} />
           ))}

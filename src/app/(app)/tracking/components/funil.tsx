@@ -151,10 +151,10 @@ export function Funil({
   const pior = maiorQueda(etapas);
 
   return (
-    <div className="overflow-hidden rounded-card bg-card shadow-card">
-      {/* Uma superfície só, dividida por fio: oito cartões soltos custavam
-          oito contornos e oito sombras pra mostrar oito números. */}
-      <div className="grid grid-cols-1 divide-x divide-y divide-border sm:grid-cols-2 lg:grid-cols-4">
+    <div>
+      {/* Cada etapa é um bloco no tom do fundo, dentro do painel do funil:
+          o contraste entre os níveis separa uma da outra sem fio nem sombra. */}
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {etapas.map((e, i) => {
           const ativa = selecionada === e.chave;
           const ehPior = pior?.chave === e.chave;
@@ -162,18 +162,33 @@ export function Funil({
           const mostraEventos = e.chave !== "lead" && e.eventos !== e.pessoas;
 
           return (
-            <button
+            // div com papel de botão, não <button>: o ícone de ajuda (ⓘ) dentro
+            // da etapa já é um botão, e botão dentro de botão é HTML inválido —
+            // quebrava a hidratação da página.
+            <div
               key={e.chave}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => onSelecionar(ativa ? null : e.chave)}
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
+                  onSelecionar(ativa ? null : e.chave);
+                }
+              }}
               aria-pressed={ativa}
               className={cn(
-                "group min-w-0 px-3 py-3 text-left transition-colors duration-150",
-                ativa ? "bg-accent-soft" : "hover:bg-card-hover"
+                "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
+                "group min-w-0 rounded-xl border px-3 py-3 text-left transition-colors duration-150",
+                ativa
+                  ? "border-accent bg-accent-soft"
+                  : ehPior
+                    ? "border-danger bg-app hover:bg-card-hover"
+                    : "border-border bg-app hover:border-border-strong hover:bg-card-hover"
               )}
             >
               <div className="flex items-center gap-1.5">
-                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-card-hover text-[9px] font-semibold tabular-nums text-text-tertiary">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-input text-[10px] font-semibold tabular-nums text-text-tertiary">
                   {i + 1}
                 </span>
                 <span className="truncate text-[11px] font-medium text-text-secondary">{e.rotulo}</span>
@@ -204,7 +219,7 @@ export function Funil({
 
               {/* A barra é a leitura de relance: o quanto desta etapa sobrou
                   em relação aos leads. */}
-              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-card-hover">
+              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-input">
                 <div
                   className="h-full rounded-full bg-accent transition-[width] duration-300"
                   style={{
@@ -245,17 +260,15 @@ export function Funil({
                 )}
 
                 {ehPior && (
-                  <span className="rounded-button bg-danger-soft px-1 py-0.5 font-medium text-danger">
-                    maior queda
-                  </span>
+                  <span className="rounded-md bg-danger px-1.5 py-0.5 font-semibold text-white">maior queda</span>
                 )}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
 
-      <p className="border-t border-border px-3 py-2 text-[10px] leading-relaxed text-text-muted">
+      <p className="mt-2.5 text-[10px] leading-relaxed text-text-muted">
         O número grande é de <span className="text-text-tertiary">pessoas</span> — leads distintos que chegaram na
         etapa. Do lado, quando os dois diferem, vem a contagem de{" "}
         <span className="text-text-tertiary">eventos</span> registrados. Etapa cujos eventos não têm lead ligado não

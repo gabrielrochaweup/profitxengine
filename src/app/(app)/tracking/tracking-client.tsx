@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { LayoutDashboard, TrendingUp, Users, Activity, Wrench, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { LayoutDashboard, TrendingUp, Users, Activity, Megaphone, Radar, Plug } from "lucide-react";
+import { SegmentedControl, SideNav, SplitLayout, type SideNavItem, type SideNavTone } from "@/components/ui/panel";
 import {
   AnalyticsTab,
   PERFORMANCE_SUB_TABS,
@@ -62,65 +62,85 @@ interface TrackingClientProps {
 }
 
 /*
-  A navegação do módulo é por pergunta, não por tecnologia.
+  Navegação do módulo: uma coluna à esquerda (nível 1) e, quando a área tem
+  partes, pílulas no topo do conteúdo (nível 2). Os dois níveis nunca dividem
+  a mesma barra — antes as seis abas e as sub-abas ficavam empilhadas na
+  mesma faixa e pareciam a mesma coisa.
 
-  Antes as abas eram Análises / Webhooks / Contas Meta-Google / UTMs: uma
-  finalidade, uma implementação, um par de integrações e um mecanismo, todos no
-  mesmo nível. Pra saber onde ficava uma tarefa era preciso saber como o
-  sistema funciona por dentro.
+  Cada item responde uma pergunta:
+    Visão geral   — como está a operação?
+    Performance   — de onde vem o resultado (campanha, página)?
+    Pessoas       — com quem aconteceu?
+    Eventos       — o que o sistema recebeu?
+    Anúncios      — as contas de anúncio estão conectadas e em dia?
+    Rastreamento  — o que vai pra Meta e com que link?
+    Integrações   — os webhooks e o WhatsApp estão ligados?
 
-  Agora cada aba responde uma pergunta:
-    Visão geral    — como está a operação?
-    Performance    — de onde vem o resultado?
-    Pessoas        — com quem aconteceu?
-    Eventos        — o que o sistema recebeu?
-    Ferramentas    — quero criar algo pra rastrear
-    Configurações  — como isso tudo está conectado?
+  Anúncios era uma sub-aba de Configurações e ninguém achava a conexão da
+  Meta: virou item próprio, com selo de atenção quando algo está pendente.
 */
 const TABS = [
-  { key: "visao", label: "Visão geral", icon: LayoutDashboard, adminOnly: false },
-  { key: "performance", label: "Performance", icon: TrendingUp, adminOnly: false },
-  { key: "pessoas", label: "Pessoas", icon: Users, adminOnly: false },
-  { key: "eventos", label: "Eventos", icon: Activity, adminOnly: false },
-  { key: "ferramentas", label: "Ferramentas", icon: Wrench, adminOnly: false },
-  { key: "configuracoes", label: "Configurações", icon: Settings, adminOnly: false },
+  { key: "visao", label: "Visão geral", hint: "Resultado e funil", icon: LayoutDashboard, adminOnly: false },
+  { key: "performance", label: "Performance", hint: "Campanhas, páginas e ROI", icon: TrendingUp, adminOnly: false },
+  { key: "pessoas", label: "Pessoas", hint: "Alunos e contratos", icon: Users, adminOnly: false },
+  { key: "eventos", label: "Eventos", hint: "Tudo que entrou", icon: Activity, adminOnly: false },
+  { key: "anuncios", label: "Anúncios", hint: "Meta, Google, BMs e pixels", icon: Megaphone, adminOnly: false },
+  { key: "rastreamento", label: "Rastreamento", hint: "Script, eventos da Meta e links", icon: Radar, adminOnly: false },
+  { key: "integracoes", label: "Integrações", hint: "Webhooks e WhatsApp", icon: Plug, adminOnly: false },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
 
-const FERRAMENTAS_SUB_TABS = [
-  { key: "utms", label: "UTMs" },
-  { key: "rastreamento", label: "Rastreamento" },
-] as const;
-type FerramentasSubTab = (typeof FERRAMENTAS_SUB_TABS)[number]["key"];
+/** Frase de abertura de cada área — o que a pessoa resolve ali. */
+const DESCRICAO: Record<TabKey, string> = {
+  visao: "Quanto entrou, quanto sobrou e onde o funil perde gente.",
+  performance: "Resultado por campanha e por página, com o gasto quando a conta de anúncio está sincronizada.",
+  pessoas: "Cada aluno, o que já fez e o que falta (contrato, Pepe, corretora, depósito).",
+  eventos: "Tudo que os webhooks e o script registraram, na ordem em que chegou.",
+  anuncios: "Contas de anúncio, Business Managers e pixels da Meta e do Google.",
+  rastreamento: "O script das páginas, os eventos que vão pra Meta e os links rastreados.",
+  integracoes: "Webhooks que alimentam o Tracking e as automações de WhatsApp.",
+};
 
-const CONFIG_SUB_TABS = [
+const RASTREAMENTO_SUB_TABS = [
+  { key: "script", label: "Script e eventos" },
+  { key: "links", label: "Links e UTMs" },
+] as const;
+type RastreamentoSubTab = (typeof RASTREAMENTO_SUB_TABS)[number]["key"];
+
+const INTEGRACOES_SUB_TABS = [
   { key: "fontes", label: "Fontes de dados" },
-  { key: "anuncios", label: "Anúncios" },
   { key: "automacoes", label: "Automações" },
 ] as const;
-type ConfigSubTab = (typeof CONFIG_SUB_TABS)[number]["key"];
+type IntegracoesSubTab = (typeof INTEGRACOES_SUB_TABS)[number]["key"];
 
 /**
  * Endereços antigos continuam abrindo o lugar certo.
  *
- * O ?aba=/?sub= de antes está em link salvo, em aba aberta há uma semana e no
- * histórico de quem usa isso todo dia. A tradução acontece na leitura e o
- * endereço é reescrito no formato novo no primeiro clique — ninguém cai numa
- * tela em branco por ter guardado um link.
+ * O ?aba=/?sub= de antes está em link salvo, no Dashboard e no histórico de
+ * quem usa isso todo dia. A tradução acontece na leitura e o endereço é
+ * reescrito no formato novo no primeiro clique.
  */
 const ENDERECOS_ANTIGOS: Record<string, { aba: TabKey; sub?: string }> = {
   "analises/visao": { aba: "visao" },
   "analises/campanhas": { aba: "performance", sub: "campanhas" },
   "analises/eventos": { aba: "eventos" },
   "analises/alunos": { aba: "pessoas" },
-  "webhooks/guia": { aba: "configuracoes", sub: "fontes" },
-  "webhooks/endpoints": { aba: "configuracoes", sub: "fontes" },
-  "webhooks/whatsapp": { aba: "configuracoes", sub: "automacoes" },
-  "contas/meta": { aba: "configuracoes", sub: "anuncios" },
-  "contas/google": { aba: "configuracoes", sub: "anuncios" },
-  "utms/utm": { aba: "ferramentas", sub: "utms" },
-  "utms/rastreamento": { aba: "ferramentas", sub: "rastreamento" },
+  "webhooks/guia": { aba: "integracoes", sub: "fontes" },
+  "webhooks/endpoints": { aba: "integracoes", sub: "fontes" },
+  "webhooks/whatsapp": { aba: "integracoes", sub: "automacoes" },
+  "contas/meta": { aba: "anuncios" },
+  "contas/google": { aba: "anuncios" },
+  "utms/utm": { aba: "rastreamento", sub: "links" },
+  "utms/rastreamento": { aba: "rastreamento", sub: "script" },
+  // Estrutura de antes da coluna lateral (Ferramentas / Configurações).
+  "ferramentas/utms": { aba: "rastreamento", sub: "links" },
+  "ferramentas/rastreamento": { aba: "rastreamento", sub: "script" },
+  "ferramentas/": { aba: "rastreamento" },
+  "configuracoes/fontes": { aba: "integracoes", sub: "fontes" },
+  "configuracoes/automacoes": { aba: "integracoes", sub: "automacoes" },
+  "configuracoes/anuncios": { aba: "anuncios" },
+  "configuracoes/": { aba: "integracoes" },
 };
 
 function traduzirEndereco(aba: string | null, sub: string | null): { aba: TabKey; sub?: string } | null {
@@ -132,6 +152,37 @@ function traduzirEndereco(aba: string | null, sub: string | null): { aba: TabKey
 /** Sub-aba inválida (link velho, endereço digitado a mão) cai na primeira. */
 function subInicial<T extends string>(tabs: readonly { key: T }[], valor: string | undefined): T {
   return tabs.some((t) => t.key === valor) ? (valor as T) : tabs[0].key;
+}
+
+const UM_DIA_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Selo de Anúncios: verde quando todas as contas respondem e sincronizaram
+ * nas últimas 24h; "!" quando falta conta, alguma não responde, está
+ * restrita/bloqueada ou parou de sincronizar.
+ */
+function seloDeAnuncios(contas: AdAccount[]): { badge: string; tone: SideNavTone; label: string } {
+  if (contas.length === 0) return { badge: "!", tone: "warning", label: "Nenhuma conta de anúncio conectada" };
+  const agora = Date.now();
+  const problema = contas.find(
+    (c) =>
+      !c.is_valid ||
+      c.status === "restrita" ||
+      c.status === "bloqueada" ||
+      !c.last_synced_at ||
+      agora - new Date(c.last_synced_at).getTime() > UM_DIA_MS
+  );
+  if (problema) return { badge: "!", tone: "warning", label: "Alguma conta precisa de atenção" };
+  return { badge: "✓", tone: "success", label: "Contas conectadas e sincronizadas" };
+}
+
+/** Selo de Integrações: "!" quando alguma fonte ativa falhou no último teste; senão, quantas estão ativas. */
+function seloDeIntegracoes(fontes: WebhookEndpoint[]): { badge: string; tone: SideNavTone; label: string } {
+  const ativas = fontes.filter((f) => f.active);
+  if (ativas.some((f) => f.last_test_ok === false)) {
+    return { badge: "!", tone: "warning", label: "Alguma fonte falhou no último teste" };
+  }
+  return { badge: String(ativas.length), tone: "neutral", label: `${ativas.length} fontes ativas` };
 }
 
 export function TrackingClient({
@@ -147,50 +198,44 @@ export function TrackingClient({
   const destino = traduzirEndereco(searchParams.get("aba"), searchParams.get("sub"));
   const plataformaDaUrl = searchParams.get("plataforma");
   // ?filtro= chega dos cartões do Dashboard: "ver quem falta" abre a lista
-  // já na fila certa, em vez de largar a pessoa na tela cheia pra ela
-  // reencontrar o recorte na mão.
+  // já na fila certa.
   const filtroDaUrl = searchParams.get("filtro");
   const filtroAlunos: FiltroDeAluno | undefined = ehFiltroDeAluno(filtroDaUrl) ? filtroDaUrl : undefined;
 
   // A validação é contra o que ESTA pessoa pode ver: um endereço só de admin,
-  // aberto por quem não é, cai na primeira aba — senão a aba fica marcada no
-  // estado, some da barra e o conteúdo não renderiza, deixando a tela branca.
+  // aberto por quem não é, cai na primeira aba em vez de deixar a tela branca.
   const visibleTabs = TABS.filter((t) => !t.adminOnly || isAdmin);
 
   const [tab, setTab] = useState<TabKey>(
     destino && visibleTabs.some((t) => t.key === destino.aba) ? destino.aba : visibleTabs[0].key
   );
 
-  // Cada aba guarda a própria sub-aba, então ir e voltar não perde o lugar.
-  // Só a sub-aba da aba que veio no endereço nasce dele.
+  // Cada área guarda a própria sub-aba, então ir e voltar não perde o lugar.
   const [performanceSubTab, setPerformanceSubTab] = useState<TableTab>(
     destino?.aba === "performance" ? subInicial(PERFORMANCE_SUB_TABS, destino.sub) : "campanhas"
   );
-  const [ferramentasSubTab, setFerramentasSubTab] = useState<FerramentasSubTab>(
-    destino?.aba === "ferramentas" ? subInicial(FERRAMENTAS_SUB_TABS, destino.sub) : "utms"
+  const [rastreamentoSubTab, setRastreamentoSubTab] = useState<RastreamentoSubTab>(
+    destino?.aba === "rastreamento" ? subInicial(RASTREAMENTO_SUB_TABS, destino.sub) : "script"
   );
-  const [configSubTab, setConfigSubTab] = useState<ConfigSubTab>(
-    destino?.aba === "configuracoes" ? subInicial(CONFIG_SUB_TABS, destino.sub) : "fontes"
+  const [integracoesSubTab, setIntegracoesSubTab] = useState<IntegracoesSubTab>(
+    destino?.aba === "integracoes" ? subInicial(INTEGRACOES_SUB_TABS, destino.sub) : "fontes"
   );
-  // Meta ou Google dentro de Configurações → Anúncios. Fica aqui (e não numa
-  // terceira barra de abas) pra tela não virar barra dentro de barra dentro
-  // de barra.
+  // Meta ou Google dentro de Anúncios: dois cartões de escolha, não uma
+  // terceira barra de abas.
   const [plataformaAds, setPlataformaAds] = useState<"meta" | "google">(
     plataformaDaUrl === "google" ? "google" : "meta"
   );
 
-  // Ficam aqui (não dentro de cada painel) porque as abas desmontam o conteúdo
-  // ao trocar — um useState dentro do painel reiniciaria a partir das props da
-  // carga inicial da página sempre que a pessoa voltasse, fazendo item
-  // excluído "voltar" até um refresh.
+  // Ficam aqui (não dentro de cada painel) porque as áreas desmontam o
+  // conteúdo ao trocar — um useState dentro do painel reiniciaria a partir
+  // das props da carga inicial sempre que a pessoa voltasse.
   const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>(initialEndpoints);
   const [adCredentials, setAdCredentials] = useState<AdAccount[]>(initialAdCredentials);
 
   /*
-    Escrito com history.replaceState, não com router.replace: os dois deixam o
-    endereço igual, mas o router trata como navegação e manda o servidor
-    renderizar a página de novo, refazendo o relatório de 90 dias a cada clique
-    numa aba. Aqui o estado já está todo no cliente — a URL é só o marcador.
+    Escrito com history.replaceState, não com router.replace: o router trata
+    como navegação e manda o servidor refazer o relatório de 90 dias a cada
+    clique. Aqui o estado já está todo no cliente — a URL é só o marcador.
   */
   const gravarNaUrl = useCallback((aba: TabKey, sub?: string, extra?: Record<string, string>) => {
     const params = new URLSearchParams({ aba });
@@ -202,96 +247,87 @@ export function TrackingClient({
   const subAtual = (aba: TabKey): string | undefined =>
     aba === "performance"
       ? performanceSubTab
-      : aba === "ferramentas"
-        ? ferramentasSubTab
-        : aba === "configuracoes"
-          ? configSubTab
+      : aba === "rastreamento"
+        ? rastreamentoSubTab
+        : aba === "integracoes"
+          ? integracoesSubTab
           : undefined;
 
-  const extraAtual = (aba: TabKey, sub?: string) =>
-    aba === "configuracoes" && sub === "anuncios" ? { plataforma: plataformaAds } : undefined;
+  const extraAtual = (aba: TabKey) => (aba === "anuncios" ? { plataforma: plataformaAds } : undefined);
 
   function trocarAba(aba: TabKey) {
     setTab(aba);
-    const sub = subAtual(aba);
-    gravarNaUrl(aba, sub, extraAtual(aba, sub));
+    gravarNaUrl(aba, subAtual(aba), extraAtual(aba));
+    // Trocar de área volta pro topo: a área nova começa no cabeçalho dela.
+    window.scrollTo({ top: 0 });
   }
 
   function trocarSub(sub: string) {
     if (tab === "performance") setPerformanceSubTab(sub as TableTab);
-    else if (tab === "ferramentas") setFerramentasSubTab(sub as FerramentasSubTab);
-    else if (tab === "configuracoes") setConfigSubTab(sub as ConfigSubTab);
-    gravarNaUrl(tab, sub, extraAtual(tab, sub));
+    else if (tab === "rastreamento") setRastreamentoSubTab(sub as RastreamentoSubTab);
+    else if (tab === "integracoes") setIntegracoesSubTab(sub as IntegracoesSubTab);
+    gravarNaUrl(tab, sub, extraAtual(tab));
   }
 
   function trocarPlataforma(p: "meta" | "google") {
     setPlataformaAds(p);
-    gravarNaUrl("configuracoes", "anuncios", { plataforma: p });
+    gravarNaUrl("anuncios", undefined, { plataforma: p });
   }
 
-  // Só as abas que têm segundo nível mostram a segunda linha da barra. As
-  // outras quatro abrem direto no conteúdo.
   const subAbas: readonly { key: string; label: string }[] =
     tab === "performance"
       ? PERFORMANCE_SUB_TABS
-      : tab === "ferramentas"
-        ? FERRAMENTAS_SUB_TABS
-        : tab === "configuracoes"
-          ? CONFIG_SUB_TABS
+      : tab === "rastreamento"
+        ? RASTREAMENTO_SUB_TABS
+        : tab === "integracoes"
+          ? INTEGRACOES_SUB_TABS
           : [];
 
+  const itensDaNavegacao: SideNavItem<TabKey>[] = useMemo(() => {
+    const anuncios = seloDeAnuncios(adCredentials);
+    const integracoes = seloDeIntegracoes(endpoints);
+    return visibleTabs.map((t) => ({
+      key: t.key,
+      label: t.label,
+      hint: t.hint,
+      icon: t.icon,
+      ...(t.key === "anuncios"
+        ? { badge: anuncios.badge, tone: anuncios.tone, badgeLabel: anuncios.label }
+        : t.key === "integracoes"
+          ? { badge: integracoes.badge, tone: integracoes.tone, badgeLabel: integracoes.label }
+          : {}),
+    }));
+    // visibleTabs é derivado de isAdmin, que não muda na sessão.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adCredentials, endpoints]);
+
   // Visão geral, Performance, Pessoas e Eventos são quatro recortes do MESMO
-  // painel: mesma janela de tempo, mesmos filtros, mesma carga de dados. Por
-  // isso o AnalyticsTab continua montado entre eles — trocar de aba não
+  // painel de dados: mesma janela de tempo, mesmos filtros, mesma carga. Por
+  // isso o AnalyticsTab continua montado entre eles — trocar de área não
   // refaz o relatório nem perde o filtro escolhido.
   const abaDeAnalise: AnalyticsSubTab | null =
     tab === "visao" ? "visao" : tab === "performance" ? "campanhas" : tab === "pessoas" ? "alunos" : tab === "eventos" ? "eventos" : null;
 
-  return (
-    <div>
-      <div className="mb-5 rounded-panel bg-sidebar shadow-card">
-        <div className="flex flex-wrap gap-1 p-1.5">
-          {visibleTabs.map((t) => {
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => trocarAba(t.key)}
-                className={cn(
-                  "flex h-8 items-center gap-1.5 rounded-button px-3 text-[13px] font-medium transition-colors duration-150",
-                  tab === t.key
-                    ? "bg-accent text-accent-contrast"
-                    : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
-                )}
-              >
-                <Icon size={14} />
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
+  const atual = TABS.find((t) => t.key === tab) ?? TABS[0];
 
+  return (
+    <SplitLayout nav={<SideNav label="Áreas do Tracking" items={itensDaNavegacao} active={tab} onChange={trocarAba} />}>
+      {/* Cabeçalho da área: o que é e, quando ela tem partes, as pílulas do
+          nível 2 — no conteúdo, nunca na barra do nível 1. */}
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-[20px] font-semibold leading-tight text-text-primary">{atual.label}</h2>
+          <p className="mt-1 text-[13px] text-text-tertiary">{DESCRICAO[tab]}</p>
+        </div>
         {subAbas.length > 0 && (
-          <div className="flex flex-wrap gap-0.5 border-t border-border px-2 py-1.5">
-            {subAbas.map((sub) => (
-              <button
-                key={sub.key}
-                type="button"
-                onClick={() => trocarSub(sub.key)}
-                className={cn(
-                  "rounded-button px-2.5 py-1 text-[12px] font-medium transition-colors duration-150",
-                  subAtual(tab) === sub.key
-                    ? "bg-card-hover text-accent-text"
-                    : "text-text-tertiary hover:bg-card-hover hover:text-text-primary"
-                )}
-              >
-                {sub.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label={`Partes de ${atual.label}`}
+            options={subAbas}
+            value={subAtual(tab) ?? subAbas[0].key}
+            onChange={trocarSub}
+          />
         )}
-      </div>
+      </header>
 
       {abaDeAnalise && (
         <AnalyticsTab
@@ -301,49 +337,46 @@ export function TrackingClient({
           subTab={abaDeAnalise}
           tableTab={performanceSubTab}
           filtroAlunos={filtroAlunos}
+          onIrParaAnuncios={() => trocarAba("anuncios")}
         />
       )}
 
-      {tab === "ferramentas" && (
-        <div>
-          {ferramentasSubTab === "utms" && <UtmBuilder productId={productId} />}
-          {ferramentasSubTab === "rastreamento" && (
-            <div className="space-y-6">
-              <TrackingScriptPanel productSlug={productSlug} />
-              <EventosMetaPanel productId={productId} />
-              <LinkBuilder productSlug={productSlug} />
-            </div>
-          )}
-        </div>
+      {tab === "anuncios" && (
+        <AdsSettings
+          productId={productId}
+          plataforma={plataformaAds}
+          onTrocarPlataforma={trocarPlataforma}
+          accounts={adCredentials}
+          setAccounts={setAdCredentials}
+        />
       )}
 
-      {tab === "configuracoes" && (
-        <div>
-          {configSubTab === "fontes" && (
-            <FontesDeDadosPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
-          )}
-
-          {configSubTab === "anuncios" && (
-            <AdsSettings
-              productId={productId}
-              plataforma={plataformaAds}
-              onTrocarPlataforma={trocarPlataforma}
-              accounts={adCredentials}
-              setAccounts={setAdCredentials}
-            />
-          )}
-
-          {configSubTab === "automacoes" && (
-            <Bloco titulo="WhatsApp — SendPulse">
-              <p className="-mt-1 mb-3 max-w-[80ch] text-[11px] text-text-tertiary">
-                Cada compra aprovada e cada contrato assinado dispara o evento correspondente no SendPulse, que
-                inicia o fluxo de mensagens do plano daquele aluno.
-              </p>
-              <SendPulsePanel productId={productId} />
-            </Bloco>
-          )}
-        </div>
+      {tab === "rastreamento" && rastreamentoSubTab === "script" && (
+        <>
+          <TrackingScriptPanel productSlug={productSlug} />
+          <EventosMetaPanel productId={productId} />
+        </>
       )}
-    </div>
+
+      {tab === "rastreamento" && rastreamentoSubTab === "links" && (
+        <>
+          <LinkBuilder productSlug={productSlug} />
+          <UtmBuilder productId={productId} />
+        </>
+      )}
+
+      {tab === "integracoes" && integracoesSubTab === "fontes" && (
+        <FontesDeDadosPanel productId={productId} endpoints={endpoints} setEndpoints={setEndpoints} />
+      )}
+
+      {tab === "integracoes" && integracoesSubTab === "automacoes" && (
+        <Bloco
+          titulo="WhatsApp — SendPulse"
+          descricao="Cada compra aprovada e cada contrato assinado dispara o evento correspondente no SendPulse, que inicia o fluxo de mensagens do plano daquele aluno."
+        >
+          <SendPulsePanel productId={productId} />
+        </Bloco>
+      )}
+    </SplitLayout>
   );
 }

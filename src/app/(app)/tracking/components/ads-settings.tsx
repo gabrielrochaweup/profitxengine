@@ -54,14 +54,13 @@ export function AdsSettings({
   accounts: AdAccount[];
   setAccounts: Dispatch<SetStateAction<AdAccount[]>>;
 }) {
-  const atual = PLATAFORMAS[plataforma];
 
   return (
     <div>
       {/* Terceiro nível: dois cartões de seleção, não uma terceira barra de
           abas. Cada um mostra a identidade da plataforma, que é justamente o
           que se procura ao chegar aqui. */}
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-2xl">
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-2xl">
         {(Object.keys(PLATAFORMAS) as Plataforma[]).map((chave) => {
           const p = PLATAFORMAS[chave];
           const ativa = chave === plataforma;
@@ -70,9 +69,12 @@ export function AdsSettings({
               key={chave}
               type="button"
               onClick={() => onTrocarPlataforma(chave)}
+              aria-pressed={ativa}
               className={cn(
-                "flex items-center gap-3 rounded-card px-4 py-3 text-left transition-colors duration-150",
-                ativa ? "bg-card-hover shadow-[0_0_0_1px_var(--accent)]" : "bg-card shadow-card hover:bg-card-hover"
+                "flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors duration-150",
+                ativa
+                  ? "border-accent bg-accent-soft"
+                  : "border-border bg-card shadow-card hover:border-border-strong hover:bg-card-hover"
               )}
             >
               <span
@@ -92,15 +94,10 @@ export function AdsSettings({
         })}
       </div>
 
-      {/* Fio na cor da plataforma: identificação de contexto sem pintar a
-          tela inteira de azul. O produto continua sendo o nosso. */}
-      <div className="mb-5 border-l-2 pl-3" style={{ borderColor: atual.cor }}>
-        <h2 className="text-[15px] font-semibold text-text-primary">{atual.nome}</h2>
-        <p className="mt-0.5 text-[11px] text-text-tertiary">{atual.descricao}</p>
-      </div>
-
-      <div className="space-y-6">
-        <BmsPanel productId={productId} platform={plataforma} />
+      {/* A conexão da conta de anúncio vem primeiro: é o que faz o gasto, o
+          ROI e as campanhas aparecerem no resto do Tracking — e era o que
+          ninguém achava. Pixel em seguida; BMs (controle manual) por último. */}
+      <div className="space-y-5">
         <AdAccountsPanel
           productId={productId}
           platform={plataforma}
@@ -108,6 +105,7 @@ export function AdsSettings({
           setAccounts={setAccounts}
         />
         <PixelsPanel productId={productId} platform={plataforma} />
+        <BmsPanel productId={productId} platform={plataforma} />
       </div>
     </div>
   );

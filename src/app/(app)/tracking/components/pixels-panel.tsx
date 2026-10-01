@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Pencil, Power, Trash2 } from "lucide-react";
+import { Pencil, Power, Trash2, Radar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Bloco, Cartao, ItemMenu, MenuMais, Ponto, Vazio } from "./ui";
 import { Modal } from "@/components/ui/modal";
@@ -82,12 +82,19 @@ function PlatformSection({
 
       {pixels.length === 0 ? (
         <Cartao>
-          <Vazio>
+          <Vazio
+            icone={Radar}
+            acao={
+              <Button size="sm" onClick={() => setCreateOpen(true)}>
+                {platform === "meta" ? "Adicionar pixel" : "Adicionar tag"}
+              </Button>
+            }
+          >
             {platform === "meta" ? "Nenhum pixel da Meta conectado ainda." : "Nenhuma tag do Google conectada ainda."}
           </Vazio>
         </Cartao>
       ) : (
-        <div className="divide-y divide-border rounded-card bg-card shadow-card [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
+        <div className="divide-y divide-border rounded-xl border border-border bg-app [&>*:first-child]:rounded-t-card [&>*:last-child]:rounded-b-card">
           {pixels.map((pixel) => (
             <PixelRow key={pixel.id} pixel={pixel} onUpsert={onUpsert} onRemove={onRemove} />
           ))}

@@ -80,6 +80,18 @@
      sumia dentro do card. */
   --accent-soft: rgba(0, 108, 185, 0.18);
 
+  /* Painéis de dados (Tracking): verde de STATUS ("ok", melhor valor) num
+     tom esmeralda, diferente do lime — o lime é cor de SÉRIE (Corretora nos
+     gráficos), e os dois juntos confundiam o que é bom com o que é produto. */
+  --ok: #34d399;
+  --ok-soft: rgba(52, 211, 153, 0.12);
+  /* Séries dos gráficos, sempre no mesmo mapeamento:
+     1 = Curso (azul), 2 = Corretora (lime), 3 = salmão, 4 = amarelo. */
+  --series-1: #4aa8e8;
+  --series-2: #95cf0e;
+  --series-3: #d47865;
+  --series-4: #f3de7f;
+
   /* "shadow-card" deixou de ser sombra e virou a aresta de 1px. O nome
      continua porque o significado continua — dar contorno a uma superfície —
      e o token está em dezenas de telas: trocar o nome seria varrer o app
@@ -127,6 +139,13 @@
   --warning-soft: #fbf3d9;
   --danger-soft: #f8e6e1;
   --accent-soft: #e2eef8;
+
+  --ok: #0f8a5f;
+  --ok-soft: #dcf3e9;
+  --series-1: #006cb9;
+  --series-2: #5b7f08;
+  --series-3: #b0563f;
+  --series-4: #a8890f;
 
   --shadow-card: 0 0 0 1px var(--border);
   --shadow-card-sm: 0 0 0 1px var(--border);

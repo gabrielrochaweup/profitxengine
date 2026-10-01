@@ -317,7 +317,7 @@ export async function carregarResumoDoDia(productId: string): Promise<ResumoDoDi
       // O erro do último é mais útil que a contagem: quase sempre os outros
       // falharam pelo mesmo motivo.
       detalhe: descreve(naoEntregues[0]),
-      href: "/tracking?aba=configuracoes&sub=automacoes",
+      href: "/tracking?aba=integracoes&sub=automacoes",
       acao: "Ver automações",
     });
   }
@@ -328,7 +328,7 @@ export async function carregarResumoDoDia(productId: string): Promise<ResumoDoDi
       nivel: "atencao",
       titulo: `${barrados.length} ${barrados.length === 1 ? "disparo não saiu" : "disparos não saíram"} por regra (7 dias)`,
       detalhe: descreve(barrados[0]),
-      href: "/tracking?aba=configuracoes&sub=automacoes",
+      href: "/tracking?aba=integracoes&sub=automacoes",
       acao: "Ver automações",
     });
   }
@@ -345,7 +345,7 @@ export async function carregarResumoDoDia(productId: string): Promise<ResumoDoDi
       nivel: "critico",
       titulo: `${travados.length} ${travados.length === 1 ? "disparo travado" : "disparos travados"} em "enviando"`,
       detalhe: "Começaram e não terminaram — quem comprou não recebeu a mensagem.",
-      href: "/tracking?aba=configuracoes&sub=automacoes",
+      href: "/tracking?aba=integracoes&sub=automacoes",
       acao: "Ver automações",
     });
   }
@@ -373,7 +373,7 @@ export async function carregarResumoDoDia(productId: string): Promise<ResumoDoDi
       nivel: "critico",
       titulo: `${recusadas.length} ${recusadas.length === 1 ? "chamada recusada" : "chamadas recusadas"} nas últimas 24h`,
       detalhe: ultima.error ? ultima.error.slice(0, 140) : "Webhook chegou e não virou evento.",
-      href: "/tracking?aba=configuracoes&sub=fontes",
+      href: "/tracking?aba=integracoes&sub=fontes",
       acao: "Ver fontes de dados",
     });
   }
@@ -384,7 +384,7 @@ export async function carregarResumoDoDia(productId: string): Promise<ResumoDoDi
       nivel: "neutro",
       titulo: `${naoReconhecidas.length} ${naoReconhecidas.length === 1 ? "chamada não reconhecida" : "chamadas não reconhecidas"} nas últimas 24h`,
       detalhe: "A plataforma mandou um payload que nenhum adapter entende — não virou evento.",
-      href: "/tracking?aba=configuracoes&sub=fontes",
+      href: "/tracking?aba=integracoes&sub=fontes",
       acao: "Ver fontes de dados",
     });
   }
