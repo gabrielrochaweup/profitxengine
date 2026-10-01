@@ -1,0 +1,24 @@
+<style>
+.plano{box-sizing:border-box;width:100%;max-width:640px;margin:0 auto;background:radial-gradient(120% 100% at 50% 0%,#1a1608 0%,#0a0a0a 55%,#050505 100%);border:3px solid #d4af37;border-radius:28px;overflow:hidden;box-shadow:0 0 28px rgba(212,175,55,.28),inset 0 0 0 1px rgba(245,215,110,.18);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;text-align:center}
+.plano *{box-sizing:border-box;margin:0;padding:0}
+.plano__faixa{background:linear-gradient(90deg,#a87a12 0%,#f5d76e 50%,#a87a12 100%);color:#0a0a0a;text-align:center;font-weight:800;font-size:20px;letter-spacing:1px;text-transform:uppercase;padding:9px 12px 10px}
+.plano__corpo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:26px 24px 30px;text-align:center}
+.plano__nome{font-size:36px;line-height:1.1;font-weight:800;text-align:center;color:#f5d76e;background:linear-gradient(180deg,#fff2b8 0%,#f5d76e 40%,#c9961f 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.preco{background:linear-gradient(180deg,#171717 0%,#0d0d0d 100%);border:1px solid rgba(212,175,55,.45);border-radius:22px;padding:16px 34px 14px;min-width:220px;text-align:center}
+.preco__desconto,.preco__condicao{display:block;text-align:center;color:#c9a24a;font-size:18px;line-height:1.25;letter-spacing:.3px}
+.preco__valor{display:flex;align-items:baseline;justify-content:center;gap:6px;font-weight:800;line-height:1.05;margin:2px 0}
+.preco__moeda{font-size:24px;color:#d4af37}
+.preco__numero{font-size:52px;letter-spacing:-.5px;color:#f5d76e;background:linear-gradient(180deg,#fff2b8 0%,#f5d76e 45%,#c9961f 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+@media(max-width:520px){.plano{border-radius:24px}.plano__faixa{font-size:17px}.plano__corpo{gap:14px;padding:22px 16px 26px}.plano__nome{font-size:30px}.preco{min-width:0;width:100%;padding:14px 16px 12px}.preco__numero{font-size:46px}}
+</style>
+<article class="plano">
+  <div class="plano__faixa">Mais vendido</div>
+  <div class="plano__corpo">
+    <h2 class="plano__nome">Método TRIAD</h2>
+    <div class="preco">
+      <span class="preco__desconto">40% off</span>
+      <div class="preco__valor"><span class="preco__moeda">R$</span><span class="preco__numero">77,00</span></div>
+      <span class="preco__condicao">à vista</span>
+    </div>
+  </div>
+</article>

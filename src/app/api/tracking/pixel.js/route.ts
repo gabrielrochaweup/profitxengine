@@ -80,6 +80,11 @@ const PIXEL_SCRIPT = `
       }(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
     }
     novos.forEach(function (id) {
+      // A Meta liga por padrão a "configuração automática de eventos": a cada
+      // clique de botão o pixel manda um SubscribedButtonClick sozinho (80
+      // eventos numa visita ao quiz). Aqui só vai pra Meta o que está ligado
+      // na tela de Rastreamento — então desliga isso ANTES do init.
+      window.fbq("set", "autoConfig", false, id);
       window.fbq("init", id);
       if (enviarPageView) window.fbq("trackSingle", id, "PageView");
     });
@@ -143,22 +148,25 @@ const PIXEL_SCRIPT = `
     });
   }
 
-  var leadId = null;
-  try { leadId = localStorage.getItem(storageKey); } catch (e) {}
-  if (!leadId) leadId = getCookie(storageKey);
-  // Em outro domínio (ex: o checkout), o navegador não tem o id salvo, mas
-  // o link que trouxe a pessoa carrega ele no sck/ref. Adota esse id em vez
-  // de inventar um novo: senão cada ida ao checkout viraria um "lead novo"
-  // e inflaria o Leads do Tracking.
-  if (!leadId) {
-    try {
-      var qs = new URLSearchParams(window.location.search);
-      var idDaUrl = qs.get("sck") || qs.get("ref");
-      if (idDaUrl && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idDaUrl)) {
-        leadId = idDaUrl.toLowerCase();
-      }
-    } catch (e) {}
-  }
+  var idSalvo = null;
+  try { idSalvo = localStorage.getItem(storageKey); } catch (e) {}
+  if (!idSalvo) idSalvo = getCookie(storageKey);
+  // Em outro domínio (ex: o checkout), o link que trouxe a pessoa carrega o
+  // id do lead no sck/ref. Esse id VALE MAIS que o salvo neste domínio: ele
+  // veio do clique de agora, e é o mesmo que a compra devolve no webhook.
+  // Sem isso, quem já tinha passado pelo checkout antes (outro lead no
+  // mesmo navegador) tinha a visita gravada no lead errado, separada da
+  // compra. E sem id nenhum, adota o do link em vez de inventar um novo —
+  // senão cada ida ao checkout viraria um "lead novo" e inflaria o Leads.
+  var idDaUrl = null;
+  try {
+    var qs = new URLSearchParams(window.location.search);
+    var candidato = qs.get("sck") || qs.get("ref");
+    if (candidato && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidato)) {
+      idDaUrl = candidato.toLowerCase();
+    }
+  } catch (e) {}
+  var leadId = idDaUrl || idSalvo;
   var isFirstTouch = !leadId;
   if (!leadId) leadId = uuidv4();
 
