@@ -98,9 +98,26 @@ const PIXEL_SCRIPT = `
     metaIds.forEach(function (id) { window.fbq("trackSingle", id, evento); });
   }
 
+  // Cada endereço cadastrado é "domínio/caminho" e, opcionalmente,
+  // "?param=valor". O caminho tem que estar no endereço atual e cada
+  // parâmetro tem que existir com o mesmo valor — em QUALQUER ordem. Comparar
+  // o texto inteiro falharia quando o link chega com outros parâmetros antes
+  // (ex: "?sck=...&off=..." em vez de "?off=...&sck=...").
   function ehPaginaDeCheckout(paginas) {
-    var aqui = window.location.href.toLowerCase();
-    return (paginas || []).some(function (p) { return p && aqui.indexOf(String(p).toLowerCase()) !== -1; });
+    var aqui = (window.location.host + window.location.pathname).toLowerCase();
+    var params = new URLSearchParams(window.location.search.toLowerCase());
+    return (paginas || []).some(function (p) {
+      if (!p) return false;
+      var partes = String(p).toLowerCase().split("?");
+      if (aqui.indexOf(partes[0]) === -1) return false;
+      if (!partes[1]) return true;
+      var exigidos = new URLSearchParams(partes[1]);
+      var ok = true;
+      exigidos.forEach(function (valor, chave) {
+        if (params.get(chave) !== valor) ok = false;
+      });
+      return ok;
+    });
   }
 
   function loadGoogleGtag(ids) {
