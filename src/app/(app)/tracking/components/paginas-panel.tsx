@@ -1,13 +1,13 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { LoadingState } from "@/components/ui/loading-state";
 import { createClient } from "@/lib/supabase/client";
-import { ehPaginaDeTeste } from "@/lib/tracking/paginas";
-import { cn } from "@/lib/utils";
-import { Bloco, Cartao, Tabela, TabelaWrap, Td, Th, Tr, Vazio } from "./ui";
+import { ehPaginaDeTeste, tipoDaPagina, TIPO_DE_PAGINA_ROTULO, type TipoDePagina } from "@/lib/tracking/paginas";
+import { Bloco, Segmentado, Vazio } from "./ui";
+import { BarraEmFatias, BarraProporcional, Metrica, corDaFonte, pct } from "./ranking";
 
 interface LinhaRelatorio {
   pagina: string;
@@ -21,50 +21,80 @@ interface LinhaRelatorio {
   depositos: number;
 }
 
-type Metricas = Pick<LinhaRelatorio, "pessoas" | "visitas" | "leads_novos" | "checkouts" | "compras" | "depositos">;
-
-interface Pagina extends Metricas {
+interface Pagina {
   pagina: string;
-  /** Uma linha por origem × campanha, maior primeiro. */
+  tipo: TipoDePagina;
+  pessoas: number;
+  visitas: number;
+  leads_novos: number;
+  checkouts: number;
+  compras: number;
+  depositos: number;
   origens: LinhaRelatorio[];
-  /** Pessoas por origem (utm_source), maior primeiro. */
   porFonte: { fonte: string; pessoas: number }[];
 }
 
-const ZERO: Metricas = { pessoas: 0, visitas: 0, leads_novos: 0, checkouts: 0, compras: 0, depositos: 0 };
+const ORDENS = [
+  { key: "pessoas", label: "Pessoas" },
+  { key: "leads_novos", label: "Leads novos" },
+  { key: "checkouts", label: "Checkout" },
+  { key: "compras", label: "Compras" },
+] as const;
+type Ordem = (typeof ORDENS)[number]["key"];
 
-function somar(a: Metricas, b: Metricas): Metricas {
-  return {
-    pessoas: a.pessoas + Number(b.pessoas),
-    visitas: a.visitas + Number(b.visitas),
-    leads_novos: a.leads_novos + Number(b.leads_novos),
-    checkouts: a.checkouts + Number(b.checkouts),
-    compras: a.compras + Number(b.compras),
-    depositos: a.depositos + Number(b.depositos),
-  };
-}
+type FiltroTipo = "todas" | TipoDePagina;
 
-function pct(parte: number, todo: number): string {
-  if (!todo) return "—";
-  return `${Math.round((parte / todo) * 100)}%`;
+function separar(pagina: string): { dominio: string; caminho: string } {
+  const i = pagina.indexOf("/");
+  return i < 0 ? { dominio: pagina, caminho: "" } : { dominio: pagina.slice(0, i), caminho: pagina.slice(i) };
 }
 
 /**
- * Performance → Páginas: cada página que tem o script, separada, com de onde
- * veio o tráfego dela.
+ * Páginas em ranking.
  *
- * Uma pessoa conta UMA vez por página (na primeira chegada a ela no
- * período), com a origem daquela chegada. Quem passa por duas páginas conta
- * nas duas — por isso as linhas não somam o total de leads da Visão geral.
+ * A barra é a resposta a "qual página está mandando mais gente"; a faixa
+ * colorida embaixo diz DE ONDE vem o tráfego dela. Uma pessoa conta UMA vez
+ * por página (na primeira chegada a ela no período) — quem passa por duas
+ * páginas conta nas duas, por isso as linhas não somam o Leads da Visão geral.
  */
-export function PaginasPanel({ productId, from, to }: { productId: string; from: Date; to: Date }) {
+export function PaginasPanel({
+  productId,
+  from,
+  to,
+  semTitulo,
+}: {
+  productId: string;
+  from: Date;
+  to: Date;
+  /** Dentro de outro painel (Visão geral): sem moldura/título próprios. */
+  semTitulo?: boolean;
+}) {
   const [linhas, setLinhas] = useState<LinhaRelatorio[] | null>(null);
+  const [nomes, setNomes] = useState<Map<string, string>>(new Map());
   const [erro, setErro] = useState<string | null>(null);
   const [aberta, setAberta] = useState<string | null>(null);
   const [mostrarTeste, setMostrarTeste] = useState(false);
+  const [ordem, setOrdem] = useState<Ordem>("pessoas");
+  const [tipo, setTipo] = useState<FiltroTipo>("todas");
 
   const fromIso = from.toISOString();
   const toIso = to.toISOString();
+
+  // Nomes de campanha/conjunto/anúncio (migration 0126) — a campanha de cada
+  // origem aparece pelo nome; sem a tabela ou sem sincronizar, fica o ID.
+  useEffect(() => {
+    let vivo = true;
+    createClient()
+      .from("ad_entity_names")
+      .select("entity_id, name")
+      .eq("product_id", productId)
+      .then(({ data }) => {
+        if (vivo && data) setNomes(new Map(data.map((n) => [n.entity_id, n.name])));
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [productId]);
 
   useEffect(() => {
     let vivo = true;
@@ -90,11 +120,27 @@ export function PaginasPanel({ productId, from, to }: { productId: string; from:
     };
   }, [productId, fromIso, toIso]);
 
-  const { paginas, escondidas } = useMemo(() => {
+  const { paginas, escondidas, contagemPorTipo } = useMemo(() => {
     const porPagina = new Map<string, Pagina>();
     for (const l of linhas ?? []) {
-      const atual = porPagina.get(l.pagina) ?? { pagina: l.pagina, ...ZERO, origens: [], porFonte: [] };
-      Object.assign(atual, somar(atual, l));
+      const atual: Pagina = porPagina.get(l.pagina) ?? {
+        pagina: l.pagina,
+        tipo: tipoDaPagina(l.pagina),
+        pessoas: 0,
+        visitas: 0,
+        leads_novos: 0,
+        checkouts: 0,
+        compras: 0,
+        depositos: 0,
+        origens: [],
+        porFonte: [],
+      };
+      atual.pessoas += Number(l.pessoas);
+      atual.visitas += Number(l.visitas);
+      atual.leads_novos += Number(l.leads_novos);
+      atual.checkouts += Number(l.checkouts);
+      atual.compras += Number(l.compras);
+      atual.depositos += Number(l.depositos);
       atual.origens.push(l);
       porPagina.set(l.pagina, atual);
     }
@@ -107,131 +153,166 @@ export function PaginasPanel({ productId, from, to }: { productId: string; from:
         porFonte: Array.from(fontes, ([fonte, pessoas]) => ({ fonte, pessoas })).sort((a, b) => b.pessoas - a.pessoas),
       };
     });
-    todas.sort((a, b) => b.pessoas - a.pessoas);
-    const visiveis = mostrarTeste ? todas : todas.filter((p) => !ehPaginaDeTeste(p.pagina));
-    return { paginas: visiveis, escondidas: todas.length - visiveis.length };
-  }, [linhas, mostrarTeste]);
+    const visiveisTeste = mostrarTeste ? todas : todas.filter((p) => !ehPaginaDeTeste(p.pagina));
+    const contagem: Record<string, number> = { todas: visiveisTeste.length };
+    for (const p of visiveisTeste) contagem[p.tipo] = (contagem[p.tipo] ?? 0) + 1;
+    const filtradas = tipo === "todas" ? visiveisTeste : visiveisTeste.filter((p) => p.tipo === tipo);
+    filtradas.sort((a, b) => b[ordem] - a[ordem] || b.pessoas - a.pessoas);
+    return { paginas: filtradas, escondidas: todas.length - visiveisTeste.length, contagemPorTipo: contagem };
+  }, [linhas, mostrarTeste, ordem, tipo]);
+
+  const maximo = paginas.reduce((m, p) => Math.max(m, p[ordem]), 0);
+  const totalDaOrdem = paginas.reduce((s, p) => s + p[ordem], 0);
+
+  const opcoesTipo: { key: FiltroTipo; label: string }[] = [
+    { key: "todas", label: `Todas ${contagemPorTipo.todas ?? 0}` },
+    ...(["quiz", "checkout", "plataforma", "site"] as TipoDePagina[])
+      .filter((t) => contagemPorTipo[t])
+      .map((t) => ({ key: t as FiltroTipo, label: `${TIPO_DE_PAGINA_ROTULO[t]} ${contagemPorTipo[t]}` })),
+  ];
+
+  const conteudo = (
+    <>
+      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Segmentado opcoes={opcoesTipo} ativo={tipo} onChange={setTipo} />
+        <label className="flex items-center gap-2 text-[11px] text-text-tertiary">
+          Ordenar por
+          <Segmentado opcoes={ORDENS} ativo={ordem} onChange={setOrdem} />
+        </label>
+        {(escondidas > 0 || mostrarTeste) && (
+          <button
+            type="button"
+            onClick={() => setMostrarTeste((v) => !v)}
+            className="ml-auto text-[11px] text-text-tertiary underline-offset-2 hover:text-text-primary hover:underline"
+          >
+            {mostrarTeste ? "Esconder páginas de teste" : `Mostrar ${escondidas} de teste (localhost)`}
+          </button>
+        )}
+      </div>
+
+      {linhas === null ? (
+        <LoadingState message="Carregando páginas..." />
+      ) : erro ? (
+        <Vazio icone={FileText}>{erro}</Vazio>
+      ) : paginas.length === 0 ? (
+        <Vazio icone={FileText}>Nenhuma visita registrada nesse período e tipo de página.</Vazio>
+      ) : (
+        <ul className="space-y-2">
+          {paginas.map((p, i) => {
+            const estaAberta = aberta === p.pagina;
+            const { dominio, caminho } = separar(p.pagina);
+            return (
+              <li key={p.pagina} className="rounded-xl border border-border bg-app">
+                <button
+                  type="button"
+                  onClick={() => setAberta(estaAberta ? null : p.pagina)}
+                  aria-expanded={estaAberta}
+                  className="grid w-full grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5 px-3.5 py-3 text-left lg:grid-cols-[auto_minmax(0,1.1fr)_minmax(0,1.5fr)_auto]"
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-input text-[11px] font-semibold tabular-nums text-text-tertiary">
+                    {i + 1}
+                  </span>
+
+                  <span className="min-w-0">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      {estaAberta ? (
+                        <ChevronDown size={13} className="shrink-0 text-text-tertiary" />
+                      ) : (
+                        <ChevronRight size={13} className="shrink-0 text-text-tertiary" />
+                      )}
+                      <span className="truncate text-[13px] font-semibold text-text-primary" title={p.pagina}>
+                        {dominio}
+                        {caminho && <span className="font-normal text-text-tertiary">{caminho}</span>}
+                      </span>
+                    </span>
+                    <span className="mt-1 inline-flex items-center gap-1.5 pl-[19px]">
+                      <span className="rounded-md bg-input px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">
+                        {TIPO_DE_PAGINA_ROTULO[p.tipo]}
+                      </span>
+                    </span>
+                  </span>
+
+                  <span className="col-span-2 lg:col-span-1">
+                    <span className="flex items-center gap-3">
+                      <BarraProporcional valor={p[ordem]} max={maximo} cor="var(--series-1)" className="flex-1" />
+                      <span className="w-24 shrink-0 text-right">
+                        <span className="text-[15px] font-semibold tabular-nums text-text-primary">{p[ordem]}</span>
+                        <span className="ml-1 text-[11px] tabular-nums text-text-muted">{pct(p[ordem], totalDaOrdem)}</span>
+                      </span>
+                    </span>
+                    <BarraEmFatias
+                      className="mt-1.5 !h-1.5"
+                      fatias={p.porFonte.map((f) => ({ rotulo: f.fonte, valor: f.pessoas, cor: corDaFonte(f.fonte) }))}
+                    />
+                  </span>
+
+                  <span className="col-span-2 grid grid-cols-4 gap-x-4 lg:col-span-1 lg:flex">
+                    <Metrica rotulo="Visitas" valor={p.visitas} className="lg:w-14" />
+                    <Metrica
+                      rotulo="Checkout"
+                      valor={p.checkouts}
+                      extra={p.checkouts ? pct(p.checkouts, p.pessoas) : undefined}
+                      className="lg:w-20"
+                    />
+                    <Metrica
+                      rotulo="Compras"
+                      valor={p.compras}
+                      extra={p.compras ? pct(p.compras, p.pessoas) : undefined}
+                      className="lg:w-20"
+                    />
+                    <Metrica rotulo="Depósitos" valor={p.depositos} destaque={p.depositos > 0} className="lg:w-16" />
+                  </span>
+                </button>
+
+                {estaAberta && (
+                  <div className="space-y-1.5 border-t border-border px-3.5 py-3">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
+                      De onde vem o tráfego desta página
+                    </p>
+                    {p.origens.map((o) => (
+                      <div
+                        key={`${o.utm_source}|${o.utm_campaign}`}
+                        className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] items-center gap-3 text-[12px]"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: corDaFonte(o.utm_source) }} />
+                          <span className="shrink-0 font-medium text-text-primary">{o.utm_source}</span>
+                          <span className="truncate text-text-muted" title={o.utm_campaign}>
+                            {nomes.get(o.utm_campaign) ?? o.utm_campaign}
+                          </span>
+                        </span>
+                        <BarraProporcional
+                          valor={Number(o.pessoas)}
+                          max={p.origens[0] ? Number(p.origens[0].pessoas) : 0}
+                          cor={corDaFonte(o.utm_source)}
+                        />
+                        <span className="w-32 text-right tabular-nums text-text-secondary">
+                          {o.pessoas} {Number(o.pessoas) === 1 ? "pessoa" : "pessoas"}
+                          {Number(o.checkouts) > 0 && <span className="text-text-muted"> · {o.checkouts} checkout</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
+  );
+
+  if (semTitulo) return <div>{conteudo}</div>;
 
   return (
     <Bloco
       titulo="Páginas"
       dica={
-        <Tooltip text="Cada página com o script, separada. Pessoas = quem chegou na página no período (uma vez por pessoa), com a origem daquela chegada. Checkout, compras e depósitos contam quem fez isso DEPOIS de passar pela página — quem passa por duas páginas conta nas duas." />
+        <Tooltip text="Cada página com o script, em ranking. Pessoas = quem chegou na página no período (uma vez por pessoa), com a origem daquela chegada. Checkout, compras e depósitos contam quem fez isso DEPOIS de passar pela página — quem passa por duas páginas conta nas duas." />
       }
-      acoes={
-        escondidas > 0 || mostrarTeste ? (
-          <button
-            type="button"
-            onClick={() => setMostrarTeste((v) => !v)}
-            className="text-[11px] text-text-tertiary underline-offset-2 hover:text-text-primary hover:underline"
-          >
-            {mostrarTeste ? "Esconder páginas de teste" : `Mostrar ${escondidas} de teste (localhost)`}
-          </button>
-        ) : null
-      }
+      descricao="A barra mostra qual página recebe mais gente; a faixa colorida embaixo, de onde vem o tráfego dela."
     >
-      <Cartao>
-        {linhas === null ? (
-          <LoadingState message="Carregando páginas..." />
-        ) : erro ? (
-          <Vazio>{erro}</Vazio>
-        ) : paginas.length === 0 ? (
-          <Vazio>Nenhuma visita registrada no período.</Vazio>
-        ) : (
-          <TabelaWrap>
-            <Tabela>
-              <thead>
-                <tr className="border-b border-border">
-                  <Th>Página</Th>
-                  <Th num>Pessoas</Th>
-                  <Th num fraco>
-                    Visitas
-                  </Th>
-                  <Th num fraco>
-                    Leads novos
-                  </Th>
-                  <Th num>Checkout</Th>
-                  <Th num>Compras</Th>
-                  <Th num>Depósitos</Th>
-                  <Th>De onde vem</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginas.map((p) => {
-                  const estaAberta = aberta === p.pagina;
-                  return (
-                    <Fragment key={p.pagina}>
-                      <Tr>
-                        <Td forte title={p.pagina}>
-                          <button
-                            type="button"
-                            onClick={() => setAberta(estaAberta ? null : p.pagina)}
-                            className="flex max-w-[22rem] items-center gap-1.5 text-left"
-                            aria-expanded={estaAberta}
-                          >
-                            {estaAberta ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                            <span className="truncate">{p.pagina}</span>
-                          </button>
-                        </Td>
-                        <Td num forte>
-                          {p.pessoas}
-                        </Td>
-                        <Td num fraco>
-                          {p.visitas}
-                        </Td>
-                        <Td num fraco>
-                          {p.leads_novos}
-                        </Td>
-                        <Td num>
-                          {p.checkouts} <span className="text-text-muted">{pct(p.checkouts, p.pessoas)}</span>
-                        </Td>
-                        <Td num>
-                          {p.compras} <span className="text-text-muted">{pct(p.compras, p.pessoas)}</span>
-                        </Td>
-                        <Td num>{p.depositos}</Td>
-                        <Td>
-                          <span className="flex gap-1.5">
-                            {p.porFonte.slice(0, 3).map((f) => (
-                              <span
-                                key={f.fonte}
-                                className="rounded-full bg-card-hover px-2 py-0.5 text-[10px] text-text-secondary"
-                              >
-                                {f.fonte} <span className="text-text-muted">{pct(f.pessoas, p.pessoas)}</span>
-                              </span>
-                            ))}
-                            {p.porFonte.length > 3 && (
-                              <span className="text-[10px] text-text-muted">+{p.porFonte.length - 3}</span>
-                            )}
-                          </span>
-                        </Td>
-                      </Tr>
-                      {estaAberta &&
-                        p.origens.map((o) => (
-                          <tr
-                            key={`${o.utm_source}|${o.utm_campaign}`}
-                            className="border-b border-border bg-card-hover text-[11px]"
-                          >
-                            <td className={cn("py-1.5 pl-6 pr-2 text-text-tertiary")}>
-                              <span className="text-text-secondary">{o.utm_source}</span>
-                              <span className="text-text-muted"> · {o.utm_campaign}</span>
-                            </td>
-                            <td className="px-2 py-1.5 text-right tabular-nums text-text-secondary">{o.pessoas}</td>
-                            <td className="px-2 py-1.5 text-right tabular-nums text-text-tertiary">{o.visitas}</td>
-                            <td className="px-2 py-1.5 text-right tabular-nums text-text-tertiary">{o.leads_novos}</td>
-                            <td className="px-2 py-1.5 text-right tabular-nums text-text-secondary">{o.checkouts}</td>
-                            <td className="px-2 py-1.5 text-right tabular-nums text-text-secondary">{o.compras}</td>
-                            <td className="px-2 py-1.5 text-right tabular-nums text-text-secondary">{o.depositos}</td>
-                            <td />
-                          </tr>
-                        ))}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </Tabela>
-          </TabelaWrap>
-        )}
-      </Cartao>
+      {conteudo}
     </Bloco>
   );
 }

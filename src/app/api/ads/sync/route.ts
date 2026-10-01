@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptSecret } from "@/lib/crypto";
-import { fetchMetaCampaignSpend, type MetaCredentials } from "@/lib/ads/meta-client";
+import { fetchMetaCampaignSpend, fetchMetaEntityNames, type MetaCredentials } from "@/lib/ads/meta-client";
 import { fetchGoogleCampaignSpend, type GoogleCredentials } from "@/lib/ads/google-ads-client";
 
 function isoDate(d: Date): string {
@@ -73,6 +73,34 @@ export async function POST(request: Request) {
     .update({ last_synced_at: new Date().toISOString() })
     .eq("id", credentialId);
 
+  // Nomes de campanha/conjunto/anúncio (só Meta). Best-effort: o gasto acima
+  // já foi salvo e não pode ser desfeito por falha aqui — e antes da
+  // migration 0126 a tabela nem existe.
+  let nomes = 0;
+  let avisoNomes: string | null = null;
+  if (cred.platform === "meta") {
+    try {
+      const entidades = await fetchMetaEntityNames(parsed as MetaCredentials);
+      if (entidades.length > 0) {
+        const { error } = await admin.from("ad_entity_names").upsert(
+          entidades.map((e) => ({
+            product_id: cred.product_id,
+            platform: "meta" as const,
+            entity_id: e.id,
+            level: e.level,
+            name: e.name,
+            updated_at: new Date().toISOString(),
+          })),
+          { onConflict: "product_id,platform,entity_id" }
+        );
+        if (error) throw new Error(/ad_entity_names/.test(error.message) ? "Falta rodar a migration 0126." : error.message);
+        nomes = entidades.length;
+      }
+    } catch (err) {
+      avisoNomes = err instanceof Error ? err.message : "Falha ao buscar os nomes dos anúncios.";
+    }
+  }
+
   const totalSpendCents = rows.reduce((sum, r) => sum + r.spendCents, 0);
-  return NextResponse.json({ ok: true, days: rows.length, totalSpendCents });
+  return NextResponse.json({ ok: true, days: rows.length, totalSpendCents, nomes, avisoNomes });
 }

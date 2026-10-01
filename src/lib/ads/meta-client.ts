@@ -35,6 +35,44 @@ export async function testMetaCredentials(creds: MetaCredentials): Promise<TestR
   }
 }
 
+export interface EntidadeComNome {
+  id: string;
+  name: string;
+  level: "campaign" | "adset" | "ad";
+}
+
+// Nome de cada campanha, conjunto e anúncio da conta. O link do anúncio só
+// carrega os IDs (utm_campaign / utm_term / utm_content); é isto que deixa a
+// tela dizer "(CP VD) - PEPE - QUIZ" em vez de 120248833147640634.
+// Pagina pelo cursor "after" até acabar (teto de 20 páginas por nível, pra
+// uma conta enorme não segurar a requisição).
+export async function fetchMetaEntityNames(creds: MetaCredentials): Promise<EntidadeComNome[]> {
+  const accountId = creds.ad_account_id.replace(/^act_/, "");
+  const niveis: { caminho: string; level: EntidadeComNome["level"] }[] = [
+    { caminho: "campaigns", level: "campaign" },
+    { caminho: "adsets", level: "adset" },
+    { caminho: "ads", level: "ad" },
+  ];
+  const saida: EntidadeComNome[] = [];
+
+  for (const { caminho, level } of niveis) {
+    let url: string | null =
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/act_${accountId}/${caminho}` +
+      `?fields=id,name&limit=500&access_token=${encodeURIComponent(creds.access_token)}`;
+    for (let pagina = 0; url && pagina < 20; pagina++) {
+      const res: Response = await fetch(url);
+      const json: { data?: { id: string; name: string }[]; paging?: { next?: string }; error?: { message?: string } } =
+        await res.json();
+      if (!res.ok || json.error) {
+        throw new Error(json.error?.message || `Falha ao buscar nomes (${caminho}, HTTP ${res.status}).`);
+      }
+      for (const item of json.data ?? []) saida.push({ id: item.id, name: item.name, level });
+      url = json.paging?.next ?? null;
+    }
+  }
+  return saida;
+}
+
 export interface CampaignSpend {
   campaignId: string;
   campaignName: string;

@@ -38,6 +38,7 @@ import {
 } from "./funil";
 import { MatrizDeOrigem } from "./origem";
 import { PaginasPanel } from "./paginas-panel";
+import { OrigemPanel } from "./origem-panel";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SimpleBarChart, ConversionFunnel, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
@@ -159,6 +160,7 @@ const SECOES_VISAO = [
   { key: "funil", label: "Funil" },
   { key: "origens", label: "Origens" },
   { key: "horarios", label: "Horários" },
+  { key: "paginas", label: "Páginas" },
   { key: "vendas", label: "Vendas" },
 ] as const;
 type SecaoVisao = (typeof SECOES_VISAO)[number]["key"];
@@ -887,12 +889,12 @@ export function AnalyticsTab({
           <Bloco
             titulo="De onde vêm os resultados"
             dica={
-              <Tooltip text="Uma linha por origem, com a progressão até o depósito. Clique na origem pra abrir as campanhas dela." />
+              <Tooltip text="Cada origem (fb, ig, direto…) com as campanhas, conjuntos e anúncios dela pelo NOME. A barra compara quem entrega mais; a tabela completa traz gasto, ROI, contrato e Pepe." />
             }
             acoes={
               etapaSelecionada ? (
                 <span className="text-[11px] text-text-tertiary">
-                  Ordenado por{" "}
+                  Etapa em foco:{" "}
                   <span className="text-accent-text">
                     {ETAPAS_FUNIL.find((e) => e.chave === etapaSelecionada)?.rotulo}
                   </span>
@@ -900,20 +902,31 @@ export function AnalyticsTab({
               ) : undefined
             }
           >
-            <CartaoComTopo
-              titulo={`${filteredReport.length} ${filteredReport.length === 1 ? "campanha" : "campanhas"} · ordenado por ${
-                etapaSelecionada
-                  ? (ETAPAS_FUNIL.find((e) => e.chave === etapaSelecionada)?.rotulo ?? "").toLowerCase()
-                  : "total depositado"
-              }`}
-            >
-              <MatrizDeOrigem
-                linhas={filteredReport}
-                etapaSelecionada={etapaSelecionada}
-                fmtBRL={fmtBRL}
-                fmtUSD={fmtUSD}
-              />
-            </CartaoComTopo>
+            <OrigemPanel
+              productId={productId}
+              from={janelaAtual.from}
+              to={janelaAtual.now}
+              etapaSelecionada={etapaSelecionada}
+              fmtBRL={fmtBRL}
+              fmtUSD={fmtUSD}
+              onIrParaAnuncios={onIrParaAnuncios}
+              tabelaCompleta={
+                <CartaoComTopo
+                  titulo={`${filteredReport.length} ${filteredReport.length === 1 ? "campanha" : "campanhas"} · ordenado por ${
+                    etapaSelecionada
+                      ? (ETAPAS_FUNIL.find((e) => e.chave === etapaSelecionada)?.rotulo ?? "").toLowerCase()
+                      : "total depositado"
+                  }`}
+                >
+                  <MatrizDeOrigem
+                    linhas={filteredReport}
+                    etapaSelecionada={etapaSelecionada}
+                    fmtBRL={fmtBRL}
+                    fmtUSD={fmtUSD}
+                  />
+                </CartaoComTopo>
+              }
+            />
           </Bloco>
 
           )}
@@ -950,6 +963,18 @@ export function AnalyticsTab({
             </div>
           </Bloco>
 
+          )}
+
+          {secaoVisao === "paginas" && (
+            <Bloco
+              titulo="Páginas"
+              dica={
+                <Tooltip text="Cada página com o script, em ranking. Pessoas = quem chegou na página no período (uma vez por pessoa), com a origem daquela chegada. Quem passa por duas páginas conta nas duas." />
+              }
+              descricao="Qual página recebe mais gente e de onde vem o tráfego de cada uma. Filtre por tipo (quiz/landing, checkout, plataforma, site)."
+            >
+              <PaginasPanel productId={productId} from={janelaAtual.from} to={janelaAtual.now} semTitulo />
+            </Bloco>
           )}
 
           {/* ── F. Detalhamentos secundários ──

@@ -1627,6 +1627,26 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["tracking_pixels"]["Insert"]>;
         Relationships: [];
       };
+      ad_entity_names: {
+        Row: {
+          product_id: string;
+          platform: "meta" | "google";
+          entity_id: string;
+          level: "campaign" | "adset" | "ad";
+          name: string;
+          updated_at: string;
+        };
+        Insert: {
+          product_id: string;
+          platform: "meta" | "google";
+          entity_id: string;
+          level: "campaign" | "adset" | "ad";
+          name: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_entity_names"]["Insert"]>;
+        Relationships: [];
+      };
       tracking_script_config: {
         Row: {
           product_id: string;
@@ -1825,6 +1845,23 @@ export interface Database {
           p_referrer: string | null;
         };
         Returns: undefined;
+      };
+      tracking_origem_detalhada: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: {
+          utm_source: string;
+          utm_medium: string;
+          utm_campaign: string;
+          utm_term: string;
+          utm_content: string;
+          leads: number;
+          checkouts: number;
+          compras: number;
+          receita_cents: number;
+          cadastros_corretora: number;
+          depositos: number;
+          depositado_cents: number;
+        }[];
       };
       tracking_paginas_report: {
         Args: { p_product_id: string; p_from: string; p_to: string };
