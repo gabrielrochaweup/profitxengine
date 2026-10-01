@@ -35,6 +35,7 @@ import {
   type LinhaFunil,
 } from "./funil";
 import { MatrizDeOrigem } from "./origem";
+import { PaginasPanel } from "./paginas-panel";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SimpleBarChart, ConversionFunnel, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
@@ -148,6 +149,7 @@ export const PERFORMANCE_SUB_TABS = [
   { key: "campanhas", label: "Campanhas" },
   { key: "conjuntos", label: "Conjuntos" },
   { key: "anuncios", label: "Anúncios" },
+  { key: "paginas", label: "Páginas" },
 ] as const;
 
 export type TableTab = (typeof PERFORMANCE_SUB_TABS)[number]["key"];
@@ -353,6 +355,14 @@ export function AnalyticsTab({
     setLastUpdated(new Date());
     setLoading(false);
   }
+
+  // Janela do período escolhido pra quem consulta por conta própria (a aba
+  // Páginas). Recalcula quando o período muda ou quando a pessoa atualiza.
+  const janelaAtual = useMemo(
+    () => periodRange(period),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [period, lastUpdated]
+  );
 
   async function changePeriod(next: Period) {
     setPeriod(next);
@@ -979,7 +989,11 @@ export function AnalyticsTab({
           )}
         </div>
       )}
-      {subTab === "campanhas" && tableTab !== "campanhas" && (
+      {subTab === "campanhas" && tableTab === "paginas" && (
+        <PaginasPanel productId={productId} from={janelaAtual.from} to={janelaAtual.now} />
+      )}
+
+      {subTab === "campanhas" && tableTab !== "campanhas" && tableTab !== "paginas" && (
         <Bloco titulo={PERFORMANCE_SUB_TABS.find((t) => t.key === tableTab)?.label ?? ""}>
           <Cartao>
             {/* Nada inventado: esse recorte só existe com o gasto vindo da

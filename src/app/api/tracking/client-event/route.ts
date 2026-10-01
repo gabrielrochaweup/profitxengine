@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ehRobo } from "@/lib/tracking/robos";
 
 // Pública, aberta pra qualquer origem — o script de rastreamento (mesmo
 // modelo de /api/tracking/collect) dispara isso via navigator.sendBeacon()
@@ -38,6 +39,11 @@ interface ClientEventPayload {
 
 export async function POST(request: Request) {
   const headers = corsHeaders(request);
+
+  // Robô não inicia checkout (ver lib/tracking/robos.ts).
+  if (ehRobo(request.headers.get("user-agent"))) {
+    return NextResponse.json({ ok: true, ignored: "robo" }, { headers });
+  }
 
   let body: ClientEventPayload;
   try {

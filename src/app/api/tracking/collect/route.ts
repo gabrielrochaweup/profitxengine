@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ehRobo } from "@/lib/tracking/robos";
+import { normalizarPagina } from "@/lib/tracking/paginas";
 
 // Esse endpoint precisa aceitar qualquer origem de propósito: o script de
 // tracking (src/app/api/tracking/pixel.js) é feito pra ser colado em
@@ -60,6 +62,12 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "JSON inválido." }, { status: 400, headers });
+  }
+
+  // Robô (ex: a Meta conferindo a página do anúncio) não vira lead nem
+  // visita. Responde 200 pra ele não ficar tentando de novo.
+  if (ehRobo(request.headers.get("user-agent"))) {
+    return NextResponse.json({ ok: true, ignored: "robo" }, { headers });
   }
 
   const leadId = body.lead_id?.trim();
@@ -139,6 +147,29 @@ export async function POST(request: Request) {
   if (eventError) {
     console.error("[tracking/collect] falha ao gravar evento:", eventError.message);
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
+  }
+
+  // Visita por página (Performance → Páginas). O script chama o collect a
+  // TODA abertura: o lead e o page_view acima só existem uma vez (os upserts
+  // ignoram repetição), mas aqui cada página ganha a própria linha por
+  // pessoa, com a origem daquela chegada, e as aberturas seguintes somam.
+  // Best-effort: antes da migration 0125 a função não existe, e isso não
+  // pode derrubar o registro do lead.
+  const pagina = normalizarPagina(body.landing_url);
+  if (pagina) {
+    const { error: visitaError } = await admin.rpc("tracking_registrar_visita", {
+      p_product_id: product.id,
+      p_lead_id: leadId,
+      p_pagina: pagina,
+      p_utm_source: body.utm_source || null,
+      p_utm_medium: body.utm_medium || null,
+      p_utm_campaign: body.utm_campaign || null,
+      p_utm_content: body.utm_content || null,
+      p_referrer: body.referrer || null,
+    });
+    if (visitaError && !/tracking_registrar_visita/.test(visitaError.message)) {
+      console.error("[tracking/collect] falha ao gravar visita:", visitaError.message);
+    }
   }
 
   return NextResponse.json({ ok: true }, { headers });

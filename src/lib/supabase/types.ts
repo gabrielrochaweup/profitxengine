@@ -1813,6 +1813,33 @@ export interface Database {
         Args: { p_product_id: string; p_from: string; p_to: string };
         Returns: { utm_source: string; etapa: string; weekday: number; hour: number; total: number }[];
       };
+      tracking_registrar_visita: {
+        Args: {
+          p_product_id: string;
+          p_lead_id: string;
+          p_pagina: string;
+          p_utm_source: string | null;
+          p_utm_medium: string | null;
+          p_utm_campaign: string | null;
+          p_utm_content: string | null;
+          p_referrer: string | null;
+        };
+        Returns: undefined;
+      };
+      tracking_paginas_report: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: {
+          pagina: string;
+          utm_source: string;
+          utm_campaign: string;
+          pessoas: number;
+          visitas: number;
+          leads_novos: number;
+          checkouts: number;
+          compras: number;
+          depositos: number;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

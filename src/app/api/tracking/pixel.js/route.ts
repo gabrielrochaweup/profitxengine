@@ -305,8 +305,9 @@ const PIXEL_SCRIPT = `
     })
     .catch(function () {});
 
-  if (!isFirstTouch) return;
-
+  // Toda abertura avisa o collect: o lead só é criado na primeira (o
+  // servidor ignora repetição), mas cada página precisa registrar a visita
+  // — é o que alimenta Performance → Páginas.
   var params = new URLSearchParams(window.location.search);
   var payload = {
     lead_id: leadId,
