@@ -73,6 +73,60 @@ export async function fetchMetaEntityNames(creds: MetaCredentials): Promise<Enti
   return saida;
 }
 
+export interface GastoDeEntidade {
+  entityId: string;
+  entityName: string;
+  campaignId: string | null;
+  adsetId: string | null;
+  spendCents: number;
+  date: string;
+}
+
+// Gasto por dia no nível de conjunto ("adset") ou de anúncio ("ad"). Mesma
+// janela e mesma conta do gasto por campanha; pagina pelo cursor.
+export async function fetchMetaEntitySpend(
+  creds: MetaCredentials,
+  level: "adset" | "ad",
+  since: string,
+  until: string
+): Promise<GastoDeEntidade[]> {
+  const accountId = creds.ad_account_id.replace(/^act_/, "");
+  const timeRange = encodeURIComponent(JSON.stringify({ since, until }));
+  const campos =
+    level === "adset"
+      ? "adset_id,adset_name,campaign_id,spend,date_start"
+      : "ad_id,ad_name,adset_id,campaign_id,spend,date_start";
+  let url: string | null =
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/act_${accountId}/insights` +
+    `?level=${level}&fields=${campos}&time_range=${timeRange}&time_increment=1&limit=500` +
+    `&access_token=${encodeURIComponent(creds.access_token)}`;
+
+  const saida: GastoDeEntidade[] = [];
+  for (let pagina = 0; url && pagina < 20; pagina++) {
+    const res: Response = await fetch(url);
+    const json: {
+      data?: Record<string, string>[];
+      paging?: { next?: string };
+      error?: { message?: string };
+    } = await res.json();
+    if (!res.ok || json.error) {
+      throw new Error(json.error?.message || `Falha ao buscar gasto por ${level} (HTTP ${res.status}).`);
+    }
+    for (const r of json.data ?? []) {
+      saida.push({
+        entityId: level === "adset" ? r.adset_id : r.ad_id,
+        entityName: (level === "adset" ? r.adset_name : r.ad_name) ?? "",
+        campaignId: r.campaign_id ?? null,
+        adsetId: level === "ad" ? (r.adset_id ?? null) : null,
+        spendCents: Math.round(parseFloat(r.spend || "0") * 100),
+        date: r.date_start,
+      });
+    }
+    url = json.paging?.next ?? null;
+  }
+  return saida;
+}
+
 export interface CampaignSpend {
   campaignId: string;
   campaignName: string;

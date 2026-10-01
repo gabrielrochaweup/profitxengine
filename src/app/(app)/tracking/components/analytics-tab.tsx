@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw, Megaphone } from "lucide-react";
+import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw } from "lucide-react";
 import { SegmentedControl } from "@/components/ui/panel";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
@@ -39,6 +39,7 @@ import {
 import { MatrizDeOrigem } from "./origem";
 import { PaginasPanel } from "./paginas-panel";
 import { OrigemPanel } from "./origem-panel";
+import { PerformancePanel } from "./performance-panel";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SimpleBarChart, ConversionFunnel, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
@@ -1067,29 +1068,30 @@ export function AnalyticsTab({
         <PaginasPanel productId={productId} from={janelaAtual.from} to={janelaAtual.now} />
       )}
 
-      {subTab === "campanhas" && tableTab !== "campanhas" && tableTab !== "paginas" && (
-        <Bloco titulo={PERFORMANCE_SUB_TABS.find((t) => t.key === tableTab)?.label ?? ""}>
-          <Cartao>
-            {/* Nada inventado: esse recorte só existe com o gasto vindo da
-                plataforma, e é isso que a tela diz. */}
-            <Vazio
-              icone={Megaphone}
-              acao={
-                onIrParaAnuncios ? (
-                  <Button size="sm" onClick={onIrParaAnuncios}>
-                    Conectar em Anúncios
-                  </Button>
-                ) : undefined
-              }
-            >
-              {MOTIVO_SEM_DADO}. Até lá, o resultado por campanha está em{" "}
-              <span className="text-text-primary">Performance → Campanhas</span>.
-            </Vazio>
-          </Cartao>
-        </Bloco>
+      {subTab === "campanhas" && (tableTab === "contas" || tableTab === "conjuntos" || tableTab === "anuncios") && (
+        <PerformancePanel
+          productId={productId}
+          nivel={tableTab === "contas" ? "conta" : tableTab === "conjuntos" ? "conjunto" : "anuncio"}
+          from={janelaAtual.from}
+          to={janelaAtual.now}
+          usdBrlRate={usdBrlRate}
+          fmtBRL={fmtBRL}
+          fmtUSD={fmtUSD}
+          onIrParaAnuncios={onIrParaAnuncios}
+        />
       )}
 
       {subTab === "campanhas" && tableTab === "campanhas" && (
+        <PerformancePanel
+          productId={productId}
+          nivel="campanha"
+          from={janelaAtual.from}
+          to={janelaAtual.now}
+          usdBrlRate={usdBrlRate}
+          fmtBRL={fmtBRL}
+          fmtUSD={fmtUSD}
+          onIrParaAnuncios={onIrParaAnuncios}
+          tabelaCompleta={
         <div className="space-y-6">
           <Bloco titulo="Vendas por UTM/campanha (top 10)">
             <Cartao>
@@ -1097,9 +1099,7 @@ export function AnalyticsTab({
             </Cartao>
           </Bloco>
 
-          {/* A tabela do recorte escolhido lá em cima, na barra do módulo. */}
-          <Bloco titulo="Resultado por campanha">
-            <Cartao>
+          <Cartao>
               {filteredReport.length === 0 ? (
                 <Vazio>Sem dados suficientes nesse período.</Vazio>
               ) : (
@@ -1214,9 +1214,10 @@ export function AnalyticsTab({
                   </Tabela>
                 </TabelaWrap>
               )}
-            </Cartao>
-          </Bloco>
+          </Cartao>
         </div>
+          }
+        />
       )}
 
       {subTab === "eventos" && (

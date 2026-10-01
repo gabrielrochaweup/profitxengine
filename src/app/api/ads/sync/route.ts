@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptSecret } from "@/lib/crypto";
-import { fetchMetaCampaignSpend, fetchMetaEntityNames, type MetaCredentials } from "@/lib/ads/meta-client";
+import {
+  fetchMetaCampaignSpend,
+  fetchMetaEntityNames,
+  fetchMetaEntitySpend,
+  type MetaCredentials,
+} from "@/lib/ads/meta-client";
 import { fetchGoogleCampaignSpend, type GoogleCredentials } from "@/lib/ads/google-ads-client";
 
 function isoDate(d: Date): string {
@@ -101,6 +106,36 @@ export async function POST(request: Request) {
     }
   }
 
+  // Gasto por conjunto e por anúncio (só Meta). Mesmo cuidado: best-effort, o
+  // gasto por campanha já está salvo, e antes da migration 0128 a tabela não existe.
+  let avisoGastoDetalhado: string | null = null;
+  if (cred.platform === "meta") {
+    try {
+      for (const level of ["adset", "ad"] as const) {
+        const gastos = await fetchMetaEntitySpend(parsed as MetaCredentials, level, isoDate(since), isoDate(until));
+        if (gastos.length === 0) continue;
+        const { error } = await admin.from("ad_entity_spend").upsert(
+          gastos.map((g) => ({
+            product_id: cred.product_id,
+            platform: "meta" as const,
+            level,
+            entity_id: g.entityId,
+            entity_name: g.entityName,
+            campaign_id: g.campaignId,
+            adset_id: g.adsetId,
+            spend_cents: g.spendCents,
+            spend_date: g.date,
+            synced_at: new Date().toISOString(),
+          })),
+          { onConflict: "product_id,platform,level,entity_id,spend_date" }
+        );
+        if (error) throw new Error(/ad_entity_spend/.test(error.message) ? "Falta rodar a migration 0128." : error.message);
+      }
+    } catch (err) {
+      avisoGastoDetalhado = err instanceof Error ? err.message : "Falha ao buscar o gasto por conjunto/anúncio.";
+    }
+  }
+
   const totalSpendCents = rows.reduce((sum, r) => sum + r.spendCents, 0);
-  return NextResponse.json({ ok: true, days: rows.length, totalSpendCents, nomes, avisoNomes });
+  return NextResponse.json({ ok: true, days: rows.length, totalSpendCents, nomes, avisoNomes, avisoGastoDetalhado });
 }

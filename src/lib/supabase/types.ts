@@ -1663,6 +1663,36 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["tracking_capi_log"]["Insert"]>;
         Relationships: [];
       };
+      ad_entity_spend: {
+        Row: {
+          id: string;
+          product_id: string;
+          platform: "meta" | "google";
+          level: "adset" | "ad";
+          entity_id: string;
+          entity_name: string | null;
+          campaign_id: string | null;
+          adset_id: string | null;
+          spend_cents: number;
+          spend_date: string;
+          synced_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          platform: "meta" | "google";
+          level: "adset" | "ad";
+          entity_id: string;
+          entity_name?: string | null;
+          campaign_id?: string | null;
+          adset_id?: string | null;
+          spend_cents?: number;
+          spend_date: string;
+          synced_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_entity_spend"]["Insert"]>;
+        Relationships: [];
+      };
       ad_entity_names: {
         Row: {
           product_id: string;
