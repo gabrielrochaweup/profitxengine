@@ -41,21 +41,48 @@ const PIXEL_SCRIPT = `
     });
   }
 
+  // Pixels da Meta que a PÁGINA já iniciou por conta própria (ex: integração
+  // nativa do construtor). Olha o estado do fbevents.js já carregado e,
+  // se ele ainda não terminou de carregar, a fila do snippet padrão.
+  function pixelsMetaJaIniciados() {
+    var ids = [];
+    try {
+      if (window.fbq && typeof window.fbq.getState === "function") {
+        (window.fbq.getState().pixels || []).forEach(function (p) { ids.push(String(p.id)); });
+      }
+    } catch (e) {}
+    try {
+      ((window.fbq && window.fbq.queue) || []).forEach(function (args) {
+        if (args && args[0] === "init") ids.push(String(args[1]));
+      });
+    } catch (e) {}
+    return ids;
+  }
+
+  // Só PageView vai pra Meta pelo navegador — e só UMA vez por pixel.
+  // Se a página já tem o mesmo pixel (instalado pelo construtor, por
+  // exemplo), ele já mandou o PageView dele: iniciar de novo e disparar
+  // outro duplicaria o evento. Por isso inicia só os pixels que a página
+  // ainda não iniciou e usa trackSingle (não "track", que dispara pra
+  // TODOS os pixels da página, inclusive os dela).
   function loadMetaPixel(ids) {
-    if (window.fbq) {
-      ids.forEach(function (id) { window.fbq("init", id); });
-      return;
+    var jaIniciados = pixelsMetaJaIniciados();
+    var novos = ids.filter(function (id) { return jaIniciados.indexOf(String(id)) === -1; });
+    if (!novos.length) return;
+    if (!window.fbq) {
+      !function (f, b, e, v, n, t, s) {
+        if (f.fbq) return; n = f.fbq = function () {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n; n.push = n; n.loaded = true; n.version = "2.0"; n.queue = [];
+        t = b.createElement(e); t.async = true; t.src = v;
+        s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+      }(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
     }
-    !function (f, b, e, v, n, t, s) {
-      if (f.fbq) return; n = f.fbq = function () {
-        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-      };
-      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = true; n.version = "2.0"; n.queue = [];
-      t = b.createElement(e); t.async = true; t.src = v;
-      s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
-    }(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
-    ids.forEach(function (id) { window.fbq("init", id); });
-    window.fbq("track", "PageView");
+    novos.forEach(function (id) {
+      window.fbq("init", id);
+      window.fbq("trackSingle", id, "PageView");
+    });
   }
 
   function loadGoogleGtag(ids) {
@@ -68,7 +95,17 @@ const PIXEL_SCRIPT = `
       s.src = "https://www.googletagmanager.com/gtag/js?id=" + ids[0];
       document.head.appendChild(s);
     }
-    ids.forEach(function (id) { window.gtag("config", id); });
+    // "config" já manda o page_view; se a página já configurou essa tag,
+    // configurar de novo duplicaria o page_view.
+    var jaConfigurados = [];
+    try {
+      (window.dataLayer || []).forEach(function (args) {
+        if (args && args[0] === "config") jaConfigurados.push(String(args[1]));
+      });
+    } catch (e) {}
+    ids.forEach(function (id) {
+      if (jaConfigurados.indexOf(String(id)) === -1) window.gtag("config", id);
+    });
   }
 
   var leadId = null;
@@ -87,18 +124,17 @@ const PIXEL_SCRIPT = `
     // não aceitam um parâmetro de rastreio arbitrário, só um nome fixo que
     // elas já reconhecem (ex: a Onprofit só devolve "sck"/"src" no webhook,
     // então o link do checkout precisa usar appendRef(url, "sck")).
-    // eventName é opcional — passar "checkout" dispara InitiateCheckout
-    // (Meta) / begin_checkout (Google) antes de montar o link, se os pixels
-    // já tiverem carregado (função best-effort, não bloqueia o clique se
-    // ainda não carregaram), e também grava "Iniciou checkout" na nossa
-    // própria aba Análises via sendBeacon — usa beacon (não fetch normal)
-    // porque a página navega embora logo em seguida, e um fetch comum
-    // pode ser cancelado antes de sair do navegador.
+    // eventName é opcional — passar "checkout" grava "Iniciou checkout" na
+    // nossa própria aba Análises via sendBeacon — usa beacon (não fetch
+    // normal) porque a página navega embora logo em seguida, e um fetch
+    // comum pode ser cancelado antes de sair do navegador. NÃO manda mais
+    // InitiateCheckout/begin_checkout pros pixels: pelo navegador a Meta e
+    // o Google recebem só o PageView (ver loadMetaPixel), pra não duplicar
+    // com o que o checkout ou o construtor já disparam e não bagunçar a
+    // atribuição.
     appendRef: function (url, paramName, eventName) {
       try {
         if (eventName === "checkout") {
-          if (window.fbq) window.fbq("track", "InitiateCheckout");
-          if (window.gtag) window.gtag("event", "begin_checkout");
           try {
             var beaconPayload = JSON.stringify({ lead_id: leadId, product_slug: productSlug, event_type: "initiate_checkout" });
             if (navigator.sendBeacon) {
@@ -197,21 +233,19 @@ const PIXEL_SCRIPT = `
   } catch (e) {}
 
   // Pixels de Meta/Google (Pixel ID cadastrado na aba "Contas Meta/Google")
-  // — carrega o pixel de verdade e dispara PageView (sempre) + Lead (só no
-  // primeiro toque). Purchase não dá pra disparar por aqui (a compra
-  // acontece na página do checkout, fora desse domínio) — isso é feito do
-  // lado do servidor, na API de Conversões, quando o webhook de compra chega.
+  // — carrega o pixel e dispara SÓ o PageView. O "Lead" no primeiro acesso
+  // saiu: abrir a página não é virar lead, e mandar isso pra Meta como Lead
+  // bagunçava a atribuição. Do lado do servidor (API de Conversões) segue
+  // só o Deposit, quando o webhook da corretora chega.
   var pixelConfigUrl = new URL("/api/tracking/pixel-config", scriptTag.src).href + "?product=" + encodeURIComponent(productSlug);
   fetch(pixelConfigUrl)
     .then(function (r) { return r.json(); })
     .then(function (cfg) {
       if (cfg.meta && cfg.meta.length) {
         loadMetaPixel(cfg.meta);
-        if (isFirstTouch && window.fbq) window.fbq("track", "Lead");
       }
       if (cfg.google && cfg.google.length) {
         loadGoogleGtag(cfg.google);
-        if (isFirstTouch && window.gtag) window.gtag("event", "generate_lead");
       }
     })
     .catch(function () {});

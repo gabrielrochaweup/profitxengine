@@ -65,8 +65,8 @@ function PlatformSection({
         <Tooltip
           text={
             platform === "meta"
-              ? "Dispara PageView, Lead e InitiateCheckout pelo script já instalado. Purchase precisa do token da API de Conversões, não só do Pixel ID — sem ele, a compra não é enviada pro lado do servidor."
-              : "Dispara page_view, generate_lead e begin_checkout pelo script já instalado, usando o Conversion ID (AW-...)."
+              ? "Pelo navegador, o script dispara só o PageView — uma vez por pixel, e nenhum se a página já tiver o mesmo pixel instalado, pra não duplicar. Com o token da API de Conversões, o servidor manda o Deposit quando a corretora avisa um depósito."
+              : "Pelo navegador, o script manda só o page_view, usando o Conversion ID (AW-...). Se a página já tiver a mesma tag, não manda de novo."
           }
         />
       }
@@ -369,7 +369,7 @@ function CreatePixelModal({
         {platform === "meta" && (
           <div>
             <label className="mb-1 block text-xs font-medium text-text-secondary">
-              Token da API de Conversões <span className="text-text-muted/70">(opcional — sem ele, PageView/Lead/InitiateCheckout funcionam, mas Purchase não)</span>
+              Token da API de Conversões <span className="text-text-muted/70">(opcional — sem ele o PageView funciona, mas o Deposit não é enviado pelo servidor)</span>
             </label>
             <Input
               type="password"
