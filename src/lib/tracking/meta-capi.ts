@@ -43,12 +43,26 @@ export interface MetaConversionEvent {
   externalId: string | null;
   occurredAt: string;
   lead?: DadosDoLead | null;
+  /**
+   * Código da aba "Testar eventos" do Gerenciador de Eventos (ex: TEST12345).
+   * Com ele a Meta mostra o evento só lá e NÃO conta nas campanhas.
+   */
+  testEventCode?: string;
+}
+
+export interface ResultadoMetaCapi {
+  ok: boolean;
+  error?: string;
+  /** Quantos eventos a Meta diz ter recebido nesta chamada. */
+  eventsReceived?: number;
+  /** Identificador da chamada na Meta — é o que o suporte pede pra investigar. */
+  fbtraceId?: string;
 }
 
 // Best-effort — chamado depois de já ter gravado o tracking_event, nunca
 // deve derrubar o webhook que originou o evento se a Meta rejeitar ou
 // estiver fora do ar.
-export async function sendMetaConversionEvent(event: MetaConversionEvent): Promise<{ ok: boolean; error?: string }> {
+export async function sendMetaConversionEvent(event: MetaConversionEvent): Promise<ResultadoMetaCapi> {
   const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${event.pixelId}/events?access_token=${encodeURIComponent(event.accessToken)}`;
 
   const lead = event.lead ?? null;
@@ -89,6 +103,7 @@ export async function sendMetaConversionEvent(event: MetaConversionEvent): Promi
         },
       },
     ],
+    ...(event.testEventCode ? { test_event_code: event.testEventCode } : {}),
   };
 
   try {
@@ -99,9 +114,9 @@ export async function sendMetaConversionEvent(event: MetaConversionEvent): Promi
     });
     const json = await res.json();
     if (!res.ok || json.error) {
-      return { ok: false, error: json.error?.message || `HTTP ${res.status}` };
+      return { ok: false, error: json.error?.message || `HTTP ${res.status}`, fbtraceId: json.error?.fbtrace_id };
     }
-    return { ok: true };
+    return { ok: true, eventsReceived: json.events_received, fbtraceId: json.fbtrace_id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Falha de rede." };
   }
