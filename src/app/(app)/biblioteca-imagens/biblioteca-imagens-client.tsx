@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Trash2, Pencil, Check, X, Plus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, FolderOpen } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Trash2, Pencil, Check, X, ArrowLeft, ArrowRight, Inbox, GripVertical, ImageOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ImagePreviewModal } from "@/components/image-preview-modal";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { AbasDePastas, usePastaNaUrl } from "@/components/ui/abas-de-pastas";
 import { useActiveProduct } from "@/components/layout/active-product-context";
 import { cn } from "@/lib/utils";
 import type { Database, ImageContextType } from "@/lib/supabase/types";
@@ -27,24 +25,25 @@ const ORIGIN_LABEL: Record<ImageContextType, string> = {
 
 const QUALITY_LABEL: Record<string, string> = { low: "Baixa", medium: "Média", high: "Alta" };
 
-// Bucket fixo (não é uma linha de image_folders) pra imagens que ainda não
-// foram organizadas — sempre a primeira coluna, sem controles de
-// renomear/excluir/reordenar, mas é destino válido de arrastar-soltar.
+// Aba fixa (não é uma linha de image_folders) pras imagens que ainda não
+// foram organizadas — sempre a primeira, sem renomear/mover/excluir, mas é
+// destino válido de arrastar-soltar.
 const UNFILED_ID = "unfiled";
 
 interface BibliotecaImagensClientProps {
   initialImages: GeneratedImage[];
   initialFolders: ImageFolder[];
   currentUserId: string;
-
 }
 
-export function BibliotecaImagensClient({
-  initialImages,
-  initialFolders,
-  currentUserId,
-
-}: BibliotecaImagensClientProps) {
+/*
+  Biblioteca de imagens em PASTAS (abas). Uma pasta aberta por vez, com as
+  imagens dela numa grade que usa a largura toda. Pastas com subpastas (as
+  que a geração dentro de uma Dinâmica do Dia cria sozinha: dinâmica >
+  horário) mostram as subpastas como pílulas logo abaixo do título.
+  Arraste uma imagem até uma aba ou pílula pra mover ela pra lá.
+*/
+export function BibliotecaImagensClient({ initialImages, initialFolders, currentUserId }: BibliotecaImagensClientProps) {
   const toast = useToast();
   const confirm = useConfirm();
   const { activeProductId } = useActiveProduct();
@@ -53,18 +52,11 @@ export function BibliotecaImagensClient({
   const [previewImage, setPreviewImage] = useState<GeneratedImage | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [draggingImageId, setDraggingImageId] = useState<string | null>(null);
-  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const [addingFolder, setAddingFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [mobileFolderId, setMobileFolderId] = useState<string>(UNFILED_ID);
-  const [expandedSubfolders, setExpandedSubfolders] = useState<Record<string, string | null>>({});
-  const newFolderInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (addingFolder) newFolderInputRef.current?.focus();
-  }, [addingFolder]);
+  const [dragOverSubId, setDragOverSubId] = useState<string | null>(null);
+  const [ativaDaUrl, setAtiva] = usePastaNaUrl(UNFILED_ID);
+  const [subAberta, setSubAberta] = useState<Record<string, string>>({});
+  const [renomeandoSub, setRenomeandoSub] = useState<string | null>(null);
+  const [nomeSub, setNomeSub] = useState("");
 
   const byFolder = useMemo(() => {
     const map: Record<string, GeneratedImage[]> = { [UNFILED_ID]: [] };
@@ -78,7 +70,7 @@ export function BibliotecaImagensClient({
     return map;
   }, [images, folders]);
 
-  // Só pastas de topo viram colunas — pastas com dono (parent_id) são
+  // Só pastas de topo viram abas — pastas com dono (parent_id) são
   // subpastas por horário, criadas automaticamente pela geração de imagem
   // dentro de uma Dinâmica do Dia (nome da dinâmica > horário do slot).
   const topFolders = useMemo(
@@ -94,16 +86,26 @@ export function BibliotecaImagensClient({
     return map;
   }, [folders]);
 
+  const ativa =
+    ativaDaUrl === UNFILED_ID || topFolders.some((f) => f.id === ativaDaUrl) ? ativaDaUrl : UNFILED_ID;
+
+  /** Total da aba: as imagens da pasta mais as das subpastas dela. */
+  function totalDaPasta(id: string): number {
+    const filhos = childrenByParent[id] ?? [];
+    return (byFolder[id]?.length ?? 0) + filhos.reduce((t, f) => t + (byFolder[f.id]?.length ?? 0), 0);
+  }
+
   async function handleDelete(id: string) {
     setDeletingId(id);
     const supabase = createClient();
     const { error } = await supabase.from("generated_images").delete().eq("id", id);
     if (!error) setImages((prev) => prev.filter((img) => img.id !== id));
+    else toast.error("Erro ao excluir a imagem. Tente novamente.");
     setDeletingId(null);
   }
 
   async function handleDropOnFolder(folderId: string) {
-    setDragOverFolderId(null);
+    setDragOverSubId(null);
     const imageId = draggingImageId;
     setDraggingImageId(null);
     if (!imageId) return;
@@ -123,9 +125,8 @@ export function BibliotecaImagensClient({
     }
   }
 
-  async function handleAddFolder() {
-    const name = newFolderName.trim();
-    if (!name || !activeProductId) return;
+  async function handleAddFolder(name: string): Promise<boolean> {
+    if (!activeProductId) return false;
     const supabase = createClient();
     const { data, error } = await supabase
       .from("image_folders")
@@ -134,32 +135,28 @@ export function BibliotecaImagensClient({
       .single();
     if (error || !data) {
       toast.error("Erro ao criar a pasta. Tente novamente.");
-      return;
+      return false;
     }
     setFolders((prev) => [...prev, data]);
-    setNewFolderName("");
-    setAddingFolder(false);
+    setAtiva(data.id);
+    return true;
   }
 
-  function startRename(folder: ImageFolder) {
-    setRenamingId(folder.id);
-    setRenameValue(folder.name);
-  }
-
-  async function commitRename(folder: ImageFolder) {
-    const name = renameValue.trim();
-    setRenamingId(null);
-    if (!name || name === folder.name) return;
-    setFolders((prev) => prev.map((f) => (f.id === folder.id ? { ...f, name } : f)));
+  async function renameFolder(id: string, name: string) {
+    const folder = folders.find((f) => f.id === id);
+    if (!folder) return;
+    setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
     const supabase = createClient();
-    const { error } = await supabase.from("image_folders").update({ name }).eq("id", folder.id);
+    const { error } = await supabase.from("image_folders").update({ name }).eq("id", id);
     if (error) {
-      setFolders((prev) => prev.map((f) => (f.id === folder.id ? { ...f, name: folder.name } : f)));
+      setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name: folder.name } : f)));
       toast.error("Erro ao renomear a pasta. Tente novamente.");
     }
   }
 
-  async function moveFolder(folder: ImageFolder, direction: -1 | 1) {
+  async function moveFolder(id: string, direction: -1 | 1) {
+    const folder = folders.find((f) => f.id === id);
+    if (!folder) return;
     const siblings = folders.filter((f) => f.parent_id === folder.parent_id).sort((a, b) => a.position - b.position);
     const index = siblings.findIndex((f) => f.id === folder.id);
     const target = index + direction;
@@ -175,361 +172,270 @@ export function BibliotecaImagensClient({
     if (results.some((r) => r.error)) toast.error("Erro ao reordenar as pastas. Tente novamente.");
   }
 
-  async function handleDeleteFolder(folder: ImageFolder) {
+  async function deleteFolder(id: string) {
+    const folder = folders.find((f) => f.id === id);
+    if (!folder) return;
     const ok = await confirm({
-      title: "Excluir pasta",
-      description: `Excluir a pasta "${folder.name}"? Subpastas dentro dela também são excluídas — as imagens (dela e das subpastas) voltam pra "Sem pasta", nenhuma imagem é apagada.`,
+      title: folder.parent_id ? "Excluir subpasta" : "Excluir pasta",
+      description: `Excluir "${folder.name}"? Subpastas dentro dela também são excluídas — as imagens voltam pra "Sem pasta", nenhuma imagem é apagada.`,
       confirmLabel: "Excluir",
       danger: true,
     });
     if (!ok) return;
     const supabase = createClient();
-    const { error } = await supabase.from("image_folders").delete().eq("id", folder.id);
+    const { error } = await supabase.from("image_folders").delete().eq("id", id);
     if (error) {
       toast.error("Erro ao excluir a pasta. Tente novamente.");
       return;
     }
     // O banco já derruba as subpastas em cascata e solta o folder_id das
     // imagens (on delete cascade / set null) — replica isso no estado local.
-    const removedIds = new Set([folder.id, ...folders.filter((f) => f.parent_id === folder.id).map((f) => f.id)]);
+    const removedIds = new Set([id, ...folders.filter((f) => f.parent_id === id).map((f) => f.id)]);
     setFolders((prev) => prev.filter((f) => !removedIds.has(f.id)));
     setImages((prev) => prev.map((img) => (img.folder_id && removedIds.has(img.folder_id) ? { ...img, folder_id: null } : img)));
-    if (mobileFolderId && removedIds.has(mobileFolderId)) setMobileFolderId(UNFILED_ID);
   }
 
-  function renderImageGrid(dropId: string, items: GeneratedImage[]) {
+  function grade(dropId: string, items: GeneratedImage[]) {
     if (items.length === 0) {
       return (
-        <p className="rounded-input border border-dashed border-border-strong px-3 py-8 text-center text-[11px] text-text-tertiary">
-          {dragOverFolderId === dropId ? "Solte aqui" : "Vazia."}
-        </p>
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border-strong px-4 py-10 text-center">
+          <ImageOff size={18} className="text-text-muted" />
+          <p className="text-[13px] text-text-secondary">
+            {draggingImageId ? "Solte a imagem numa aba ou pílula pra mover." : "Nenhuma imagem aqui ainda."}
+          </p>
+          {dropId === UNFILED_ID && !draggingImageId && (
+            <p className="max-w-[48ch] text-[12px] text-text-muted">
+              Imagem gerada em qualquer módulo cai aqui. Depois é só arrastar até a aba da pasta certa.
+            </p>
+          )}
+        </div>
       );
     }
     return (
-      <div className="grid grid-cols-3 gap-1.5">
-        {items.map((img) => {
-          const canDelete = true;
-          return (
-            <button
-              key={img.id}
-              type="button"
-              draggable
-              onDragStart={(e) => {
-                setDraggingImageId(img.id);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onDragEnd={() => {
-                setDraggingImageId(null);
-                setDragOverFolderId(null);
-              }}
-              onClick={() => setPreviewImage(img)}
-              className={cn(
-                "group relative overflow-hidden rounded-lg border border-border text-left transition-opacity",
-                "cursor-grab active:cursor-grabbing",
-                draggingImageId === img.id ? "opacity-40" : ""
-              )}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.image_url} alt={img.prompt} className="aspect-square w-full object-cover" />
-              <div className="absolute inset-0 flex flex-col justify-between bg-black/70 p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                <p className="line-clamp-3 text-[9px] text-white/90">{img.prompt}</p>
-                <div className="flex items-center justify-between gap-1">
-                  <span className="truncate rounded-button bg-white/10 px-1 py-0.5 text-[8px] text-white/70">
-                    {ORIGIN_LABEL[img.context_type]} · {QUALITY_LABEL[img.quality] ?? img.quality}
-                  </span>
-                  {canDelete && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(img.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.stopPropagation();
-                          handleDelete(img.id);
-                        }
-                      }}
-                      aria-disabled={deletingId === img.id}
-                      title="Excluir"
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-danger aria-disabled:opacity-50"
-                    >
-                      <Trash2 size={10} />
-                    </span>
-                  )}
-                </div>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8">
+        {items.map((img) => (
+          <button
+            key={img.id}
+            type="button"
+            draggable
+            onDragStart={(e) => {
+              setDraggingImageId(img.id);
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onDragEnd={() => {
+              setDraggingImageId(null);
+              setDragOverSubId(null);
+            }}
+            onClick={() => setPreviewImage(img)}
+            className={cn(
+              "group relative cursor-grab overflow-hidden rounded-xl border border-border bg-card text-left transition-opacity active:cursor-grabbing",
+              draggingImageId === img.id ? "opacity-40" : ""
+            )}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.image_url} alt={img.prompt} className="aspect-square w-full object-cover" />
+            <span className="absolute left-1.5 top-1.5 rounded-md bg-black/60 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100">
+              <GripVertical size={12} />
+            </span>
+            <div className="absolute inset-0 flex flex-col justify-between bg-black/70 p-2 opacity-0 transition-opacity group-hover:opacity-100">
+              <p className="line-clamp-3 pl-5 text-[10px] text-white/90">{img.prompt}</p>
+              <div className="flex items-center justify-between gap-1">
+                <span className="truncate rounded-md bg-white/10 px-1.5 py-0.5 text-[9px] text-white/80">
+                  {ORIGIN_LABEL[img.context_type]} · {QUALITY_LABEL[img.quality] ?? img.quality}
+                </span>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(img.id);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.stopPropagation();
+                      handleDelete(img.id);
+                    }
+                  }}
+                  aria-disabled={deletingId === img.id}
+                  title="Excluir imagem"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-danger aria-disabled:opacity-50"
+                >
+                  <Trash2 size={11} />
+                </span>
               </div>
-            </button>
-          );
-        })}
+            </div>
+          </button>
+        ))}
       </div>
     );
   }
 
-  function renderColumn(id: string, name: string, folder: ImageFolder | null, strong?: boolean) {
-    const items = byFolder[id] ?? [];
-    const children = childrenByParent[id] ?? [];
-    const hasChildren = children.length > 0;
-    return (
-      <div
-        key={id}
-        onDragOver={(e) => {
-          if (hasChildren || !draggingImageId) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-          if (dragOverFolderId !== id) setDragOverFolderId(id);
-        }}
-        onDragLeave={(e) => {
-          if (hasChildren) return;
-          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-          setDragOverFolderId((prev) => (prev === id ? null : prev));
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          if (hasChildren) return;
-          handleDropOnFolder(id);
-        }}
-        className={cn(
-          "flex w-full min-h-0 shrink-0 flex-col overflow-hidden rounded-card p-3 transition-shadow sm:w-80",
-          dragOverFolderId === id
-            ? "bg-accent-soft shadow-[0_0_0_1.5px_var(--accent)]"
-            : strong
-              ? "bg-card-hover shadow-card"
-              : "bg-card shadow-card"
-        )}
-      >
-        <div className="mb-3 flex items-center justify-between gap-1">
-          {renamingId === id ? (
-            <div className="flex flex-1 items-center gap-1">
-              <Input
-                autoFocus
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") commitRename(folder as ImageFolder);
-                  if (e.key === "Escape") setRenamingId(null);
-                }}
-                className="h-7 text-xs"
-              />
-              <IconButton onClick={() => commitRename(folder as ImageFolder)} label="Confirmar">
-                <Check size={13} />
-              </IconButton>
-              <IconButton onClick={() => setRenamingId(null)} label="Cancelar">
-                <X size={13} />
-              </IconButton>
-            </div>
-          ) : (
-            <h2 className="flex min-w-0 items-center gap-2 text-sm font-medium text-text-primary">
-              {id === UNFILED_ID && <FolderOpen size={14} className="shrink-0 text-text-muted" />}
-              <span className="truncate">{name}</span>
-              <span className="shrink-0 rounded-button bg-accent/15 px-1.5 py-0.5 text-[11px] font-medium text-accent-text">
-                {hasChildren ? children.length : items.length}
-              </span>
-            </h2>
-          )}
+  // ── conteúdo da pasta aberta ──
+  const filhos = ativa === UNFILED_ID ? [] : (childrenByParent[ativa] ?? []);
+  const soltas = byFolder[ativa] ?? [];
+  // Com subpastas, a primeira pílula é "Nesta pasta" (as imagens soltas
+  // direto nela) só quando existe alguma — senão abre na primeira subpasta.
+  const opcoesSub = [
+    ...(soltas.length > 0 ? [{ id: ativa, nome: "Nesta pasta", total: soltas.length, ehRaiz: true }] : []),
+    ...filhos.map((f) => ({ id: f.id, nome: f.name, total: byFolder[f.id]?.length ?? 0, ehRaiz: false })),
+  ];
+  const subEscolhida = subAberta[ativa];
+  const subAtual =
+    filhos.length > 0 ? (opcoesSub.find((o) => o.id === subEscolhida) ?? opcoesSub[0] ?? null) : null;
+  const pastaDaSub = subAtual && !subAtual.ehRaiz ? folders.find((f) => f.id === subAtual.id) : null;
+  const posSub = pastaDaSub ? filhos.findIndex((f) => f.id === pastaDaSub.id) : -1;
 
-          {renamingId !== id && folder && (
-            <div className="flex shrink-0 items-center gap-0.5">
-              <IconButton onClick={() => moveFolder(folder, -1)} label="Mover pra esquerda">
-                <ChevronLeft size={13} />
-              </IconButton>
-              <IconButton onClick={() => moveFolder(folder, 1)} label="Mover pra direita">
-                <ChevronRight size={13} />
-              </IconButton>
-              <IconButton onClick={() => startRename(folder)} label="Renomear pasta">
-                <Pencil size={13} />
-              </IconButton>
-              <IconButton onClick={() => handleDeleteFolder(folder)} label="Excluir pasta" danger>
-                <Trash2 size={13} />
-              </IconButton>
-            </div>
-          )}
-        </div>
-
-        <div className="max-h-[calc(100vh-320px)] overflow-y-auto pr-0.5">
-          {hasChildren ? (
-            <div className="flex flex-col gap-1.5">
-              {children.map((child) => {
-                const isOpen = expandedSubfolders[id] === child.id;
-                const childItems = byFolder[child.id] ?? [];
-                return (
-                  <div key={child.id} className="rounded-lg bg-card shadow-card-sm">
-                    <div
-                      onDragOver={(e) => {
-                        if (!draggingImageId) return;
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                        if (dragOverFolderId !== child.id) setDragOverFolderId(child.id);
-                      }}
-                      onDragLeave={(e) => {
-                        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-                        setDragOverFolderId((prev) => (prev === child.id ? null : prev));
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        handleDropOnFolder(child.id);
-                      }}
-                      className={cn(
-                        "flex items-center justify-between gap-1 rounded-lg px-2 py-1.5 transition-colors",
-                        dragOverFolderId === child.id ? "bg-accent/10" : "hover:bg-card-hover"
-                      )}
-                    >
-                      {renamingId === child.id ? (
-                        <div className="flex flex-1 items-center gap-1">
-                          <Input
-                            autoFocus
-                            value={renameValue}
-                            onChange={(e) => setRenameValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") commitRename(child);
-                              if (e.key === "Escape") setRenamingId(null);
-                            }}
-                            className="h-7 text-xs"
-                          />
-                          <IconButton onClick={() => commitRename(child)} label="Confirmar">
-                            <Check size={13} />
-                          </IconButton>
-                          <IconButton onClick={() => setRenamingId(null)} label="Cancelar">
-                            <X size={13} />
-                          </IconButton>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedSubfolders((prev) => ({ ...prev, [id]: isOpen ? null : child.id }))
-                          }
-                          className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-xs font-medium text-text-primary"
-                        >
-                          <ChevronRight
-                            size={13}
-                            className={cn("shrink-0 text-text-muted transition-transform", isOpen && "rotate-90")}
-                          />
-                          <span className="truncate">{child.name}</span>
-                          <span className="shrink-0 rounded-button bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-accent-text">
-                            {childItems.length}
-                          </span>
-                        </button>
-                      )}
-
-                      {renamingId !== child.id && (
-                        <div className="flex shrink-0 items-center gap-0.5">
-                          <IconButton onClick={() => moveFolder(child, -1)} label="Mover pra cima">
-                            <ChevronUp size={13} />
-                          </IconButton>
-                          <IconButton onClick={() => moveFolder(child, 1)} label="Mover pra baixo">
-                            <ChevronDown size={13} />
-                          </IconButton>
-                          <IconButton onClick={() => startRename(child)} label="Renomear subpasta">
-                            <Pencil size={13} />
-                          </IconButton>
-                          <IconButton onClick={() => handleDeleteFolder(child)} label="Excluir subpasta" danger>
-                            <Trash2 size={13} />
-                          </IconButton>
-                        </div>
-                      )}
-                    </div>
-                    {isOpen && <div className="border-t border-border p-2">{renderImageGrid(child.id, childItems)}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            renderImageGrid(id, items)
-          )}
-        </div>
-      </div>
-    );
+  function confirmarRenomeSub() {
+    const nome = nomeSub.trim();
+    if (pastaDaSub && nome && nome !== pastaDaSub.name) renameFolder(pastaDaSub.id, nome);
+    setRenomeandoSub(null);
   }
-
-  const mobileColumns = [{ id: UNFILED_ID, name: "Sem pasta" }, ...topFolders.map((f) => ({ id: f.id, name: f.name }))];
-  const mobileFolder = mobileColumns.find((c) => c.id === mobileFolderId) ?? mobileColumns[0];
 
   return (
     <div>
-      {(
-        <div className="mb-3 flex justify-end">
-          {addingFolder ? (
-            <div className="flex items-center gap-1">
-              <Input
-                ref={newFolderInputRef}
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddFolder();
-                  if (e.key === "Escape") setAddingFolder(false);
-                }}
-                placeholder="Nome da pasta (ex: PEPE)"
-                className="h-9 w-44 text-sm"
-              />
-              <Button type="button" size="sm" onClick={handleAddFolder}>
-                Criar
-              </Button>
-              <Button type="button" variant="secondary" size="sm" onClick={() => setAddingFolder(false)}>
-                Cancelar
-              </Button>
+      <AbasDePastas
+        abas={[
+          { id: UNFILED_ID, nome: "Sem pasta", total: byFolder[UNFILED_ID]?.length ?? 0, fixa: true, icone: Inbox },
+          ...topFolders.map((f) => ({ id: f.id, nome: f.name, total: totalDaPasta(f.id) })),
+        ]}
+        ativa={ativa}
+        onTrocar={setAtiva}
+        onCriar={handleAddFolder}
+        onRenomear={renameFolder}
+        onMover={moveFolder}
+        onExcluir={deleteFolder}
+        arrastando={draggingImageId !== null}
+        onSoltar={(id) => {
+          // Soltar numa aba com subpastas guarda a imagem na própria pasta
+          // (aparece em "Nesta pasta") — dá pra mover pra uma subpasta depois.
+          handleDropOnFolder(id);
+        }}
+        placeholderNova="Nome da pasta (ex: PEPE)"
+      >
+        {filhos.length > 0 && subAtual && (
+          <div className="mb-4 space-y-2.5">
+            <div role="tablist" aria-label="Subpastas" className="flex flex-wrap gap-1.5">
+              {opcoesSub.map((o) => {
+                const ehAtual = o.id === subAtual.id;
+                const soltandoAqui = draggingImageId !== null && dragOverSubId === o.id;
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={ehAtual}
+                    onClick={() => setSubAberta((prev) => ({ ...prev, [ativa]: o.id }))}
+                    onDragOver={(e) => {
+                      if (!draggingImageId) return;
+                      e.preventDefault();
+                      if (dragOverSubId !== o.id) setDragOverSubId(o.id);
+                    }}
+                    onDragLeave={() => setDragOverSubId((prev) => (prev === o.id ? null : prev))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      handleDropOnFolder(o.id);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-medium transition-colors",
+                      soltandoAqui
+                        ? "border-accent bg-accent-soft text-text-primary"
+                        : ehAtual
+                          ? "border-border-strong bg-card text-text-primary"
+                          : "border-border text-text-tertiary hover:bg-card hover:text-text-secondary"
+                    )}
+                  >
+                    {o.nome}
+                    <span className="rounded bg-input px-1 text-[10px] tabular-nums text-text-tertiary">{o.total}</span>
+                  </button>
+                );
+              })}
             </div>
-          ) : (
-            <Button type="button" variant="secondary" size="sm" onClick={() => setAddingFolder(true)}>
-              <Plus size={14} />
-              Nova pasta
-            </Button>
-          )}
-        </div>
-      )}
 
-      {/* Mobile: uma pasta por vez, escolhida num dropdown */}
-      <div className="sm:hidden">
-        <Select value={mobileFolderId} onChange={(e) => setMobileFolderId(e.target.value)}>
-          {mobileColumns.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} ({(byFolder[c.id] ?? []).length})
-            </option>
-          ))}
-        </Select>
-        {mobileFolder && (
-          <div className="mt-3">
-            {renderColumn(
-              mobileFolder.id,
-              mobileFolder.name,
-              mobileFolder.id === UNFILED_ID ? null : (topFolders.find((f) => f.id === mobileFolder.id) ?? null),
-              true
+            {pastaDaSub && (
+              <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-text-tertiary">
+                <span>Subpasta:</span>
+                {renomeandoSub === pastaDaSub.id ? (
+                  <span className="flex items-center gap-1">
+                    <input
+                      autoFocus
+                      value={nomeSub}
+                      onChange={(e) => setNomeSub(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") confirmarRenomeSub();
+                        if (e.key === "Escape") setRenomeandoSub(null);
+                      }}
+                      className="h-7 w-44 rounded-input bg-input px-2 text-[12px] text-text-primary outline-none focus:shadow-[0_0_0_2px_var(--accent)]"
+                    />
+                    <MiniBotao rotulo="Salvar nome" onClick={confirmarRenomeSub}>
+                      <Check size={13} />
+                    </MiniBotao>
+                    <MiniBotao rotulo="Cancelar" onClick={() => setRenomeandoSub(null)}>
+                      <X size={13} />
+                    </MiniBotao>
+                  </span>
+                ) : (
+                  <>
+                    <span className="font-medium text-text-secondary">{pastaDaSub.name}</span>
+                    <MiniBotao
+                      rotulo="Renomear subpasta"
+                      onClick={() => {
+                        setNomeSub(pastaDaSub.name);
+                        setRenomeandoSub(pastaDaSub.id);
+                      }}
+                    >
+                      <Pencil size={12} />
+                    </MiniBotao>
+                    <MiniBotao rotulo="Mover subpasta para a esquerda" onClick={() => moveFolder(pastaDaSub.id, -1)} disabled={posSub <= 0}>
+                      <ArrowLeft size={12} />
+                    </MiniBotao>
+                    <MiniBotao
+                      rotulo="Mover subpasta para a direita"
+                      onClick={() => moveFolder(pastaDaSub.id, 1)}
+                      disabled={posSub >= filhos.length - 1}
+                    >
+                      <ArrowRight size={12} />
+                    </MiniBotao>
+                    <MiniBotao rotulo="Excluir subpasta" onClick={() => deleteFolder(pastaDaSub.id)} perigo>
+                      <Trash2 size={12} />
+                    </MiniBotao>
+                  </>
+                )}
+              </div>
             )}
           </div>
         )}
-      </div>
 
-      {/* Desktop/tablet: pastas lado a lado, rolando na horizontal */}
-      <div className="hidden gap-4 overflow-x-auto pb-2 sm:flex">
-        {renderColumn(UNFILED_ID, "Sem pasta", null)}
-        {topFolders.map((folder) => renderColumn(folder.id, folder.name, folder))}
-      </div>
+        {filhos.length > 0 && subAtual ? grade(subAtual.id, byFolder[subAtual.id] ?? []) : grade(ativa, soltas)}
+      </AbasDePastas>
 
       <ImagePreviewModal image={previewImage} onClose={() => setPreviewImage(null)} />
     </div>
   );
 }
 
-function IconButton({
-  children,
+function MiniBotao({
+  rotulo,
   onClick,
-  label,
-  danger,
+  disabled,
+  perigo,
+  children,
 }: {
-  children: React.ReactNode;
+  rotulo: string;
   onClick: () => void;
-  label: string;
-  danger?: boolean;
+  disabled?: boolean;
+  perigo?: boolean;
+  children: React.ReactNode;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      title={label}
-      aria-label={label}
+      disabled={disabled}
+      title={rotulo}
+      aria-label={rotulo}
       className={cn(
-        "flex h-6 w-6 items-center justify-center rounded-lg hover:bg-card-hover",
-        danger ? "text-text-tertiary hover:text-danger" : "text-text-tertiary hover:text-text-primary"
+        "flex h-6 w-6 items-center justify-center rounded-md transition-colors hover:bg-card-hover disabled:pointer-events-none disabled:opacity-35",
+        perigo ? "text-text-tertiary hover:text-danger" : "text-text-tertiary hover:text-text-primary"
       )}
     >
       {children}

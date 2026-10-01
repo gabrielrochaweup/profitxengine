@@ -30,7 +30,7 @@ export default async function PromptsPage() {
     <PageContainer largura="amplo">
       <PageHeader
         titulo="Biblioteca de Prompts"
-        descricao="Prompts reutilizáveis nos módulos de conversas, calendário de engajamento e e-mails. As colunas são personalizáveis por quem é admin."
+        descricao="Prompts reutilizáveis nos módulos de conversas, calendário de engajamento e e-mails, organizados em pastas. Arraste um prompt até uma aba pra mudar de pasta."
       />
       <PromptsClient
         key={activeProduct?.id ?? "none"}

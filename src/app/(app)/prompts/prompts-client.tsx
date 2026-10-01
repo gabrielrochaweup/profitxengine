@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Search, Pencil, Copy, Trash2, ChevronLeft, ChevronRight, Check, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Plus, Search, Pencil, Copy, Trash2, GripVertical, FolderPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { ActionBar, EmptyState } from "@/components/ui/page";
+import { EmptyState } from "@/components/ui/page";
+import { AbasDePastas, usePastaNaUrl } from "@/components/ui/abas-de-pastas";
 import { useActiveProduct } from "@/components/layout/active-product-context";
 import type { Database } from "@/lib/supabase/types";
 import { PromptForm } from "./prompt-form";
@@ -24,6 +23,12 @@ interface PromptsClientProps {
   currentUserId: string;
 }
 
+/*
+  Biblioteca de prompts em PASTAS (abas): uma pasta aberta por vez, com os
+  prompts dela em grade. As "colunas" de antes continuam sendo as mesmas
+  categorias no banco (prompt_categories) — só mudou o jeito de mostrar.
+  Arrastar um prompt pra cima de uma aba move ele pra aquela pasta.
+*/
 export function PromptsClient({ initialPrompts, initialCategories, currentUserId }: PromptsClientProps) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -35,17 +40,10 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
   const [newPromptCategoryId, setNewPromptCategoryId] = useState<string | undefined>(undefined);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null);
-  const [mobileCategoryId, setMobileCategoryId] = useState<string>(initialCategories[0]?.id ?? "");
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const [addingColumn, setAddingColumn] = useState(false);
-  const [newColumnName, setNewColumnName] = useState("");
-  const newColumnInputRef = useRef<HTMLInputElement>(null);
+  const [ativaDaUrl, setAtiva] = usePastaNaUrl(initialCategories[0]?.id ?? "");
 
-  useEffect(() => {
-    if (addingColumn) newColumnInputRef.current?.focus();
-  }, [addingColumn]);
+  // Pasta da URL que não existe mais (excluída, link velho) cai na primeira.
+  const ativa = categories.some((c) => c.id === ativaDaUrl) ? ativaDaUrl : (categories[0]?.id ?? "");
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -68,13 +66,6 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
     });
     return map;
   }, [filtered, categories]);
-
-  // A biblioteca de prompts é da equipe: quem está aprovado cria, edita e
-  // organiza. Antes isto era "só admin", e o efeito não era proteção — era
-  // um editor olhando prompts que não conseguia corrigir.
-  function canEdit() {
-    return true;
-  }
 
   function openNew(categoryId: string) {
     setEditingPrompt(null);
@@ -128,14 +119,12 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
   }
 
   async function handleDropOnCategory(categoryId: string) {
-    setDragOverCategoryId(null);
     const promptId = draggingId;
     setDraggingId(null);
     if (!promptId) return;
 
     const prompt = prompts.find((p) => p.id === promptId);
     if (!prompt || prompt.category_id === categoryId) return;
-    if (!canEdit()) return;
 
     const previousCategoryId = prompt.category_id;
     setPrompts((prev) => prev.map((p) => (p.id === promptId ? { ...p, category_id: categoryId } : p)));
@@ -145,12 +134,14 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
     if (error) {
       setPrompts((prev) => prev.map((p) => (p.id === promptId ? { ...p, category_id: previousCategoryId } : p)));
       toast.error("Erro ao mover o prompt. Tente novamente.");
+      return;
     }
+    const destino = categories.find((c) => c.id === categoryId)?.name;
+    toast.success(`Prompt movido para "${destino}".`);
   }
 
-  async function handleAddColumn() {
-    const name = newColumnName.trim();
-    if (!name || !activeProductId) return;
+  async function handleAddCategory(name: string): Promise<boolean> {
+    if (!activeProductId) return false;
     const supabase = createClient();
     const { data, error } = await supabase
       .from("prompt_categories")
@@ -158,35 +149,30 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
       .select()
       .single();
     if (error || !data) {
-      toast.error("Erro ao criar a coluna. Tente novamente.");
-      return;
+      toast.error("Erro ao criar a pasta. Tente novamente.");
+      return false;
     }
     setCategories((prev) => [...prev, data]);
-    setNewColumnName("");
-    setAddingColumn(false);
+    setAtiva(data.id);
+    return true;
   }
 
-  function startRename(category: PromptCategoryRow) {
-    setRenamingId(category.id);
-    setRenameValue(category.name);
-  }
-
-  async function commitRename(category: PromptCategoryRow) {
-    const name = renameValue.trim();
-    setRenamingId(null);
-    if (!name || name === category.name) return;
-    setCategories((prev) => prev.map((c) => (c.id === category.id ? { ...c, name } : c)));
+  async function renameCategory(id: string, name: string) {
+    const category = categories.find((c) => c.id === id);
+    if (!category) return;
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)));
     const supabase = createClient();
-    const { error } = await supabase.from("prompt_categories").update({ name }).eq("id", category.id);
+    const { error } = await supabase.from("prompt_categories").update({ name }).eq("id", id);
     if (error) {
-      setCategories((prev) => prev.map((c) => (c.id === category.id ? { ...c, name: category.name } : c)));
-      toast.error("Erro ao renomear a coluna. Tente novamente.");
+      setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, name: category.name } : c)));
+      toast.error("Erro ao renomear a pasta. Tente novamente.");
     }
   }
 
-  async function moveColumn(index: number, direction: -1 | 1) {
+  async function moveCategory(id: string, direction: -1 | 1) {
+    const index = categories.findIndex((c) => c.id === id);
     const target = index + direction;
-    if (target < 0 || target >= categories.length) return;
+    if (index < 0 || target < 0 || target >= categories.length) return;
     const next = [...categories];
     [next[index], next[target]] = [next[target], next[index]];
     const withPositions = next.map((c, i) => ({ ...c, position: i }));
@@ -195,266 +181,167 @@ export function PromptsClient({ initialPrompts, initialCategories, currentUserId
     const results = await Promise.all(
       withPositions.map((c) => supabase.from("prompt_categories").update({ position: c.position }).eq("id", c.id))
     );
-    if (results.some((r) => r.error)) toast.error("Erro ao reordenar as colunas. Tente novamente.");
+    if (results.some((r) => r.error)) toast.error("Erro ao reordenar as pastas. Tente novamente.");
   }
 
-  async function handleDeleteColumn(category: PromptCategoryRow) {
-    if ((byCategory[category.id]?.length ?? 0) > 0) {
-      toast.error("Mova ou exclua os prompts dessa coluna antes de excluí-la.");
+  async function deleteCategory(id: string) {
+    const category = categories.find((c) => c.id === id);
+    if (!category) return;
+    // Conta os prompts da pasta sem o filtro da busca: uma busca ativa não
+    // pode fazer uma pasta cheia parecer vazia na hora de excluir.
+    if (prompts.some((p) => p.category_id === id)) {
+      toast.error("Mova ou exclua os prompts dessa pasta antes de excluí-la.");
       return;
     }
     const ok = await confirm({
-      title: "Excluir coluna",
-      description: `Excluir a coluna "${category.name}"?`,
+      title: "Excluir pasta",
+      description: `Excluir a pasta "${category.name}"?`,
       confirmLabel: "Excluir",
       danger: true,
     });
     if (!ok) return;
     const supabase = createClient();
-    const { error } = await supabase.from("prompt_categories").delete().eq("id", category.id);
+    const { error } = await supabase.from("prompt_categories").delete().eq("id", id);
     if (error) {
-      toast.error("Erro ao excluir a coluna. Tente novamente.");
+      toast.error("Erro ao excluir a pasta. Tente novamente.");
       return;
     }
-    setCategories((prev) => prev.filter((c) => c.id !== category.id));
-    if (mobileCategoryId === category.id) {
-      setMobileCategoryId(categories.find((c) => c.id !== category.id)?.id ?? "");
-    }
+    setCategories((prev) => prev.filter((c) => c.id !== id));
   }
 
-  function renderColumn(category: PromptCategoryRow, index: number, strong?: boolean) {
-    const items = byCategory[category.id] ?? [];
-    return (
-      <div
-        key={category.id}
-        onDragOver={(e) => {
-          if (!draggingId) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-          if (dragOverCategoryId !== category.id) setDragOverCategoryId(category.id);
-        }}
-        onDragLeave={(e) => {
-          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-          setDragOverCategoryId((prev) => (prev === category.id ? null : prev));
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          handleDropOnCategory(category.id);
-        }}
-        className={`flex w-full min-h-0 shrink-0 flex-col overflow-hidden rounded-card border p-3 transition-colors sm:w-72 ${
-          dragOverCategoryId === category.id
-            ? "border-accent bg-accent/5"
-            : strong
-              ? "border-border-strong bg-card-hover"
-              : "border-border bg-card"
-        }`}
-      >
-        <div className="-mx-3 -mt-3 mb-3 h-1.5 shrink-0 bg-accent" />
+  const itens = byCategory[ativa] ?? [];
+  const buscando = search.trim().length > 0;
+  const emOutras = buscando ? filtered.length - itens.length : 0;
 
-        <div className="mb-3 flex items-center justify-between gap-1 px-1">
-          {renamingId === category.id ? (
-            <div className="flex flex-1 items-center gap-1">
-              <Input
-                autoFocus
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") commitRename(category);
-                  if (e.key === "Escape") setRenamingId(null);
-                }}
-                className="h-7 text-xs"
-              />
-              <IconButton onClick={() => commitRename(category)} label="Confirmar">
-                <Check size={13} />
-              </IconButton>
-              <IconButton onClick={() => setRenamingId(null)} label="Cancelar">
-                <X size={13} />
-              </IconButton>
-            </div>
-          ) : (
-            <h2 className="flex min-w-0 items-center gap-2 text-sm font-medium text-text-primary">
-              <span className="truncate">{category.name}</span>
-              <span className="shrink-0 rounded-button bg-accent/15 px-1.5 py-0.5 text-[11px] font-medium text-accent-text">
-                {items.length}
-              </span>
-            </h2>
-          )}
-
-          {renamingId !== category.id && (
-            <div className="flex shrink-0 items-center gap-0.5">
-              {(
-                <>
-                  <IconButton onClick={() => moveColumn(index, -1)} label="Mover pra esquerda" tone="accent">
-                    <ChevronLeft size={13} />
-                  </IconButton>
-                  <IconButton onClick={() => moveColumn(index, 1)} label="Mover pra direita" tone="accent">
-                    <ChevronRight size={13} />
-                  </IconButton>
-                  <IconButton onClick={() => startRename(category)} label="Renomear coluna" tone="accent">
-                    <Pencil size={13} />
-                  </IconButton>
-                  <IconButton onClick={() => handleDeleteColumn(category)} label="Excluir coluna" danger>
-                    <Trash2 size={13} />
-                  </IconButton>
-                  <IconButton onClick={() => openNew(category.id)} label={`Novo prompt de ${category.name}`} tone="accent">
-                    <Plus size={14} />
-                  </IconButton>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="max-h-[calc(100vh-320px)] space-y-2.5 overflow-y-auto pr-0.5">
-          {items.length === 0 ? (
-            <p className="rounded-input border border-dashed border-border-strong px-3 py-6 text-center text-xs text-text-tertiary">
-              {dragOverCategoryId === category.id ? "Solte aqui" : "Nenhum prompt aqui ainda."}
-            </p>
-          ) : (
-            items.map((prompt) => (
-              <Card
-                key={prompt.id}
-                draggable={canEdit()}
-                onDragStart={(e) => {
-                  setDraggingId(prompt.id);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragEnd={() => {
-                  setDraggingId(null);
-                  setDragOverCategoryId(null);
-                }}
-                className={`border-accent/20 p-3 transition-opacity ${canEdit() ? "cursor-grab active:cursor-grabbing" : ""} ${
-                  draggingId === prompt.id ? "opacity-40" : ""
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-xs font-medium text-text-primary">{prompt.title}</h3>
-                  <Badge>{prompt.usage_count}x</Badge>
-                </div>
-
-                <p className="mt-1.5 line-clamp-4 text-xs text-text-secondary">{prompt.content}</p>
-
-                {prompt.tags && prompt.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {prompt.tags.map((tag) => (
-                      <span key={tag} className="rounded-button bg-card-hover px-1.5 py-0.5 text-[11px] text-text-tertiary">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-2 flex items-center justify-end gap-0.5 border-t border-border pt-2">
-                  <IconButton onClick={() => handleDuplicate(prompt)} label="Duplicar">
-                    <Copy size={13} />
-                  </IconButton>
-                  {canEdit() && (
-                    <>
-                      <IconButton
-                        onClick={() => {
-                          setEditingPrompt(prompt);
-                          setFormOpen(true);
-                        }}
-                        label="Editar"
-                      >
-                        <Pencil size={13} />
-                      </IconButton>
-                      <IconButton onClick={() => handleDelete(prompt)} label="Excluir" danger>
-                        <Trash2 size={13} />
-                      </IconButton>
-                    </>
-                  )}
-                </div>
-              </Card>
-            ))
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const mobileIndex = categories.findIndex((c) => c.id === mobileCategoryId);
-  const mobileCategory = categories[mobileIndex] ?? categories[0] ?? null;
+  const busca = (
+    <div className="relative w-full min-w-[200px] sm:w-64">
+      <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Buscar em todas as pastas…"
+        className="h-8 w-full rounded-input bg-input pl-8 pr-3 text-[12px] text-text-primary outline-none placeholder:text-text-muted transition-shadow focus:shadow-[0_0_0_2px_var(--accent)]"
+      />
+    </div>
+  );
 
   return (
     <div>
-      {/* Busca à esquerda, ação primária à direita — o mesmo desenho de barra
-          das outras listas do app. Antes o botão de criar coluna ficava colado
-          na busca, no meio da tela. */}
-      <ActionBar
-        acoes={
-          (addingColumn ? (
-            <div className="flex items-center gap-1">
-              <Input
-                ref={newColumnInputRef}
-                value={newColumnName}
-                onChange={(e) => setNewColumnName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddColumn();
-                  if (e.key === "Escape") setAddingColumn(false);
-                }}
-                placeholder="Nome da coluna"
-                className="h-9 w-40 text-sm"
-              />
-              <Button type="button" size="sm" onClick={handleAddColumn}>
-                Criar
-              </Button>
-              <Button type="button" variant="secondary" size="sm" onClick={() => setAddingColumn(false)}>
-                Cancelar
-              </Button>
-            </div>
-          ) : (
-            <Button type="button" variant="secondary" size="sm" onClick={() => setAddingColumn(true)}>
-              <Plus size={14} />
-              Nova coluna
-            </Button>
-          ))
-        }
-        filtros={
-          // flex-1 com um piso: encolhe junto com a barra, mas nunca vira uma
-          // caixinha de 60px quando o botão da direita cresce.
-          <div className="relative min-w-[220px] max-w-sm flex-1">
-            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por título, conteúdo ou tag..."
-              className="h-9 w-full rounded-input bg-input pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--accent)]"
-            />
-          </div>
-        }
-      />
-
       {categories.length === 0 ? (
         <EmptyState
-          titulo="Nenhuma coluna ainda"
-          descricao="As colunas organizam os prompts por assunto — conversas, e-mails, criativos. Crie a primeira pra começar a guardar."
+          icone={FolderPlus}
+          titulo="Nenhuma pasta ainda"
+          descricao="As pastas organizam os prompts por assunto — conversas, e-mails, criativos. Crie a primeira pra começar a guardar."
           acao={
-            <Button type="button" onClick={() => setAddingColumn(true)}>
+            <Button
+              type="button"
+              onClick={async () => {
+                await handleAddCategory("Geral");
+              }}
+            >
               <Plus size={14} />
-              Nova coluna
+              Criar pasta “Geral”
             </Button>
           }
         />
       ) : (
-        <>
-          {/* Mobile: uma categoria por vez, escolhida num dropdown */}
-          <div className="mt-4 sm:hidden">
-            <Select value={mobileCategoryId} onChange={(e) => setMobileCategoryId(e.target.value)}>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name} ({(byCategory[category.id] ?? []).length})
-                </option>
-              ))}
-            </Select>
-            {mobileCategory && <div className="mt-3">{renderColumn(mobileCategory, mobileIndex, true)}</div>}
-          </div>
+        <AbasDePastas
+          abas={categories.map((c) => ({ id: c.id, nome: c.name, total: (byCategory[c.id] ?? []).length }))}
+          ativa={ativa}
+          onTrocar={setAtiva}
+          onCriar={handleAddCategory}
+          onRenomear={renameCategory}
+          onMover={moveCategory}
+          onExcluir={deleteCategory}
+          arrastando={draggingId !== null}
+          onSoltar={handleDropOnCategory}
+          ferramentas={busca}
+          acoesDaAba={
+            <Button type="button" size="sm" onClick={() => openNew(ativa)}>
+              <Plus size={14} />
+              Novo prompt
+            </Button>
+          }
+        >
+          {buscando && emOutras > 0 && (
+            <p className="mb-3 text-[12px] text-text-tertiary">
+              Mais {emOutras} {emOutras === 1 ? "resultado" : "resultados"} em outras pastas — o número em cada aba mostra
+              onde.
+            </p>
+          )}
 
-          {/* Desktop/tablet: board com as colunas lado a lado, rolando na horizontal */}
-          <div className="mt-4 hidden gap-4 overflow-x-auto pb-2 sm:flex">
-            {categories.map((category, index) => renderColumn(category, index))}
-          </div>
-        </>
+          {itens.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border-strong px-4 py-10 text-center">
+              <p className="text-[13px] text-text-secondary">
+                {buscando ? "Nenhum prompt desta pasta bate com a busca." : "Nenhum prompt nesta pasta ainda."}
+              </p>
+              {!buscando && (
+                <Button type="button" size="sm" variant="secondary" className="mt-3" onClick={() => openNew(ativa)}>
+                  <Plus size={14} />
+                  Criar o primeiro
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              {itens.map((prompt) => (
+                <Card
+                  key={prompt.id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDraggingId(prompt.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragEnd={() => setDraggingId(null)}
+                  className={`group flex flex-col p-3.5 transition-opacity ${draggingId === prompt.id ? "opacity-40" : ""}`}
+                >
+                  <div className="flex items-start gap-2">
+                    <span
+                      title="Arraste até uma aba pra mudar de pasta"
+                      className="mt-0.5 shrink-0 cursor-grab text-text-muted opacity-60 transition-opacity active:cursor-grabbing group-hover:opacity-100"
+                    >
+                      <GripVertical size={14} />
+                    </span>
+                    <h3 className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-text-primary">{prompt.title}</h3>
+                    <Badge>{prompt.usage_count}x</Badge>
+                  </div>
+
+                  <p className="mt-2 line-clamp-4 text-xs leading-relaxed text-text-secondary">{prompt.content}</p>
+
+                  {prompt.tags && prompt.tags.length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap gap-1">
+                      {prompt.tags.map((tag) => (
+                        <span key={tag} className="rounded-md bg-input px-1.5 py-0.5 text-[11px] text-text-tertiary">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Empurra as ações pro rodapé: cartões da mesma linha alinham embaixo. */}
+                  <div className="flex-1" />
+                  <div className="mt-3 flex items-center justify-end gap-0.5 border-t border-border pt-2.5">
+                    <IconButton onClick={() => handleDuplicate(prompt)} label="Duplicar">
+                      <Copy size={13} />
+                    </IconButton>
+                    <IconButton
+                      onClick={() => {
+                        setEditingPrompt(prompt);
+                        setFormOpen(true);
+                      }}
+                      label="Editar"
+                    >
+                      <Pencil size={13} />
+                    </IconButton>
+                    <IconButton onClick={() => handleDelete(prompt)} label="Excluir" danger>
+                      <Trash2 size={13} />
+                    </IconButton>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </AbasDePastas>
       )}
 
       <PromptForm
@@ -478,25 +365,20 @@ function IconButton({
   onClick,
   label,
   danger,
-  tone,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   label: string;
   danger?: boolean;
-  tone?: "accent";
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       title={label}
       aria-label={label}
       className={`flex h-7 w-7 items-center justify-center rounded-lg hover:bg-card-hover ${
-        danger
-          ? "text-text-tertiary hover:text-danger"
-          : tone === "accent"
-            ? "text-accent-text/70 hover:text-accent-text"
-            : "text-text-tertiary hover:text-text-primary"
+        danger ? "text-text-tertiary hover:text-danger" : "text-text-tertiary hover:text-text-primary"
       }`}
     >
       {children}

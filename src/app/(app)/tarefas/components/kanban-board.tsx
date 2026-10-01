@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, X, Clock, Paperclip } from "lucide-react";
+import { Plus, Clock, Paperclip, ListChecks, Pencil, ArrowLeft, ArrowRight, Trash2, Inbox, Columns3 } from "lucide-react";
+import { MenuMais, ItemMenu } from "@/components/ui/menu-mais";
 import {
   DndContext,
   DragOverlay,
@@ -178,7 +179,7 @@ export function KanbanBoard({
         {canEdit && (
           <div className="w-72 shrink-0">
             {addingColumn ? (
-              <div className="flex items-center gap-2 rounded-xl border border-border-strong bg-card p-2">
+              <div className="flex items-center gap-2 rounded-2xl border border-border-strong bg-card p-2 shadow-card">
                 <Input
                   autoFocus
                   value={newColumnName}
@@ -211,9 +212,11 @@ export function KanbanBoard({
               <button
                 type="button"
                 onClick={() => setAddingColumn(true)}
-                className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border-strong px-3 py-2.5 text-sm text-text-secondary hover:bg-card-hover"
+                className="flex w-full items-center gap-2.5 rounded-2xl border border-dashed border-border-strong px-3 py-3 text-[13px] font-medium text-text-secondary transition-colors hover:border-accent hover:bg-card hover:text-accent-text"
               >
-                <Plus size={16} />
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-input">
+                  <Columns3 size={14} />
+                </span>
                 Nova coluna
               </button>
             )}
@@ -236,7 +239,7 @@ export function KanbanBoard({
 function TaskCardPreview({ task, attachmentCount }: { task: Task; attachmentCount: number }) {
   const urgency = getUrgencyLevel(task.due_at, task.completed);
   return (
-    <div className="flex w-72 cursor-grabbing items-start gap-2 rounded-lg border border-accent bg-card px-2.5 py-2 text-sm shadow-popover">
+    <div className="flex w-72 cursor-grabbing items-start gap-2 rounded-xl border border-accent bg-card px-3 py-2.5 text-[13px] shadow-popover">
       <div className="min-w-0 flex-1">
         <p className={cn("truncate text-text-primary", task.completed && "line-through")}>{task.title}</p>
         {task.due_at && (
@@ -297,60 +300,111 @@ function KanbanColumn({
     setNewTaskTitle("");
   }
 
+  const feitas = tasks.filter((t) => t.completed).length;
+
   return (
-    <div className="w-72 shrink-0 rounded-xl bg-card shadow-card-sm p-3">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        {editingName ? (
-          <Input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => {
-              onRename(name.trim() || column.name);
-              setEditingName(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-            }}
-            className="h-7 text-sm"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => canEdit && setEditingName(true)}
-            className="flex-1 truncate text-left text-sm font-medium text-text-primary"
-          >
-            {column.name} <span className="text-text-muted">({tasks.length})</span>
-          </button>
-        )}
-        {canEdit && !editingName && (
-          <div className="flex shrink-0 items-center gap-0.5">
+    <div className="flex w-72 shrink-0 flex-col rounded-2xl border border-border bg-card p-3 shadow-card">
+      {/* Cabeçalho: ícone + nome + quantas já foram feitas, e as ações da
+          coluna num menu com o nome de cada uma — antes eram três ícones
+          soltos (‹ › ×) e o × parecia "fechar", não "excluir". */}
+      <div className="mb-3">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-input text-text-tertiary">
+            <ListChecks size={14} />
+          </span>
+          {editingName ? (
+            <Input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => {
+                onRename(name.trim() || column.name);
+                setEditingName(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape") {
+                  setName(column.name);
+                  setEditingName(false);
+                }
+              }}
+              className="h-7 text-sm"
+            />
+          ) : (
             <button
               type="button"
-              disabled={isFirst}
-              onClick={() => onMove(-1)}
-              title="Mover coluna pra esquerda"
-              className="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-card-hover disabled:opacity-30"
+              onClick={() => canEdit && setEditingName(true)}
+              title={canEdit ? "Clique pra renomear" : undefined}
+              className="min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-text-primary"
             >
-              <ChevronLeft size={14} />
+              {column.name}
             </button>
-            <button
-              type="button"
-              disabled={isLast}
-              onClick={() => onMove(1)}
-              title="Mover coluna pra direita"
-              className="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-card-hover disabled:opacity-30"
+          )}
+          {!editingName && (
+            <span
+              title={`${feitas} de ${tasks.length} feitas`}
+              className="shrink-0 rounded-md bg-input px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-text-tertiary"
             >
-              <ChevronRight size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={onDelete}
-              title="Excluir coluna"
-              className="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-card-hover hover:text-danger"
-            >
-              <X size={14} />
-            </button>
+              {feitas}/{tasks.length}
+            </span>
+          )}
+          {canEdit && !editingName && (
+            <MenuMais label={`Ações da coluna ${column.name}`}>
+              {(fechar) => (
+                <>
+                  <ItemMenu
+                    icone={<Pencil size={13} />}
+                    onClick={() => {
+                      fechar();
+                      setName(column.name);
+                      setEditingName(true);
+                    }}
+                  >
+                    Renomear coluna
+                  </ItemMenu>
+                  {!isFirst && (
+                    <ItemMenu
+                      icone={<ArrowLeft size={13} />}
+                      onClick={() => {
+                        fechar();
+                        onMove(-1);
+                      }}
+                    >
+                      Mover para a esquerda
+                    </ItemMenu>
+                  )}
+                  {!isLast && (
+                    <ItemMenu
+                      icone={<ArrowRight size={13} />}
+                      onClick={() => {
+                        fechar();
+                        onMove(1);
+                      }}
+                    >
+                      Mover para a direita
+                    </ItemMenu>
+                  )}
+                  <ItemMenu
+                    perigo
+                    icone={<Trash2 size={13} />}
+                    onClick={() => {
+                      fechar();
+                      onDelete();
+                    }}
+                  >
+                    Excluir coluna
+                  </ItemMenu>
+                </>
+              )}
+            </MenuMais>
+          )}
+        </div>
+        {tasks.length > 0 && (
+          <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-input" aria-hidden>
+            <div
+              className="h-full rounded-full bg-ok transition-[width] duration-300"
+              style={{ width: `${(feitas / tasks.length) * 100}%` }}
+            />
           </div>
         )}
       </div>
@@ -358,8 +412,8 @@ function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          "min-h-[40px] space-y-2 rounded-lg transition-colors",
-          isOver && "bg-accent/5 ring-1 ring-inset ring-accent/30"
+          "min-h-[56px] space-y-2 rounded-xl transition-colors",
+          isOver && "bg-accent-soft ring-1 ring-inset ring-accent"
         )}
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
@@ -375,11 +429,19 @@ function KanbanColumn({
             />
           ))}
         </SortableContext>
+        {tasks.length === 0 && (
+          <div className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-border-strong px-3 py-5 text-center">
+            <Inbox size={16} className="text-text-muted" />
+            <p className="text-[11px] text-text-tertiary">
+              {canEdit ? "Sem tarefas. Crie uma ou arraste pra cá." : "Sem tarefas."}
+            </p>
+          </div>
+        )}
       </div>
 
       {canEdit &&
         (addingTask ? (
-          <div className="mt-2 space-y-1.5">
+          <div className="mt-2.5 space-y-1.5">
             <Input
               autoFocus
               value={newTaskTitle}
@@ -404,7 +466,7 @@ function KanbanColumn({
           <button
             type="button"
             onClick={() => setAddingTask(true)}
-            className="mt-2 flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-text-secondary hover:bg-card-hover"
+            className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border px-2 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent-text"
           >
             <Plus size={13} />
             Adicionar tarefa

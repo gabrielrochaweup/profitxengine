@@ -34,7 +34,7 @@ export default async function BibliotecaImagensPage() {
     <PageContainer largura="amplo">
       <PageHeader
         titulo="Biblioteca de Imagens"
-        descricao="Todas as imagens geradas por qualquer pessoa da equipe, em qualquer dispositivo — arraste pra dentro das pastas pra organizar do seu jeito."
+        descricao="Todas as imagens geradas por qualquer pessoa da equipe, em qualquer dispositivo, organizadas em pastas. Arraste uma imagem até a aba de uma pasta pra mover."
         acoes={
           <Link
             href="/biblioteca-imagens/modelos-de-prompt"
