@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Section } from "@/components/ui/page";
 import type { Alerta, NivelDeAlerta, ResumoDoDia } from "../resumo";
 
 /*
@@ -15,26 +16,23 @@ import type { Alerta, NivelDeAlerta, ResumoDoDia } from "../resumo";
 const TOM: Record<NivelDeAlerta, { barra: string; texto: string; fundo: string }> = {
   // Vermelho é reservado pro que quebra o produto: mensagem que não saiu,
   // webhook recusado, aluno sem contrato (sem assinatura o acesso não abre).
-  critico: { barra: "bg-danger", texto: "text-danger", fundo: "bg-danger-soft/40" },
+  critico: { barra: "bg-danger", texto: "text-danger", fundo: "bg-danger-soft" },
   // Amarelo é dinheiro parado em cima da mesa: gente que comprou e parou no
   // meio do caminho.
-  atencao: { barra: "bg-warning", texto: "text-warning", fundo: "bg-warning-soft/40" },
+  atencao: { barra: "bg-warning", texto: "text-warning", fundo: "bg-warning-soft" },
   // Cinza é contexto: nada quebrou, mas vale saber.
-  neutro: { barra: "bg-border-strong", texto: "text-text-tertiary", fundo: "bg-card-hover/40" },
+  neutro: { barra: "bg-border-strong", texto: "text-text-tertiary", fundo: "" },
 };
 
 export function ResumoDoDiaView({ resumo, depositantes }: { resumo: ResumoDoDia; depositantes?: ReactNode }) {
   const criticos = resumo.alertas.filter((a) => a.nivel === "critico").length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* ── Hoje em números ── */}
-      <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-[14px] font-semibold text-text-primary">
-            <span className="h-4 w-0.5 shrink-0 rounded-full bg-accent" aria-hidden />
-            Hoje
-          </h2>
+      <Section
+        titulo="Hoje"
+        acoes={
           <Link
             href="/tracking"
             className="flex items-center gap-1 text-[11px] text-text-tertiary hover:text-accent-text"
@@ -42,18 +40,32 @@ export function ResumoDoDiaView({ resumo, depositantes }: { resumo: ResumoDoDia;
             Abrir o Tracking
             <ArrowRight size={12} />
           </Link>
-        </div>
+        }
+      >
 
         {/* O número é o conteúdo, então ele manda no tamanho: 30px de valor
             com um rótulo de 10px em cima. Numa tela de 1920 as seis células
             cabem lado a lado sem apertar. */}
-        <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-card bg-card shadow-card sm:grid-cols-3 xl:grid-cols-6 xl:divide-y-0">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
           {resumo.numeros.map((n) => (
-            <div key={n.chave} className={cn("min-w-0 px-4 py-4", n.destaque && "bg-card-hover/40")}>
+            <div
+              key={n.chave}
+              className={cn(
+                "min-w-0 rounded-xl border bg-app px-4 py-4",
+                n.destaque ? "border-border-strong" : "border-border"
+              )}
+            >
               <p className="truncate text-[10px] font-medium uppercase tracking-wide text-text-tertiary">
                 {n.rotulo}
               </p>
-              <p className="mt-2 text-[30px] font-bold leading-none tabular-nums text-text-primary">{n.valor}</p>
+              <p
+                className={cn(
+                  "mt-2 text-[30px] font-bold leading-none tabular-nums",
+                  /^(0|R\$\s?0|US\$\s?0|—)$/.test(n.valor) ? "text-text-muted" : "text-text-primary"
+                )}
+              >
+                {n.valor}
+              </p>
               {n.delta && (
                 <p
                   className={cn(
@@ -61,7 +73,7 @@ export function ResumoDoDiaView({ resumo, depositantes }: { resumo: ResumoDoDia;
                     n.delta.texto === "igual a ontem"
                       ? "text-text-muted"
                       : n.delta.positivo
-                        ? "text-success"
+                        ? "text-ok"
                         : "text-text-muted"
                   )}
                 >
@@ -73,34 +85,32 @@ export function ResumoDoDiaView({ resumo, depositantes }: { resumo: ResumoDoDia;
             </div>
           ))}
         </div>
-      </section>
+      </Section>
 
       {/* ── Depositantes (em destaque, logo abaixo dos números do dia) ── */}
       {depositantes}
 
       {/* ── Precisa de atenção ── */}
-      <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-[14px] font-semibold text-text-primary">
-            <span
-              className={cn(
-                "h-4 w-0.5 shrink-0 rounded-full",
-                criticos > 0 ? "bg-danger" : resumo.alertas.length > 0 ? "bg-warning" : "bg-success"
-              )}
-              aria-hidden
-            />
+      <Section
+        titulo={
+          <span className="flex items-center gap-2">
             Precisa de atenção
             {resumo.alertas.length > 0 && (
-              <span className="rounded-button bg-card-hover px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-text-secondary">
+              <span
+                className={cn(
+                  "rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                  criticos > 0 ? "bg-danger-soft text-danger" : "bg-warning-soft text-warning"
+                )}
+              >
                 {resumo.alertas.length}
               </span>
             )}
-          </h2>
-        </div>
-
+          </span>
+        }
+      >
         {resumo.alertas.length === 0 ? (
-          <div className="flex items-center gap-2.5 rounded-card bg-card px-4 py-3.5 text-[13px] text-text-secondary shadow-card">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
+          <div className="flex items-center gap-2.5 rounded-xl border border-border bg-app px-4 py-3.5 text-[13px] text-text-secondary">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ok-soft text-ok">
               <Check size={13} />
             </span>
             Nada pedindo atenção agora — disparos em dia e ninguém parado no meio do funil.
@@ -112,14 +122,14 @@ export function ResumoDoDiaView({ resumo, depositantes }: { resumo: ResumoDoDia;
             ))}
           </div>
         )}
-      </section>
+      </Section>
 
       {/* O que não deu pra ler.
           Fica no fim, discreto, e só aparece quando há algo: painel que
           esconde a própria falha vira "sem dados" e manda a pessoa tomar
           decisão com meia verdade. */}
       {resumo.problemas.length > 0 && (
-        <div className="rounded-card border border-warning/30 bg-warning-soft/30 px-4 py-3">
+        <div className="rounded-2xl border border-border bg-warning-soft px-4 py-3">
           <p className="text-[12px] font-medium text-warning">
             Parte do resumo não carregou — o resto desta tela está completo.
           </p>
@@ -134,12 +144,9 @@ export function ResumoDoDiaView({ resumo, depositantes }: { resumo: ResumoDoDia;
       )}
 
       {/* ── Acontecendo ── */}
-      <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-[14px] font-semibold text-text-primary">
-            <span className="h-4 w-0.5 shrink-0 rounded-full bg-accent" aria-hidden />
-            Acontecendo hoje
-          </h2>
+      <Section
+        titulo="Acontecendo hoje"
+        acoes={
           <Link
             href="/tracking?aba=eventos"
             className="flex items-center gap-1 text-[11px] text-text-tertiary hover:text-accent-text"
@@ -147,9 +154,9 @@ export function ResumoDoDiaView({ resumo, depositantes }: { resumo: ResumoDoDia;
             Todos os eventos
             <ArrowRight size={12} />
           </Link>
-        </div>
-
-        <div className="overflow-hidden rounded-card bg-card shadow-card">
+        }
+      >
+        <div className="overflow-hidden rounded-xl border border-border bg-app">
           {resumo.movimentos.length === 0 ? (
             <p className="px-4 py-6 text-center text-[12px] text-text-tertiary">
               {resumo.diaVazio
@@ -166,14 +173,14 @@ export function ResumoDoDiaView({ resumo, depositantes }: { resumo: ResumoDoDia;
                     {m.quem}
                   </span>
                   {m.valor && (
-                    <span className="shrink-0 text-[13px] font-semibold tabular-nums text-success">{m.valor}</span>
+                    <span className="shrink-0 text-[13px] font-semibold tabular-nums text-ok">{m.valor}</span>
                   )}
                 </li>
               ))}
             </ul>
           )}
         </div>
-      </section>
+      </Section>
     </div>
   );
 }
@@ -186,7 +193,7 @@ function CartaoDeAlerta({ alerta }: { alerta: Alerta }) {
     <Link
       href={alerta.href}
       className={cn(
-        "group flex gap-3 overflow-hidden rounded-card bg-card shadow-card transition-colors duration-150 hover:bg-card-hover",
+        "group flex gap-3 overflow-hidden rounded-xl border border-border bg-app transition-colors duration-150 hover:border-border-strong hover:bg-card-hover",
         tom.fundo
       )}
     >

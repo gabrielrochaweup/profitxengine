@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+// Section e EmptyState leem o nível de superfície (contexto), por isso moram
+// num arquivo de cliente — reexportados daqui pra nenhuma tela mudar o import.
+export { Section, EmptyState } from "./section";
+
 /*
   Primitivas de layout de página.
 
@@ -71,42 +75,6 @@ export function PageHeader({
 }
 
 /**
- * Bloco com assunto próprio dentro de uma página.
- *
- * Nem todo agrupamento precisa virar um cartão com contorno. Quando o que
- * separa é o assunto, e não a superfície, um título e um espaço bastam — e a
- * tela para de parecer uma pilha de caixas dentro de caixas.
- */
-export function Section({
-  titulo,
-  descricao,
-  acoes,
-  className,
-  children,
-}: {
-  titulo?: string;
-  descricao?: ReactNode;
-  acoes?: ReactNode;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className={cn("mb-8 last:mb-0", className)}>
-      {(titulo || acoes) && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="min-w-0">
-            {titulo && <h2 className="text-[15px] font-semibold text-text-primary">{titulo}</h2>}
-            {descricao && <p className="mt-0.5 text-xs text-text-tertiary">{descricao}</p>}
-          </div>
-          {acoes && <div className="flex shrink-0 items-center gap-2">{acoes}</div>}
-        </div>
-      )}
-      {children}
-    </section>
-  );
-}
-
-/**
  * Grade de 12 colunas. Cada campo declara quanto ocupa pelo componente Field.
  *
  * O ponto não é ter colunas — é largura dizer o que se espera do campo. Um
@@ -168,32 +136,6 @@ export function Field({
       )}
       {children}
       {erro && <p className="mt-1 text-[11px] text-danger">{erro}</p>}
-    </div>
-  );
-}
-
-/**
- * Tela sem conteúdo ainda.
- *
- * Diz o que está vazio e o que fazer a respeito. Um cartão enorme com uma
- * linha cinza no meio ocupa a tela sem responder nenhuma das duas coisas.
- */
-export function EmptyState({
-  titulo,
-  descricao,
-  acao,
-  className,
-}: {
-  titulo: string;
-  descricao?: ReactNode;
-  acao?: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn("rounded-card bg-card-hover px-6 py-10 text-center", className)}>
-      <p className="text-[14px] font-medium text-text-primary">{titulo}</p>
-      {descricao && <p className="mx-auto mt-1.5 max-w-[46ch] text-[12px] text-text-tertiary">{descricao}</p>}
-      {acao && <div className="mt-4 flex justify-center">{acao}</div>}
     </div>
   );
 }

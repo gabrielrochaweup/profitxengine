@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Section } from "@/components/ui/page";
+import { SubTabs } from "@/components/ui/sub-tabs";
 import { fromDateKey, toDateKey, weekdayFromDateKey, WEEKDAY_LABELS } from "../calendario/lib/date-utils";
 import { RevenueLineChart, SimpleBarChart, DynamicPieChart } from "./components/charts";
 
@@ -147,24 +149,10 @@ export function AnalyticsClient({ initialResults, dynamics }: AnalyticsClientPro
 
   return (
     <div className="mt-4 space-y-4">
-      <div className="flex flex-wrap gap-1.5">
-        {PERIOD_OPTIONS.map((opt) => (
-          <button
-            key={opt.key}
-            type="button"
-            onClick={() => setPeriod(opt.key)}
-            className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
-              period === opt.key
-                ? "bg-accent text-white"
-                : "text-text-secondary hover:bg-card-hover"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+      <SubTabs tabs={PERIOD_OPTIONS} active={period} onChange={setPeriod} className="mb-0" />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <Section titulo="Resumo do período" className="mb-0">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         <KpiTile label="🐸 Pepe" value={`${kpis.pepePessoas} pessoas`} sub={fmtBRL(kpis.pepeValor)} />
         <KpiTile label="📺 Live" value={`${kpis.livePessoas} pessoas`} sub={fmtBRL(kpis.liveValor)} />
         <KpiTile label="💰 Copy" value={`${kpis.copyPessoas} pessoas`} sub={fmtBRL(kpis.copyValor)} />
@@ -172,37 +160,42 @@ export function AnalyticsClient({ initialResults, dynamics }: AnalyticsClientPro
         <KpiTile label="Faturamento bruto" value={fmtBRL(kpis.faturamentoBruto)} tone="accent" />
         <KpiTile label="Faturamento líquido" value={fmtBRL(kpis.faturamentoLiquido)} tone="success" />
       </div>
+      </Section>
 
-      <Card className="p-5">
-        <h3 className="mb-3 text-base font-semibold text-text-primary">Faturamento por dia</h3>
+      <Section titulo="Faturamento por dia" className="mb-0">
+        <Card className="p-4">
         <RevenueLineChart data={revenueByDay} />
       </Card>
+      </Section>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="p-5">
-          <h3 className="mb-3 text-base font-semibold text-text-primary">Faturamento líquido por dia da semana</h3>
-          <SimpleBarChart data={revenueByWeekday} valueLabel="Faturamento líquido" isCurrency color="var(--success)" />
+        <Section titulo="Faturamento líquido por dia da semana" className="mb-0">
+          <Card className="p-4">
+          <SimpleBarChart data={revenueByWeekday} valueLabel="Faturamento líquido" isCurrency color="var(--series-1)" />
         </Card>
-        <Card className="p-5">
-          <h3 className="mb-3 text-base font-semibold text-text-primary">Pessoas na Live por dia da semana</h3>
-          <SimpleBarChart data={livePeopleByWeekday} valueLabel="Pessoas" color="var(--accent-pink)" />
+        </Section>
+        <Section titulo="Pessoas na Live por dia da semana" className="mb-0">
+          <Card className="p-4">
+          <SimpleBarChart data={livePeopleByWeekday} valueLabel="Pessoas" color="var(--series-3)" />
         </Card>
+        </Section>
       </div>
 
-      <Card className="p-5">
-        <h3 className="mb-3 text-base font-semibold text-text-primary">Faturamento líquido por dinâmica</h3>
+      <Section titulo="Faturamento líquido por dinâmica" className="mb-0">
+        <Card className="p-4">
         <DynamicPieChart data={revenueByDynamic} />
       </Card>
+      </Section>
 
-      <Card className="p-5">
-        <h3 className="mb-3 text-base font-semibold text-text-primary">Dias concluídos no período ({filtered.length})</h3>
+      <Section titulo={<>Dias concluídos no período ({filtered.length})</>} className="mb-0">
+        <Card className="p-4">
         {filtered.length === 0 ? (
           <p className="text-xs text-text-muted">Nenhum dia concluído nesse período ainda.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-border text-text-muted">
+                <tr className="border-b border-border bg-card-hover text-[10px] uppercase tracking-wide text-text-tertiary">
                   <th className="py-2 pr-3 font-medium">Data</th>
                   <th className="py-2 pr-3 font-medium">Dinâmica</th>
                   <th className="py-2 pr-3 font-medium">Pepe</th>
@@ -215,7 +208,7 @@ export function AnalyticsClient({ initialResults, dynamics }: AnalyticsClientPro
               </thead>
               <tbody>
                 {[...filtered].reverse().map((r) => (
-                  <tr key={r.scheduled_date} className="border-b border-border/50 text-text-secondary">
+                  <tr key={r.scheduled_date} className="border-b border-border text-text-secondary transition-colors last:border-0 hover:bg-card-hover">
                     <td className="py-2 pr-3 whitespace-nowrap">{r.scheduled_date.split("-").reverse().join("/")}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">{dynamicLabel(r.dynamic_id)}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">
@@ -239,6 +232,7 @@ export function AnalyticsClient({ initialResults, dynamics }: AnalyticsClientPro
           </div>
         )}
       </Card>
+      </Section>
     </div>
   );
 }
@@ -255,11 +249,11 @@ function KpiTile({
   tone?: "accent" | "success";
 }) {
   return (
-    <div className="rounded-xl bg-card-hover p-3">
-      <p className="text-[11px] text-text-muted">{label}</p>
+    <div className="min-w-0 rounded-xl border border-border bg-app p-3.5">
+      <p className="truncate text-[11px] font-medium text-text-tertiary">{label}</p>
       <p
-        className={`mt-1 text-sm font-semibold ${
-          tone === "accent" ? "text-accent-text" : tone === "success" ? "text-success" : "text-text-primary"
+        className={`mt-1.5 text-[18px] font-semibold leading-tight tabular-nums ${
+          tone === "accent" ? "text-accent-text" : tone === "success" ? "text-ok" : "text-text-primary"
         }`}
       >
         {value}

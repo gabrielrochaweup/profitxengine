@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, Download, Search } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Section } from "@/components/ui/page";
 import type { Deposito, Depositante } from "@/lib/tracking/depositantes";
 
 /*
@@ -165,26 +166,24 @@ export function DepositantesDestaque({ depositantes }: { depositantes: Depositan
   const depositosDoPeriodo = filtrados.reduce((t, p) => t + p.depositos.length, 0);
 
   return (
-    <section>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-[14px] font-semibold text-text-primary">
-          <span className="h-4 w-0.5 shrink-0 rounded-full bg-accent" aria-hidden />
-          Depositantes
-        </h2>
+    <Section
+      titulo="Depositantes"
+      acoes={
         <button type="button" onClick={abrir} className="text-[11px] text-text-tertiary hover:text-accent-text">
           Ver lista completa ({depositantes.length}) →
         </button>
-      </div>
+      }
+    >
 
       {depositantes.length === 0 ? (
-        <div className="rounded-card bg-card px-4 py-6 text-center text-[12px] text-text-tertiary shadow-card">
+        <div className="rounded-xl border border-border bg-app px-4 py-6 text-center text-[12px] text-text-tertiary">
           Nenhum depósito recebido da corretora ainda.
         </div>
       ) : (
         <button
           type="button"
           onClick={abrir}
-          className="block w-full overflow-hidden rounded-card bg-card text-left shadow-card ring-1 ring-accent transition-colors hover:bg-card-hover"
+          className="block w-full overflow-hidden rounded-xl border border-border bg-app text-left transition-colors hover:border-border-strong hover:bg-card-hover"
         >
           <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
             <Resumo rotulo="Pessoas" valor={String(depositantes.length)} />
@@ -220,17 +219,19 @@ export function DepositantesDestaque({ depositantes }: { depositantes: Depositan
 
       <Modal open={aberto} onClose={() => setAberto(false)} title="Depositantes" className="max-w-5xl">
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap items-center gap-1">
+          <div role="radiogroup" className="inline-flex max-w-full overflow-x-auto rounded-xl bg-input p-1">
             {PERIODOS.map((p) => (
               <button
                 key={p.chave}
                 type="button"
                 onClick={() => setPeriodo(p.chave)}
+                role="radio"
+                aria-checked={periodo === p.chave}
                 className={cn(
-                  "h-8 rounded-button px-2.5 text-[12px] font-medium transition-colors",
+                  "h-7 shrink-0 rounded-lg px-2.5 text-[12px] font-medium transition-colors",
                   periodo === p.chave
-                    ? "bg-accent text-accent-contrast"
-                    : "border border-border bg-card-hover text-text-secondary hover:border-border-strong hover:text-text-primary"
+                    ? "bg-card text-text-primary shadow-card"
+                    : "text-text-tertiary hover:text-text-secondary"
                 )}
               >
                 {p.rotulo}
@@ -339,7 +340,7 @@ export function DepositantesDestaque({ depositantes }: { depositantes: Depositan
           </div>
         )}
       </Modal>
-    </section>
+    </Section>
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { DentroDePainel, useNivel } from "@/components/ui/nivel";
 import { Check, Copy, Eye, EyeOff, Lock, MoreHorizontal, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,8 +28,6 @@ import { cn } from "@/lib/utils";
   O contexto diz a cada peça em que nível ela está, pra a mesma peça servir
   solta na página ou dentro de um painel sem cada tela ter que lembrar.
 */
-type Nivel = "pagina" | "painel";
-const NivelCtx = createContext<Nivel>("pagina");
 
 /** Título de seção. Num painel é o cabeçalho dele; dentro de um painel, um subtítulo. */
 export function BlocoTitulo({
@@ -86,7 +85,7 @@ export function Bloco({
   className?: string;
   children: ReactNode;
 }) {
-  const nivel = useContext(NivelCtx);
+  const nivel = useNivel();
   if (nivel === "painel") {
     return (
       <section className={className}>
@@ -96,18 +95,18 @@ export function Bloco({
     );
   }
   return (
-    <NivelCtx.Provider value="painel">
+    <DentroDePainel>
       <section className={cn("min-w-0 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5", className)}>
         {titulo && <BlocoTitulo titulo={titulo} dica={dica} acoes={acoes} descricao={descricao} />}
         {children}
       </section>
-    </NivelCtx.Provider>
+    </DentroDePainel>
   );
 }
 
 /** Classe da superfície de um bloco interno, conforme o nível em que está. */
 function useSuperficieInterna(): string {
-  return useContext(NivelCtx) === "painel"
+  return useNivel() === "painel"
     ? "rounded-xl border border-border bg-app"
     : "rounded-2xl border border-border bg-card shadow-card";
 }

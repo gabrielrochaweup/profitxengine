@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, Check, X, ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
+import { Section } from "@/components/ui/page";
+import { SubTabs } from "@/components/ui/sub-tabs";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -372,22 +374,7 @@ export function ProductMetricsClient({
 
       {fields.length > 0 && (
         <>
-          <div className="flex flex-wrap gap-1.5">
-            {PERIOD_OPTIONS.map((opt) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => setPeriod(opt.key)}
-                className={`rounded-button px-3 py-1.5 text-xs font-medium transition-colors ${
-                  period === opt.key
-                    ? "bg-accent text-white"
-                    : "text-text-secondary hover:bg-card-hover"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <SubTabs tabs={PERIOD_OPTIONS} active={period} onChange={setPeriod} className="mb-0" />
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {kpis.map(({ field, total }) => (
@@ -400,8 +387,8 @@ export function ProductMetricsClient({
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {chartSeriesByField.map(({ field, data }, i) => (
-              <Card key={field.id} className="p-5">
-                <h3 className="mb-3 text-base font-semibold text-text-primary">{field.label} por dia</h3>
+              <Section key={field.id} titulo={<>{field.label} por dia</>} className="mb-0">
+                <Card className="p-4">
                 <SimpleBarChart
                   data={data}
                   valueLabel={field.label}
@@ -409,13 +396,12 @@ export function ProductMetricsClient({
                   color={PIE_PALETTE[i % PIE_PALETTE.length]}
                 />
               </Card>
+              </Section>
             ))}
           </div>
 
-          <Card className="p-5">
-            <h3 className="mb-3 text-base font-semibold text-text-primary">
-              Dias preenchidos no período ({filteredEntryDates.length})
-            </h3>
+          <Section titulo={<>Dias preenchidos no período ({filteredEntryDates.length})</>} className="mb-0">
+            <Card className="p-4">
             {filteredEntryDates.length === 0 ? (
               <p className="text-xs text-text-muted">Nenhum dia preenchido nesse período ainda.</p>
             ) : (
@@ -451,6 +437,7 @@ export function ProductMetricsClient({
               </div>
             )}
           </Card>
+          </Section>
         </>
       )}
     </div>

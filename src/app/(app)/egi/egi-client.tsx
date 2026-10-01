@@ -217,7 +217,7 @@ export function EgiClient({
           <h1 className="text-[18px] font-semibold leading-tight text-text-primary">Egi — IA</h1>
           <p className="text-[12px] text-text-tertiary">Respostas de atendimento com base no manual da ProfitX</p>
         </div>
-        <div className="ml-auto flex rounded-button border border-border bg-card p-0.5">
+        <div role="radiogroup" className="ml-auto inline-flex rounded-xl bg-input p-1">
           {(
             [
               { key: "conversas", label: "Conversas", icone: MessagesSquare },
@@ -228,9 +228,11 @@ export function EgiClient({
               key={key}
               type="button"
               onClick={() => setAba(key)}
+              role="radio"
+              aria-checked={aba === key}
               className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-button px-3 text-[13px] font-medium transition-colors",
-                aba === key ? "bg-accent text-accent-contrast" : "text-text-secondary hover:text-text-primary"
+                "inline-flex h-7 items-center gap-1.5 rounded-lg px-3 text-[12px] font-medium transition-colors",
+                aba === key ? "bg-card text-text-primary shadow-card" : "text-text-tertiary hover:text-text-secondary"
               )}
             >
               <Icone size={14} />

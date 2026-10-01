@@ -2,10 +2,11 @@
 
 import { cn } from "@/lib/utils";
 
-// Segunda camada de abas, aninhada dentro de uma aba principal — mesmo
-// padrão visual da barra de cima (pill ativo em bg-accent), só que mais
-// leve (texto menor, sombra mais fraca) pra ficar claro que é um nível
-// abaixo, não outra seção do app.
+/**
+ * Nível 2 de navegação (sub-abas, filtros de visão): pílulas num trilho.
+ * Mesmo desenho do SegmentedControl (components/ui/panel.tsx) — o nível 1 é
+ * sempre outra coisa (coluna lateral), nunca a mesma barra.
+ */
 export function SubTabs<T extends string>({
   tabs,
   active,
@@ -19,17 +20,20 @@ export function SubTabs<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={cn("mb-4 flex flex-wrap gap-1 rounded-panel bg-sidebar p-1 shadow-card-sm", className)}>
+    <div
+      role="radiogroup"
+      className={cn("mb-4 inline-flex max-w-full gap-0.5 overflow-x-auto rounded-xl bg-input p-1", className)}
+    >
       {tabs.map((t) => (
         <button
           key={t.key}
           type="button"
+          role="radio"
+          aria-checked={active === t.key}
           onClick={() => onChange(t.key)}
           className={cn(
-            "rounded-button px-3 py-1.5 text-xs font-medium transition-colors duration-150",
-            active === t.key
-              ? "bg-card-hover text-accent-text"
-              : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+            "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-150",
+            active === t.key ? "bg-card text-text-primary shadow-card" : "text-text-tertiary hover:text-text-secondary"
           )}
         >
           {t.label}

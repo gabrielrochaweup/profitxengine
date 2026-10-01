@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/ui/loading-state";
+import { Section } from "@/components/ui/page";
 
 type Provider = "openai" | "anthropic" | "google";
 type ImageProvider = "openai" | "google";
@@ -97,7 +98,14 @@ const DEFAULT_IMAGE_MODEL: Record<ImageProvider, string> = {
   google: IMAGE_MODELS.google[1].id,
 };
 
-export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
+export function ConfiguracoesClient({
+  isAdmin,
+  secao,
+}: {
+  isAdmin: boolean;
+  /** Qual parte mostrar — cada uma é uma área da coluna lateral da página. */
+  secao: "chaves" | "modelos";
+}) {
   const [credentials, setCredentials] = useState<CredentialStatus[] | null>(null);
   const [settings, setSettings] = useState<ProviderSetting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,23 +162,23 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
 
   if (loading) {
     return (
-      <Card className="mt-6">
+      <Card>
         <LoadingState message="Carregando configurações..." />
       </Card>
     );
   }
 
-  return (
-    <div className="mt-6 space-y-8">
-      <section>
-        <h2 className="text-base font-medium text-text-primary">Chaves de API</h2>
-        <p className="mt-1 text-sm text-text-muted">
-          {isAdmin
+  if (secao === "chaves") {
+    return (
+      <Section
+        titulo="Chaves de API"
+        descricao={
+          isAdmin
             ? "Armazenadas de forma criptografada. Nunca expostas no navegador."
-            : "Apenas administradores podem cadastrar ou alterar chaves de API."}
-        </p>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            : "Apenas administradores podem cadastrar ou alterar chaves de API."
+        }
+      >
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {(["openai", "anthropic", "google"] as Provider[]).map((provider) => (
             <CredentialCard
               key={provider}
@@ -186,15 +194,16 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
             />
           ))}
         </div>
-      </section>
+      </Section>
+    );
+  }
 
-      <section>
-        <h2 className="text-base font-medium text-text-primary">Provedor por tipo de tarefa</h2>
-        <p className="mt-1 text-sm text-text-muted">
-          Escolha qual IA e qual modelo usar em cada tipo de geração de conteúdo.
-        </p>
-
-        <Card className="mt-4 divide-y divide-border">
+  return (
+    <Section
+      titulo="Provedor por tipo de tarefa"
+      descricao="Escolha qual IA e qual modelo usar em cada tipo de geração de conteúdo."
+    >
+        <Card className="divide-y divide-border">
           {(["conversa", "mensagem", "blog", "email", "egi", "imagem"] as Module[]).map((module) => (
             <ModuleSettingRow
               key={module}
@@ -205,8 +214,7 @@ export function ConfiguracoesClient({ isAdmin }: { isAdmin: boolean }) {
             />
           ))}
         </Card>
-      </section>
-    </div>
+    </Section>
   );
 }
 

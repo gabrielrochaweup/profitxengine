@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
-import { Card } from "@/components/ui/card";
 import { UsersManager } from "./components/users-manager";
-import { PageContainer, PageHeader } from "@/components/ui/page";
+import { PageContainer, PageHeader, Section } from "@/components/ui/page";
+import { AdminAreas } from "./admin-areas";
 import { UsageLogPanel } from "./components/usage-log-panel";
 import { ProductManager } from "./components/product-manager";
 
@@ -38,7 +38,7 @@ export default async function AdminPage() {
   const creatorNames = Object.fromEntries((creators ?? []).map((c) => [c.id, c.full_name]));
 
   return (
-    <PageContainer largura="padrao">
+    <PageContainer largura="amplo">
       <PageHeader
         titulo={
           <span className="flex items-center gap-2">
@@ -46,27 +46,27 @@ export default async function AdminPage() {
             Admin
           </span>
         }
-        descricao="Aprove cadastros novos e gerencie os papéis da equipe."
+        descricao="Equipe, produtos e uso de IA."
       />
 
-      {/* Um espaçamento só entre os blocos, em vez de mt-6 repetido em cada um. */}
-      <div className="space-y-6">
-        <Card className="p-5">
-          <UsersManager initialUsers={users ?? []} currentUserId={user.id} />
-        </Card>
-
-        <Card className="p-5">
-          <ProductManager
-            initialProducts={products ?? []}
-            users={users ?? []}
-          />
-        </Card>
-
-        <Card className="p-5">
-          <h2 className="mb-3 text-[15px] font-semibold text-text-primary">Uso de IA</h2>
-          <UsageLogPanel logs={usageLog ?? []} creatorNames={creatorNames} />
-        </Card>
-      </div>
+      <AdminAreas
+        pendentes={(users ?? []).filter((u) => u.status === "pending").length}
+        equipe={
+          <Section>
+            <UsersManager initialUsers={users ?? []} currentUserId={user.id} />
+          </Section>
+        }
+        produtos={
+          <Section>
+            <ProductManager initialProducts={products ?? []} users={users ?? []} />
+          </Section>
+        }
+        uso={
+          <Section>
+            <UsageLogPanel logs={usageLog ?? []} creatorNames={creatorNames} />
+          </Section>
+        }
+      />
     </PageContainer>
   );
 }

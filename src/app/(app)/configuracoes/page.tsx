@@ -3,36 +3,28 @@ import { getSessionProfile, hasRole } from "@/lib/auth";
 import { ConfiguracoesClient } from "./configuracoes-client";
 import { TradingPerformancePanel } from "./trading-performance-panel";
 import { EgiConfigPanel } from "./egi-config-panel";
-import { PageContainer, PageHeader, Section } from "@/components/ui/page";
+import { ConfiguracoesAreas } from "./configuracoes-areas";
+import { PageContainer, PageHeader } from "@/components/ui/page";
 
 export default async function ConfiguracoesPage() {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login");
 
+  const isAdmin = profile.role === "admin";
+
   return (
-    <PageContainer largura="padrao">
+    <PageContainer largura="amplo">
       <PageHeader
         titulo="Configurações da Plataforma"
-        descricao="Chaves de API (OpenAI/Anthropic), preferências de geração por módulo e performance de trading."
+        descricao="Performance de trading, chaves de IA, modelos por tarefa e a Egi."
       />
 
-      <ConfiguracoesClient isAdmin={profile.role === "admin"} />
-
-      <Section
-        className="mt-10"
-        titulo="Egi — IA de atendimento"
-        descricao="O prompt e os arquivos que guiam a Egi. O provedor e o modelo dela ficam em Provedor por tipo de tarefa, acima."
-      >
-        <EgiConfigPanel isAdmin={profile.role === "admin"} />
-      </Section>
-
-      <Section
-        className="mt-10"
-        titulo="Performance de Trading"
-        descricao="Números reais de Pepe/Live/Copy Trader por janela — usados nos cálculos das dinâmicas de Grupo e no contexto de geração do Direct."
-      >
-        <TradingPerformancePanel canEdit={hasRole(profile.role, "editor")} />
-      </Section>
+      <ConfiguracoesAreas
+        trading={<TradingPerformancePanel canEdit={hasRole(profile.role, "editor")} />}
+        chaves={<ConfiguracoesClient isAdmin={isAdmin} secao="chaves" />}
+        modelos={<ConfiguracoesClient isAdmin={isAdmin} secao="modelos" />}
+        egi={<EgiConfigPanel isAdmin={isAdmin} />}
+      />
     </PageContainer>
   );
 }
