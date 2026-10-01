@@ -265,33 +265,59 @@ export function PaginasPanel({
                 </button>
 
                 {estaAberta && (
-                  <div className="space-y-1.5 border-t border-border px-3.5 py-3">
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
-                      De onde vem o tráfego desta página
-                    </p>
-                    {p.origens.map((o) => (
-                      <div
-                        key={`${o.utm_source}|${o.utm_campaign}`}
-                        className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] items-center gap-3 text-[12px]"
-                      >
-                        <span className="flex min-w-0 items-center gap-2">
-                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: corDaFonte(o.utm_source) }} />
-                          <span className="shrink-0 font-medium text-text-primary">{o.utm_source}</span>
-                          <span className="truncate text-text-muted" title={o.utm_campaign}>
-                            {nomes.get(o.utm_campaign) ?? o.utm_campaign}
-                          </span>
-                        </span>
-                        <BarraProporcional
-                          valor={Number(o.pessoas)}
-                          max={p.origens[0] ? Number(p.origens[0].pessoas) : 0}
-                          cor={corDaFonte(o.utm_source)}
-                        />
-                        <span className="w-32 text-right tabular-nums text-text-secondary">
-                          {o.pessoas} {Number(o.pessoas) === 1 ? "pessoa" : "pessoas"}
-                          {Number(o.checkouts) > 0 && <span className="text-text-muted"> · {o.checkouts} checkout</span>}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="border-t border-border px-3.5 py-3">
+                    {/* Colunas fixas pros números: a barra encolheu pra dar lugar
+                        a "entraram" e "foram ao checkout", que são o que se lê. */}
+                    <div className="mb-1.5 grid grid-cols-[minmax(0,1fr)_3.5rem_5.5rem] items-end gap-x-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_5rem_9rem]">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">
+                        De onde vem o tráfego desta página
+                      </p>
+                      <span className="hidden sm:block" />
+                      <p className="text-right text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">Entraram</p>
+                      <p className="whitespace-nowrap text-right text-[10px] font-semibold uppercase tracking-wide text-text-tertiary"><span className="sm:hidden">Checkout</span><span className="hidden sm:inline">Foram ao checkout</span></p>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {p.origens.map((o) => {
+                        const entraram = Number(o.pessoas);
+                        const checkout = Number(o.checkouts);
+                        return (
+                          <div
+                            key={`${o.utm_source}|${o.utm_campaign}`}
+                            className="grid grid-cols-[minmax(0,1fr)_3.5rem_5.5rem] items-center gap-x-3 gap-y-1.5 py-2 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_5rem_9rem]"
+                          >
+                            <span className="col-span-3 flex min-w-0 items-center gap-2 text-[12px] sm:col-span-1">
+                              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: corDaFonte(o.utm_source) }} />
+                              <span className="shrink-0 font-semibold text-text-primary">{o.utm_source}</span>
+                              <span className="truncate text-text-tertiary" title={o.utm_campaign}>
+                                {nomes.get(o.utm_campaign) ?? o.utm_campaign}
+                              </span>
+                            </span>
+                            <BarraProporcional
+                              valor={entraram}
+                              max={p.origens[0] ? Number(p.origens[0].pessoas) : 0}
+                              cor={corDaFonte(o.utm_source)}
+                            />
+                            <span className="text-right text-[16px] font-semibold leading-none tabular-nums text-text-primary">
+                              {entraram}
+                            </span>
+                            <span className="text-right leading-none">
+                              <span
+                                className={
+                                  checkout > 0
+                                    ? "text-[16px] font-semibold tabular-nums text-ok"
+                                    : "text-[16px] tabular-nums text-text-muted"
+                                }
+                              >
+                                {checkout}
+                              </span>
+                              {checkout > 0 && (
+                                <span className="ml-1.5 text-[11px] tabular-nums text-text-tertiary">{pct(checkout, entraram)}</span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </li>
