@@ -41,6 +41,13 @@ interface CollectPayload {
   referrer?: string | null;
 }
 
+// IP de quem chamou, atrás do proxy (VPS/Vercel). Só o primeiro da lista:
+// os seguintes são os proxies do caminho.
+function ipDoCliente(request: Request): string | null {
+  const encaminhado = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return encaminhado || request.headers.get("x-real-ip")?.trim() || null;
+}
+
 function ehOrigemMeta(source: string | null | undefined): boolean {
   return /^(meta|facebook|fb|instagram|ig)$/i.test((source ?? "").trim());
 }
@@ -70,30 +77,45 @@ export async function POST(request: Request) {
 
   // ignoreDuplicates: o primeiro clique é quem vale — se esse lead_id já
   // existe, não sobrescreve a origem original.
-  const { error: leadError } = await admin.from("tracking_leads").upsert(
-    {
-      id: leadId,
-      product_id: product.id,
-      utm_source: body.utm_source || null,
-      utm_medium: body.utm_medium || null,
-      utm_campaign: body.utm_campaign || null,
-      utm_content: body.utm_content || null,
-      utm_term: body.utm_term || null,
-      fbclid: body.fbclid || null,
-      gclid: body.gclid || null,
-      // "mcid" continua mandando. Sem ele, o utm_id da UTM automática da Meta
-      // (= {{campaign.id}}) é o ID da campanha — mas só quando a origem é
-      // Meta, porque utm_id é um parâmetro genérico que outros canais usam
-      // com outro significado.
-      meta_campaign_id: body.meta_campaign_id || (ehOrigemMeta(body.utm_source) ? body.utm_id : null) || null,
-      google_campaign_id: body.google_campaign_id || null,
-      fbp: body.fbp || null,
-      fbc: body.fbc || null,
-      landing_url: body.landing_url || null,
-      referrer: body.referrer || null,
-    },
-    { onConflict: "id", ignoreDuplicates: true }
-  );
+  const lead = {
+    id: leadId,
+    product_id: product.id,
+    utm_source: body.utm_source || null,
+    utm_medium: body.utm_medium || null,
+    utm_campaign: body.utm_campaign || null,
+    utm_content: body.utm_content || null,
+    utm_term: body.utm_term || null,
+    fbclid: body.fbclid || null,
+    gclid: body.gclid || null,
+    // "mcid" continua mandando. Sem ele, o utm_id da UTM automática da Meta
+    // (= {{campaign.id}}) é o ID da campanha — mas só quando a origem é
+    // Meta, porque utm_id é um parâmetro genérico que outros canais usam
+    // com outro significado.
+    meta_campaign_id: body.meta_campaign_id || (ehOrigemMeta(body.utm_source) ? body.utm_id : null) || null,
+    google_campaign_id: body.google_campaign_id || null,
+    fbp: body.fbp || null,
+    fbc: body.fbc || null,
+    landing_url: body.landing_url || null,
+    referrer: body.referrer || null,
+    // Pra API de Conversões mandar Purchase/Deposit como evento "website"
+    // (ver lib/tracking/meta-capi.ts).
+    client_user_agent: request.headers.get("user-agent")?.slice(0, 500) || null,
+    client_ip: ipDoCliente(request),
+  };
+  let { error: leadError } = await admin
+    .from("tracking_leads")
+    .upsert(lead, { onConflict: "id", ignoreDuplicates: true });
+
+  // Antes da migration 0124 essas duas colunas não existem: grava o lead sem
+  // elas em vez de perder a visita.
+  if (leadError && /client_user_agent|client_ip/.test(leadError.message)) {
+    const semNavegador: Partial<typeof lead> = { ...lead };
+    delete semNavegador.client_user_agent;
+    delete semNavegador.client_ip;
+    ({ error: leadError } = await admin
+      .from("tracking_leads")
+      .upsert(semNavegador as typeof lead, { onConflict: "id", ignoreDuplicates: true }));
+  }
 
   if (leadError) {
     console.error("[tracking/collect] falha ao gravar lead:", leadError.message);

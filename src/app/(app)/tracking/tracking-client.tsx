@@ -15,6 +15,7 @@ import { FontesDeDadosPanel, type WebhookEndpoint } from "./components/data-sour
 import { SendPulsePanel } from "./components/sendpulse-panel";
 import { AdsSettings, type AdAccount } from "./components/ads-settings";
 import { TrackingScriptPanel } from "./components/tracking-script-panel";
+import { EventosMetaPanel } from "./components/eventos-meta-panel";
 import { UtmBuilder } from "./components/utm-builder";
 import { LinkBuilder } from "./components/link-builder";
 import { Bloco } from "./components/ui";
@@ -309,6 +310,7 @@ export function TrackingClient({
           {ferramentasSubTab === "rastreamento" && (
             <div className="space-y-6">
               <TrackingScriptPanel productSlug={productSlug} />
+              <EventosMetaPanel productId={productId} />
               <LinkBuilder productSlug={productSlug} />
             </div>
           )}

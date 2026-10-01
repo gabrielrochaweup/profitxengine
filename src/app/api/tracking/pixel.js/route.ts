@@ -59,13 +59,13 @@ const PIXEL_SCRIPT = `
     return ids;
   }
 
-  // Só PageView vai pra Meta pelo navegador — e só UMA vez por pixel.
-  // Se a página já tem o mesmo pixel (instalado pelo construtor, por
-  // exemplo), ele já mandou o PageView dele: iniciar de novo e disparar
-  // outro duplicaria o evento. Por isso inicia só os pixels que a página
-  // ainda não iniciou e usa trackSingle (não "track", que dispara pra
-  // TODOS os pixels da página, inclusive os dela).
-  function loadMetaPixel(ids) {
+  // PageView (se ligado na tela) — e só UMA vez por pixel. Se a página já
+  // tem o mesmo pixel (instalado pelo construtor, por exemplo), ele já
+  // mandou o PageView dele: iniciar de novo e disparar outro duplicaria o
+  // evento. Por isso inicia só os pixels que a página ainda não iniciou e
+  // usa trackSingle (não "track", que dispara pra TODOS os pixels da
+  // página, inclusive os dela).
+  function loadMetaPixel(ids, enviarPageView) {
     var jaIniciados = pixelsMetaJaIniciados();
     var novos = ids.filter(function (id) { return jaIniciados.indexOf(String(id)) === -1; });
     if (!novos.length) return;
@@ -81,8 +81,26 @@ const PIXEL_SCRIPT = `
     }
     novos.forEach(function (id) {
       window.fbq("init", id);
-      window.fbq("trackSingle", id, "PageView");
+      if (enviarPageView) window.fbq("trackSingle", id, "PageView");
     });
+  }
+
+  // Eventos ligados em Tracking > Rastreamento (vem do pixel-config). null
+  // até a config chegar — evento que acontecer antes disso não é enviado
+  // (best-effort, nunca segura a navegação).
+  var eventosMeta = null;
+  var metaIds = [];
+
+  // Manda um evento só pros NOSSOS pixels (trackSingle), não pra qualquer
+  // outro pixel que a página tenha.
+  function dispararMeta(evento) {
+    if (!window.fbq) return;
+    metaIds.forEach(function (id) { window.fbq("trackSingle", id, evento); });
+  }
+
+  function ehPaginaDeCheckout(paginas) {
+    var aqui = window.location.href.toLowerCase();
+    return (paginas || []).some(function (p) { return p && aqui.indexOf(String(p).toLowerCase()) !== -1; });
   }
 
   function loadGoogleGtag(ids) {
@@ -111,6 +129,19 @@ const PIXEL_SCRIPT = `
   var leadId = null;
   try { leadId = localStorage.getItem(storageKey); } catch (e) {}
   if (!leadId) leadId = getCookie(storageKey);
+  // Em outro domínio (ex: o checkout), o navegador não tem o id salvo, mas
+  // o link que trouxe a pessoa carrega ele no sck/ref. Adota esse id em vez
+  // de inventar um novo: senão cada ida ao checkout viraria um "lead novo"
+  // e inflaria o Leads do Tracking.
+  if (!leadId) {
+    try {
+      var qs = new URLSearchParams(window.location.search);
+      var idDaUrl = qs.get("sck") || qs.get("ref");
+      if (idDaUrl && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idDaUrl)) {
+        leadId = idDaUrl.toLowerCase();
+      }
+    } catch (e) {}
+  }
   var isFirstTouch = !leadId;
   if (!leadId) leadId = uuidv4();
 
@@ -127,14 +158,13 @@ const PIXEL_SCRIPT = `
     // eventName é opcional — passar "checkout" grava "Iniciou checkout" na
     // nossa própria aba Análises via sendBeacon — usa beacon (não fetch
     // normal) porque a página navega embora logo em seguida, e um fetch
-    // comum pode ser cancelado antes de sair do navegador. NÃO manda mais
-    // InitiateCheckout/begin_checkout pros pixels: pelo navegador a Meta e
-    // o Google recebem só o PageView (ver loadMetaPixel), pra não duplicar
-    // com o que o checkout ou o construtor já disparam e não bagunçar a
-    // atribuição.
+    // comum pode ser cancelado antes de sair do navegador. Pra Meta, o
+    // InitiateCheckout só sai daqui se estiver ligado como "no clique" em
+    // Tracking > Rastreamento.
     appendRef: function (url, paramName, eventName) {
       try {
         if (eventName === "checkout") {
+          if (eventosMeta && eventosMeta.initiate_checkout === "clique") dispararMeta("InitiateCheckout");
           try {
             var beaconPayload = JSON.stringify({ lead_id: leadId, product_slug: productSlug, event_type: "initiate_checkout" });
             if (navigator.sendBeacon) {
@@ -232,17 +262,25 @@ const PIXEL_SCRIPT = `
     };
   } catch (e) {}
 
-  // Pixels de Meta/Google (Pixel ID cadastrado na aba "Contas Meta/Google")
-  // — carrega o pixel e dispara SÓ o PageView. O "Lead" no primeiro acesso
-  // saiu: abrir a página não é virar lead, e mandar isso pra Meta como Lead
-  // bagunçava a atribuição. Do lado do servidor (API de Conversões) segue
-  // só o Deposit, quando o webhook da corretora chega.
+  // Pixels de Meta/Google (Pixel ID cadastrado na aba "Contas Meta/Google").
+  // Quais eventos vão pra Meta pelo navegador é escolhido na tela (Tracking
+  // > Ferramentas > Rastreamento) e chega aqui no pixel-config: PageView,
+  // Lead (primeira visita) e InitiateCheckout (no clique do link de
+  // checkout OU ao abrir a página de checkout — nunca os dois). Purchase e
+  // Deposit saem do servidor, pela API de Conversões. Sem config salva, o
+  // padrão é só PageView.
   var pixelConfigUrl = new URL("/api/tracking/pixel-config", scriptTag.src).href + "?product=" + encodeURIComponent(productSlug);
   fetch(pixelConfigUrl)
     .then(function (r) { return r.json(); })
     .then(function (cfg) {
       if (cfg.meta && cfg.meta.length) {
-        loadMetaPixel(cfg.meta);
+        eventosMeta = cfg.eventos || { pageview: true, lead: false, initiate_checkout: "desligado" };
+        metaIds = cfg.meta;
+        loadMetaPixel(cfg.meta, eventosMeta.pageview !== false);
+        if (eventosMeta.lead && isFirstTouch) dispararMeta("Lead");
+        if (eventosMeta.initiate_checkout === "pagina" && ehPaginaDeCheckout(cfg.paginas_checkout)) {
+          dispararMeta("InitiateCheckout");
+        }
       }
       if (cfg.google && cfg.google.length) {
         loadGoogleGtag(cfg.google);

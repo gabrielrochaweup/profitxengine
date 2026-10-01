@@ -955,6 +955,10 @@ export interface Database {
           referrer: string | null;
           email: string | null;
           phone: string | null;
+          /** Navegador da primeira visita — a API de Conversões exige pra evento "website" (0124). */
+          client_user_agent: string | null;
+          /** IP da primeira visita — melhora o casamento do evento na API de Conversões (0124). */
+          client_ip: string | null;
           first_seen_at: string;
           created_at: string;
         };
@@ -975,6 +979,8 @@ export interface Database {
           | "referrer"
           | "email"
           | "phone"
+          | "client_user_agent"
+          | "client_ip"
           | "first_seen_at"
           | "created_at"
         > & {
@@ -993,6 +999,8 @@ export interface Database {
           referrer?: string | null;
           email?: string | null;
           phone?: string | null;
+          client_user_agent?: string | null;
+          client_ip?: string | null;
           first_seen_at?: string;
           created_at?: string;
         };
@@ -1617,6 +1625,25 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["tracking_pixels"]["Insert"]>;
+        Relationships: [];
+      };
+      tracking_script_config: {
+        Row: {
+          product_id: string;
+          /** Ver src/lib/tracking/eventos-meta.ts (lerEventosMeta). */
+          eventos_meta: Record<string, unknown>;
+          paginas_checkout: string[];
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          product_id: string;
+          eventos_meta?: Record<string, unknown>;
+          paginas_checkout?: string[];
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tracking_script_config"]["Insert"]>;
         Relationships: [];
       };
       tracking_webhook_log: {

@@ -83,11 +83,13 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   // Depósito é o evento que mais importa pro negócio (mais do que a compra
   // do curso) — manda pra API de Conversões da Meta como um evento
   // customizado "Deposit", pro algoritmo de anúncio otimizar pra isso, não
-  // só pra quem compra o curso. Best-effort, nunca falha o webhook.
+  // só pra quem compra o curso. Só se estiver ligado em Tracking >
+  // Rastreamento. Best-effort, nunca falha o webhook.
   if (normalized.eventType === "broker_deposit") {
-    await fireMetaEventForProduct(admin, endpoint.product_id, {
-      eventName: "Deposit",
+    await fireMetaEventForProduct(admin, endpoint.product_id, "deposit", {
       email: normalized.email,
+      phone: normalized.phone,
+      leadId,
       amountCents: normalized.amountCents,
       currency: normalized.currency ?? "BRL",
       externalId: normalized.externalId,

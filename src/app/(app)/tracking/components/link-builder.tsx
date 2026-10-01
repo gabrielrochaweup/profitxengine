@@ -139,7 +139,7 @@ export function LinkBuilder({ productSlug }: { productSlug: string }) {
             onChange={(e) => setFireCheckoutEvent(e.target.checked)}
             className="h-3.5 w-3.5 accent-accent"
           />
-          É um link de checkout — registrar &ldquo;Iniciou checkout&rdquo; no Tracking no clique
+          É um link de checkout — registra &ldquo;Iniciou checkout&rdquo; no clique (e manda InitiateCheckout pra Meta se estiver &ldquo;no clique&rdquo; em Eventos)
         </label>
 
         {url.trim() && !readyLink && (
