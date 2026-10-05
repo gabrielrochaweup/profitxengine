@@ -1053,6 +1053,8 @@ export interface Database {
           endpoint_slug: string;
           encrypted_secret: string;
           active: boolean;
+          /** ativo = grava e manda pra Meta; teste = só confere; pausado = recusa. Ver migration 0130. */
+          modo: "ativo" | "teste" | "pausado";
           last_test_at: string | null;
           last_test_ok: boolean | null;
           created_by: string | null;
@@ -1060,12 +1062,13 @@ export interface Database {
         };
         Insert: Omit<
           Database["public"]["Tables"]["tracking_webhook_endpoints"]["Row"],
-          "id" | "platform" | "label" | "active" | "last_test_at" | "last_test_ok" | "created_by" | "created_at"
+          "id" | "platform" | "label" | "active" | "modo" | "last_test_at" | "last_test_ok" | "created_by" | "created_at"
         > & {
           id?: string;
           platform?: string | null;
           label?: string | null;
           active?: boolean;
+          modo?: "ativo" | "teste" | "pausado";
           last_test_at?: string | null;
           last_test_ok?: boolean | null;
           created_by?: string | null;

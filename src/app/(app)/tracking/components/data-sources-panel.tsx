@@ -37,7 +37,7 @@ import { BROKER_PLATFORMS } from "@/lib/tracking/broker-adapters";
 import { CONTRACT_PLATFORMS } from "@/lib/tracking/contract-adapters";
 import { TOOL_PLATFORMS } from "@/lib/tracking/tool-adapters";
 import { ORIGEM_PUBLICA_DO_APP } from "@/lib/app-host";
-import { Bloco, BotaoIcone, CampoCopiavel, Interruptor } from "./ui";
+import { Bloco, BotaoIcone, CampoCopiavel, Interruptor, Segmentado } from "./ui";
 import { cn } from "@/lib/utils";
 
 export interface WebhookEndpoint {
@@ -48,10 +48,27 @@ export interface WebhookEndpoint {
   label: string | null;
   endpoint_slug: string;
   active: boolean;
+  /** Só o checkout usa os três estados; nos outros tipos vale o liga/desliga. */
+  modo: "ativo" | "teste" | "pausado";
   last_test_at: string | null;
   last_test_ok: boolean | null;
   created_at: string;
 }
+
+type ModoDoCheckout = WebhookEndpoint["modo"];
+
+const MODOS_DO_CHECKOUT: readonly { key: ModoDoCheckout; label: string }[] = [
+  { key: "ativo", label: "Ativo" },
+  { key: "teste", label: "Teste" },
+  { key: "pausado", label: "Pausado" },
+];
+
+const EXPLICACAO_DO_MODO: Record<ModoDoCheckout, string> = {
+  ativo: "Grava as vendas, entra nos KPIs e manda Purchase pra Meta.",
+  teste:
+    "Recebe o pedido e confere se o sck chegou e se o lead foi achado, mas não grava a venda, não conta nos KPIs, não manda nada pra Meta e não dispara mensagem pro comprador. O resultado aparece em “Payloads recebidos”.",
+  pausado: "Recusa as chamadas. Nada é recebido.",
+};
 
 const KIND_LABEL: Record<WebhookEndpoint["kind"], string> = {
   checkout: "Checkout",
@@ -400,6 +417,21 @@ export function FontesDeDadosPanel({
     return copy(qual === "token" ? token : `${endpointUrl(endpoint)}?token=${token}`);
   }
 
+  async function mudarModo(endpoint: WebhookEndpoint, modo: ModoDoCheckout) {
+    if (modo === endpoint.modo) return;
+    const res = await fetch(`/api/tracking/endpoints/${endpoint.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modo }),
+    });
+    if (!res.ok) {
+      toast.error("Não consegui trocar o estado. Se a migration 0130 ainda não rodou, é isso.");
+      return;
+    }
+    setEndpoints((prev) => prev.map((e) => (e.id === endpoint.id ? { ...e, modo, active: modo !== "pausado" } : e)));
+    toast.success(modo === "teste" ? "Checkout em teste: nada vai pra venda nem pra Meta." : modo === "ativo" ? "Checkout ativo." : "Checkout pausado.");
+  }
+
   async function toggleActive(endpoint: WebhookEndpoint) {
     const nextActive = !endpoint.active;
     const res = await fetch(`/api/tracking/endpoints/${endpoint.id}`, {
@@ -411,7 +443,9 @@ export function FontesDeDadosPanel({
       toast.error("Falha ao atualizar.");
       return;
     }
-    setEndpoints((prev) => prev.map((e) => (e.id === endpoint.id ? { ...e, active: nextActive } : e)));
+    setEndpoints((prev) =>
+      prev.map((e) => (e.id === endpoint.id ? { ...e, active: nextActive, modo: nextActive ? "ativo" : "pausado" } : e))
+    );
   }
 
   // Alguns navegadores recusam copiar depois de uma ida ao servidor (o
@@ -564,13 +598,39 @@ export function FontesDeDadosPanel({
                   ? "Último teste falhou"
                   : "Nunca testado"}
             </Badge>
-            <Interruptor
-              checked={endpoint.active}
-              onChange={() => toggleActive(endpoint)}
-              label={endpoint.active ? "Desativar conexão" : "Ativar conexão"}
-            />
+            {endpoint.kind === "checkout" ? (
+              <Segmentado opcoes={MODOS_DO_CHECKOUT} ativo={endpoint.modo} onChange={(m) => mudarModo(endpoint, m)} />
+            ) : (
+              <Interruptor
+                checked={endpoint.active}
+                onChange={() => toggleActive(endpoint)}
+                label={endpoint.active ? "Desativar conexão" : "Ativar conexão"}
+              />
+            )}
           </div>
         </div>
+
+        {endpoint.kind === "checkout" && (
+          <div
+            className={cn(
+              "flex items-start gap-2 border-b border-border px-4 py-2.5 text-[11px] leading-relaxed",
+              endpoint.modo === "teste" ? "bg-warning-soft text-text-secondary" : "text-text-tertiary"
+            )}
+          >
+            <Info size={12} className="mt-0.5 shrink-0" />
+            <span>
+              <strong className="font-medium text-text-secondary">{MODOS_DO_CHECKOUT.find((m) => m.key === endpoint.modo)?.label}:</strong>{" "}
+              {EXPLICACAO_DO_MODO[endpoint.modo]}
+              {endpoint.modo === "teste" && (
+                <>
+                  {" "}
+                  Enquanto estiver em teste, não coloque a página deste checkout na lista de páginas de checkout (Rastreamento): o
+                  “Iniciou checkout” iria pra Meta.
+                </>
+              )}
+            </span>
+          </div>
+        )}
 
         {/* ── Corpo: o que se cola na plataforma do outro lado ── */}
         <div className="space-y-3 px-4 py-4">

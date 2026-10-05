@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
 import { TrackingClient } from "./tracking-client";
+import { listarEndpoints } from "@/lib/tracking/endpoints-leitura";
 import { PageContainer, PageHeader } from "@/components/ui/page";
 
 export default async function TrackingPage() {
@@ -27,7 +28,7 @@ export default async function TrackingPage() {
   const from = new Date(now);
   from.setDate(from.getDate() - 90);
 
-  const [{ data: report }, { data: rawEvents }, { data: endpoints }, { data: adCredentials }] = await Promise.all([
+  const [{ data: report }, { data: rawEvents }, endpoints, { data: adCredentials }] = await Promise.all([
     supabase.rpc("tracking_campaign_report", {
       p_product_id: activeProduct.id,
       p_from: from.toISOString(),
@@ -39,11 +40,7 @@ export default async function TrackingPage() {
       .eq("product_id", activeProduct.id)
       .order("occurred_at", { ascending: false })
       .limit(50),
-    supabase
-      .from("tracking_webhook_endpoints")
-      .select("id, product_id, kind, platform, label, endpoint_slug, active, last_test_at, last_test_ok, created_at")
-      .eq("product_id", activeProduct.id)
-      .order("created_at", { ascending: false }),
+    listarEndpoints(supabase, activeProduct.id),
     supabase
       .from("ad_platform_credentials")
       .select("id, platform, label, ad_account_id, is_valid, status, last_checked_at, last_synced_at")

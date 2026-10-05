@@ -60,6 +60,43 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ ok: true, tested: true, parsed: normalized }, { headers });
   }
 
+  // Checkout em modo TESTE: recebe e confere, mas não faz nada com o pedido.
+  // Não grava a venda (não entra em KPI nem em ROI), não manda Purchase pra
+  // Meta, não dispara mensagem pro comprador e não escreve no lead. O que
+  // sobra é o diagnóstico no log: o sck chegou? existe um lead com esse ID?
+  // É o que decide se o checkout novo está pronto pra virar ativo.
+  if (endpoint.modo === "teste") {
+    const refRecebido = !!normalized.ref;
+    const leadAchado = await matchLead(
+      admin,
+      { productId: endpoint.product_id, ref: normalized.ref, email: normalized.email, phone: normalized.phone },
+      { somenteLeitura: true }
+    );
+    const valor = normalized.amountCents !== null ? `R$ ${(normalized.amountCents / 100).toFixed(2).replace(".", ",")}` : "sem valor";
+    const resumo = [
+      `pedido ${normalized.externalId ?? "(sem id)"}`,
+      normalized.offerName ?? "sem oferta",
+      valor,
+      refRecebido ? "sck/ref: chegou" : "sck/ref: NÃO chegou",
+      leadAchado
+        ? "lead: encontrado"
+        : refRecebido
+          ? "lead: NÃO encontrado (o sck chegou, mas nenhum lead tem esse ID)"
+          : "lead: NÃO encontrado",
+    ].join(" · ");
+    await logWebhookCall(
+      admin,
+      endpoint.id,
+      raw,
+      true,
+      `Modo teste — nada foi gravado, enviado à Meta ou disparado. ${resumo}`
+    );
+    return NextResponse.json(
+      { ok: true, modo: "teste", gravado: false, ref_recebido: refRecebido, lead_encontrado: leadAchado !== null },
+      { headers }
+    );
+  }
+
   await logWebhookCall(admin, endpoint.id, raw, true);
 
   const leadId = await matchLead(admin, {

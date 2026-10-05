@@ -9,8 +9,9 @@ function generateToken() {
 }
 
 // action="rotate" gera um novo token e devolve em texto puro (uma vez só,
-// igual na criação); { active: boolean } liga/desliga o endpoint sem
-// apagar histórico.
+// igual na criação); { modo: "ativo" | "teste" | "pausado" } troca o estado
+// do checkout; { active: boolean } liga/desliga os demais tipos sem apagar
+// histórico.
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const profile = await getSessionProfile();
   if (!ehAprovado(profile)) {
@@ -30,11 +31,28 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ secret: token });
   }
 
-  if (typeof body?.active === "boolean") {
+  // "active" = o webhook responde (ativo e teste); só "pausado" recusa. Os
+  // dois campos andam juntos pra que o resolvedor do webhook, que só olha
+  // "active", continue certo.
+  if (body?.modo === "ativo" || body?.modo === "teste" || body?.modo === "pausado") {
     const { error } = await admin
       .from("tracking_webhook_endpoints")
-      .update({ active: body.active })
+      .update({ modo: body.modo, active: body.modo !== "pausado" })
       .eq("id", params.id);
+    if (error) return NextResponse.json({ error: "Falha ao trocar o estado." }, { status: 500 });
+    return NextResponse.json({ ok: true, modo: body.modo });
+  }
+
+  if (typeof body?.active === "boolean") {
+    // Mantém "modo" junto. Se o banco ainda não tem a coluna (migration 0130
+    // por rodar), repete só com "active" — o liga/desliga não pode quebrar.
+    let { error } = await admin
+      .from("tracking_webhook_endpoints")
+      .update({ active: body.active, modo: body.active ? "ativo" : "pausado" })
+      .eq("id", params.id);
+    if (error) {
+      ({ error } = await admin.from("tracking_webhook_endpoints").update({ active: body.active }).eq("id", params.id));
+    }
     if (error) return NextResponse.json({ error: "Falha ao atualizar." }, { status: 500 });
     return NextResponse.json({ ok: true });
   }

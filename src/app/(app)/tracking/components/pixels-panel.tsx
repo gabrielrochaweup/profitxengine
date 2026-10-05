@@ -65,7 +65,7 @@ function PlatformSection({
         <Tooltip
           text={
             platform === "meta"
-              ? "Quais eventos saem pra Meta (PageView, Lead, InitiateCheckout, Purchase, Deposit) você escolhe em Ferramentas > Rastreamento. Purchase e Deposit saem do servidor e precisam do token da API de Conversões."
+              ? "Quais eventos saem pra Meta (PageView, Lead, InitiateCheckout, Purchase, Deposit) você escolhe em Ferramentas > Rastreamento. Purchase e Deposit saem do servidor e precisam do token da API de Conversões. Pixel sem token recebe só o que o navegador manda (PageView e Iniciou checkout) — dá pra usar assim, por exemplo, num pixel novo em aquecimento. Todo pixel ativo recebe os mesmos eventos."
               : "Pelo navegador, o script manda só o page_view, usando o Conversion ID (AW-...). Se a página já tiver a mesma tag, não manda de novo."
           }
         />
@@ -77,7 +77,7 @@ function PlatformSection({
       }
     >
       <p className="-mt-1 mb-3 text-[11px] text-text-tertiary">
-        {platform === "meta" ? "Pixel ID + token da API de Conversões." : "Conversion ID do Google Ads (AW-...)."}
+        {platform === "meta" ? "Pixel ID. O token da API de Conversões é opcional: sem ele o pixel recebe só os eventos do navegador." : "Conversion ID do Google Ads (AW-...)."}
       </p>
 
       {pixels.length === 0 ? (
@@ -221,9 +221,9 @@ function PixelRow({ pixel, onUpsert, onRemove }: { pixel: Pixel; onUpsert: (p: P
               </span>
               {pixel.platform === "meta" && (
                 <span className="inline-flex items-center gap-1.5 text-[11px]">
-                  <Ponto tom={pixel.has_capi_token ? "ok" : "alerta"} />
-                  <span className={pixel.has_capi_token ? "text-text-tertiary" : "text-warning"}>
-                    {pixel.has_capi_token ? "Purchase configurado" : "Sem token de Purchase"}
+                  <Ponto tom={pixel.has_capi_token ? "ok" : "neutro"} />
+                  <span className="text-text-tertiary">
+                    {pixel.has_capi_token ? "Purchase configurado" : "Somente navegador (sem API)"}
                   </span>
                 </span>
               )}

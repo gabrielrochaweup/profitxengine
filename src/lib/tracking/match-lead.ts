@@ -34,9 +34,13 @@ function normalizePhone(value: string): string | null {
 // que o lead ainda não tinha, grava isso nele — é isso que habilita casar
 // por e-mail ou telefone eventos futuros que não conseguirem propagar o ref
 // (ex: se a corretora não conseguir repassar o parâmetro em algum fluxo).
+//
+// somenteLeitura: só descobre o lead, sem gravar e-mail/telefone nele. É o que
+// o checkout em modo teste usa — conferir um pedido não pode mexer no lead.
 export async function matchLead(
   supabase: SupabaseClient<Database>,
-  { productId, ref, email, phone }: MatchLeadInput
+  { productId, ref, email, phone }: MatchLeadInput,
+  opcoes: { somenteLeitura?: boolean } = {}
 ): Promise<string | null> {
   const normalizedEmail = email?.trim().toLowerCase() || null;
   const normalizedPhone = phone ? normalizePhone(phone) : null;
@@ -82,7 +86,7 @@ export async function matchLead(
   const backfill: Database["public"]["Tables"]["tracking_leads"]["Update"] = {};
   if (normalizedEmail && !lead.email) backfill.email = normalizedEmail;
   if (normalizedPhone && !lead.phone) backfill.phone = normalizedPhone;
-  if (Object.keys(backfill).length > 0) {
+  if (!opcoes.somenteLeitura && Object.keys(backfill).length > 0) {
     await supabase.from("tracking_leads").update(backfill).eq("id", lead.id);
   }
 

@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto";
+import { listarEndpoints } from "@/lib/tracking/endpoints-leitura";
 
 function generateSlug() {
   return randomBytes(16).toString("hex");
@@ -24,13 +25,9 @@ export async function GET(request: Request) {
   if (!productId) return NextResponse.json({ error: "product_id é obrigatório." }, { status: 400 });
 
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("tracking_webhook_endpoints")
-    .select("id, product_id, kind, platform, label, endpoint_slug, active, last_test_at, last_test_ok, created_at")
-    .eq("product_id", productId)
-    .order("created_at", { ascending: false });
+  const endpoints = await listarEndpoints(admin, productId);
 
-  return NextResponse.json({ endpoints: data ?? [] });
+  return NextResponse.json({ endpoints });
 }
 
 // Devolve o token em texto puro só nessa resposta — depois disso, só o
@@ -75,5 +72,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Falha ao criar endpoint." }, { status: 500 });
   }
 
-  return NextResponse.json({ endpoint: data, secret: token });
+  // Conexão nova nasce "ativo" (padrão da coluna); o select acima não pede
+  // "modo" pra não falhar antes da migration 0130.
+  return NextResponse.json({ endpoint: { ...data, modo: "ativo" as const }, secret: token });
 }
