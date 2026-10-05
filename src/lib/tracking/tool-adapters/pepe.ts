@@ -18,7 +18,10 @@ import { normalizarEmail } from "../email";
 // que uma variação na escrita do outro lado ("user.created", "user.signup",
 // "cadastro") não vire evento ignorado em silêncio no dia do lançamento.
 const PADRAO_ACESSO = /first[_.\s-]?access|primeiro[_.\s-]?acesso/i;
-const PADRAO_CADASTRO = /created|registered|sign[_.\s-]?up|cadastr/i;
+// "user.criado" é o evento que a PEPE manda quando a compra chega e a conta
+// passa a existir (o nome real dela, em português). Sem "criad" aqui ele era
+// ignorado, e quem comprava aparecia como se nunca tivesse sido cadastrado.
+const PADRAO_CADASTRO = /created|criad[oa]|criou|registered|sign[_.\s-]?up|cadastr/i;
 
 export const pepeAdapter: ToolAdapter = (raw) => {
   if (typeof raw !== "object" || raw === null) return null;
