@@ -12,9 +12,14 @@ export const PLANOS: Plano[] = ["starter", "pro", "elite"];
 // SendPulse. Sem a linha aqui, a compra ainda cai no endereço "geral" (ver
 // enderecoDoEvento), então ninguém fica sem mensagem em silêncio.
 const OFFER_ID_TO_PLANO: Record<string, Plano> = {
+  // Onprofit
   "4831": "starter",
   "4832": "pro",
   "4833": "elite",
+  // TorkPay (product.id do webhook de cada produto)
+  "8aff59e7-1b25-4789-8eb9-a43f97b742a9": "starter",
+  "7ba60cef-25c0-4235-ad92-2ed1d21143f9": "pro",
+  "929cee1e-607a-429e-a514-1f998bef82dd": "elite",
 };
 
 /**
@@ -23,7 +28,9 @@ const OFFER_ID_TO_PLANO: Record<string, Plano> = {
  * aparecer um product.id ainda não mapeado aqui.
  */
 export function resolvePlano(offerId: string | null, offerName: string | null): Plano | null {
-  if (offerId && OFFER_ID_TO_PLANO[offerId]) return OFFER_ID_TO_PLANO[offerId];
+  // Minúsculo porque o id da TorkPay é UUID e pode vir em caixa diferente.
+  const chave = offerId?.trim().toLowerCase();
+  if (chave && OFFER_ID_TO_PLANO[chave]) return OFFER_ID_TO_PLANO[chave];
 
   const nome = (offerName ?? "").toLowerCase();
   // Do mais específico pro mais genérico: um nome que cite dois planos é
