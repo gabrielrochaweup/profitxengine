@@ -12,17 +12,16 @@ import { normalizarEmail } from "../email";
 //                    "installments": 1, "payment_method": "credit_card" },
 //       "product": { "id": "prod_demo_123", "name": "Todos os produtos" } } }
 //
-// O que NÃO está confirmado, porque o payload de teste não traz:
-//   • Onde a TorkPay devolve o "sck" do link (campo de rastreio). Por isso a
-//     busca abaixo varre o payload atrás de um UUID em chaves de rastreio,
-//     em vez de apontar um caminho fixo. Com um pedido real vindo de um link
-//     com ?sck=..., dá pra cravar o caminho.
-//   • Se "amount" vem em reais ou em centavos. O teste (147, BRL) só faz
-//     sentido como reais; a constante abaixo troca isso num lugar só. O modo
-//     Teste do checkout mostra o valor lido, e é ali que se confere com um
-//     pedido real.
+// Confirmado pelo produtor: "amount" vem em REAIS (147 = R$ 147,00), vale pra
+// qualquer valor. Os dados do comprador e do rastreio do payload de teste são
+// de mentira; num pedido real vêm do cliente e do link do checkout.
+//
+// O bloco de rastreio da TorkPay (fbc, fbp, sck, src, utm_*) aparece repetido
+// em vários pontos do JSON (topo, data, data.tracking, data.trackingParameters,
+// trackingParameters). A busca abaixo varre o payload atrás de um UUID em
+// chaves de rastreio, então acha o "sck" em qualquer um deles.
 
-/** true = "amount" vem em reais (147 = R$ 147,00); false = já vem em centavos. */
+/** "amount" vem em reais (147 = R$ 147,00). Confirmado. */
 const VALOR_EM_REAIS = true;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -67,9 +66,18 @@ function texto(valor: unknown): string | null {
   return typeof valor === "string" && valor.trim() ? valor.trim() : null;
 }
 
+// Aceita número ou texto. No texto, a vírgula é o separador decimal e o ponto
+// o de milhar ("1.234,56"); sem vírgula, o ponto é decimal ("77.50").
+function lerNumero(valor: unknown): number {
+  if (typeof valor === "number") return valor;
+  if (typeof valor !== "string") return NaN;
+  const t = valor.trim();
+  return Number(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t);
+}
+
 function valorEmCentavos(valor: unknown): number | null {
-  const numero = typeof valor === "number" ? valor : typeof valor === "string" ? Number(valor.replace(",", ".")) : NaN;
-  if (!Number.isFinite(numero)) return null;
+  const numero = lerNumero(valor);
+  if (!Number.isFinite(numero) || numero < 0) return null;
   return Math.round(VALOR_EM_REAIS ? numero * 100 : numero);
 }
 
