@@ -37,6 +37,21 @@ function buildTestPayload(kind: string, platform: string | null): unknown {
         },
       };
     }
+    if (platform === "torkpay") {
+      return {
+        event: "Compra aprovada",
+        platform: "TorkPay",
+        timestamp: now.toISOString(),
+        payload_version: "2.0",
+        data: {
+          transaction_id: testId,
+          buyer: { name: "Teste", email: "teste@profitx.com", phone: "(11) 90000-0000" },
+          order: { amount: 1, status: "paid", currency: "BRL", installments: 1, payment_method: "pix" },
+          product: { id: "prod_teste", name: "Oferta de teste" },
+          sck: "test-lead-id",
+        },
+      };
+    }
     if (platform === "onprofit") {
       return {
         object: "order",

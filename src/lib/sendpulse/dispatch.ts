@@ -562,7 +562,8 @@ async function telefoneDoLead(admin: Admin, productId: string, email: string): P
 
 function offerIdDoPayload(payload: Record<string, unknown> | null): string | null {
   if (!payload) return null;
-  const produto = payload.product;
+  const dados = typeof payload.data === "object" && payload.data !== null ? (payload.data as Record<string, unknown>) : null;
+  const produto = payload.product ?? dados?.product;
   if (typeof produto === "object" && produto !== null) {
     const id = (produto as Record<string, unknown>).id;
     if (typeof id === "number" || (typeof id === "string" && id)) return String(id);
