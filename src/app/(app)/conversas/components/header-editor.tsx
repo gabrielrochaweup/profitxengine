@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Upload, Dices } from "lucide-react";
+import { Upload, Dices } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { pickAvatar } from "@/lib/avatar-library";
 import { Input } from "@/components/ui/input";

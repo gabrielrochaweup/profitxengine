@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Paperclip, GripVertical, Clock, Copy, Circle, CheckCircle2, Maximize2 } from "lucide-react";
+import { Paperclip, GripVertical, Clock, Copy, Circle, CheckCircle2, Maximize2 } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { getUrgencyLevel, URGENCY_TEXT_CLASS, formatDueAt, useMinuteTick } from "../lib/urgency";
 import type { Database } from "@/lib/supabase/types";

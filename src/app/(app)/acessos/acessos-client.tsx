@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Eye, EyeOff, Copy, LogIn, ShieldCheck, ShieldAlert } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, Copy, LogIn, ShieldCheck, ShieldAlert } from "@/components/ui/icones";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

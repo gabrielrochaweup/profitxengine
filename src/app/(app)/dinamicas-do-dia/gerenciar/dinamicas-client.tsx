@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, ArrowLeft } from "@/components/ui/icones";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

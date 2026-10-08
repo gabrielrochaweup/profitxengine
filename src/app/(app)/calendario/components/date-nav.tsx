@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@/components/ui/icones";
 import { toDateKey } from "../lib/date-utils";
 
 interface DateNavProps {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Pencil, Power, Trash2, Radar } from "lucide-react";
+import { Pencil, Power, Trash2, Radar } from "@/components/ui/icones";
 import { Button } from "@/components/ui/button";
 import { Bloco, Cartao, ItemMenu, MenuMais, Ponto, Vazio } from "./ui";
 import { Modal } from "@/components/ui/modal";

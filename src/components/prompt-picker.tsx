@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Library, Search } from "lucide-react";
+import { Library, Search } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";

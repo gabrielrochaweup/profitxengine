@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Search, Pencil, Copy, Trash2, GripVertical, FolderPlus } from "lucide-react";
+import { Plus, Search, Pencil, Copy, Trash2, GripVertical, FolderPlus } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
+import { FaixaTitulo } from "./faixa";
 
 /*
   Peças de layout de painel de dados — três níveis de superfície:
@@ -32,7 +33,8 @@ export function IconTile({
       className={cn(
         "flex shrink-0 items-center justify-center",
         box,
-        active ? "bg-accent text-accent-contrast" : "bg-accent-soft text-accent-text",
+        // Âmbar: o ícone de cabeçalho é estrutura, não botão.
+        active ? "bg-frame text-frame-contrast" : "bg-frame-soft text-frame-text",
         className
       )}
     >
@@ -59,17 +61,14 @@ export function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className={cn("rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5", className)}>
+    <section className={cn("rounded-panel bg-card p-4 shadow-panel sm:p-5", className)}>
       {(title || actions) && (
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            {icon && <IconTile icon={icon} />}
-            <div className="min-w-0">
-              {title && <h2 className="text-[15px] font-semibold text-text-primary">{title}</h2>}
-              {description && (
-                <p className="mt-1 max-w-[72ch] text-[12px] leading-relaxed text-text-tertiary">{description}</p>
-              )}
-            </div>
+          <div className="min-w-0 flex-1">
+            {title && <FaixaTitulo icone={icon}>{title}</FaixaTitulo>}
+            {description && (
+              <p className="mt-2 max-w-[72ch] text-[12px] leading-relaxed text-text-tertiary">{description}</p>
+            )}
           </div>
           {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
         </div>
@@ -115,7 +114,7 @@ export function SideNav<T extends string>({
   return (
     <nav
       aria-label={label}
-      className="z-10 flex gap-1 overflow-x-auto rounded-2xl border border-border bg-card p-1.5 shadow-card xl:sticky xl:top-4 xl:flex-col xl:self-start"
+      className="z-10 flex gap-1 overflow-x-auto rounded-panel bg-card p-1.5 shadow-panel xl:sticky xl:top-4 xl:flex-col xl:self-start"
     >
       {items.map(({ key, label: itemLabel, hint, icon: Icon, badge, tone = "neutral", badgeLabel }) => {
         const current = active === key;
@@ -127,14 +126,16 @@ export function SideNav<T extends string>({
             aria-current={current ? "page" : undefined}
             onClick={() => onChange(key)}
             className={cn(
-              "flex min-w-max flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors xl:min-w-0 xl:flex-none",
-              current ? "bg-accent-soft" : "hover:bg-card-hover"
+              "relative flex min-w-max flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors xl:min-w-0 xl:flex-none",
+              current ? "bg-frame-soft" : "hover:bg-card-hover"
             )}
           >
+            {/* Item ativo: o fio âmbar na borda, como o marcador da referência. */}
+            {current && <span aria-hidden className="absolute inset-y-1.5 left-0 w-[2px] bg-frame" />}
             <span
               className={cn(
                 "relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-                current ? "bg-accent text-accent-contrast" : "bg-input text-text-secondary"
+                current ? "bg-frame text-frame-contrast" : "bg-input text-text-secondary"
               )}
             >
               <Icon size={15} />
@@ -147,7 +148,7 @@ export function SideNav<T extends string>({
             <span className="min-w-0 flex-1">
               <span
                 className={cn(
-                  "block truncate text-[13px] font-medium",
+                  "block truncate font-display text-[13px] font-semibold tracking-[0.03em]",
                   current ? "text-text-primary" : "text-text-secondary"
                 )}
               >
@@ -218,9 +219,9 @@ export function SegmentedControl<T extends string>({
           disabled={disabled}
           onClick={() => onChange(option.key)}
           className={cn(
-            "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50",
+            "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 font-display text-xs font-semibold tracking-[0.04em] transition-colors disabled:opacity-50",
             value === option.key
-              ? "bg-card text-text-primary shadow-card"
+              ? "bg-card text-text-primary shadow-[inset_0_-2px_0_var(--frame)]"
               : "text-text-tertiary hover:text-text-secondary"
           )}
         >
@@ -252,13 +253,13 @@ export function StatTile({
 }) {
   const corpo = (
     <>
-      <p className="flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary">
+      <p className="flex items-center gap-1.5 font-display text-[10px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
         {Icon && <Icon size={13} className="shrink-0" />}
         <span className="truncate">{label}</span>
       </p>
       <p
         className={cn(
-          "mt-1.5 text-[22px] font-semibold leading-none tabular-nums",
+          "mt-2 font-display text-[26px] font-semibold leading-none tabular-nums",
           tone === "success"
             ? "text-ok"
             : tone === "warning"

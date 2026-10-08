@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MessageCircle, Phone, User, Mail } from "lucide-react";
+import { MessageCircle, Phone, User, Mail } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

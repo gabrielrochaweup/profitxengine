@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, RefreshCw, Send, XCircle } from "lucide-react";
+import { CheckCircle2, RefreshCw, Send, XCircle } from "@/components/ui/icones";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Tooltip } from "@/components/ui/tooltip";

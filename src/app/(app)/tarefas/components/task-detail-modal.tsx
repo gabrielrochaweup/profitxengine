@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Paperclip, Trash2, X, FileText, CalendarClock, Circle, Plus, Pencil, Check, GripVertical, Download } from "lucide-react";
+import { Paperclip, Trash2, X, FileText, CalendarClock, Circle, Plus, Pencil, Check, GripVertical, Download } from "@/components/ui/icones";
 import {
   DndContext,
   closestCenter,

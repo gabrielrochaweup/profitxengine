@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, ChevronDown, Check, X, Smile, Paperclip, Zap, Type, Languages, Send } from "lucide-react";
+import { ArrowLeft, ChevronDown, Check, X, Smile, Paperclip, Zap, Type, Languages, Send } from "@/components/ui/icones";
 import type { ConversationMessage } from "@/lib/supabase/types";
 
 interface CrmChatProps {

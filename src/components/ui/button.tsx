@@ -18,9 +18,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-7 px-2.5 text-xs",
-  md: "h-9 px-3.5 text-[13px]",
-  lg: "h-10 px-5 text-sm",
+  sm: "h-7 px-2.5 text-[11px]",
+  md: "h-9 px-3.5 text-[12px]",
+  lg: "h-10 px-5 text-[13px]",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -29,7 +29,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center gap-1.5 rounded-button font-medium transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none",
+          "inline-flex items-center justify-center gap-1.5 rounded-button font-display font-semibold uppercase tracking-[0.08em] transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none",
           variantClasses[variant],
           sizeClasses[size],
           className

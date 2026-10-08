@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useActiveProduct } from "@/components/layout/active-product-context";

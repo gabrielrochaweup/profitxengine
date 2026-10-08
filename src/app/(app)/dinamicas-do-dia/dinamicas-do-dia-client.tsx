@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Settings2 } from "lucide-react";
+import { Settings2 } from "@/components/ui/icones";
 import { DateNav } from "../calendario/components/date-nav";
 import { AnalyticsPanel } from "./components/analytics-panel";
 import { DynamicDayTable } from "./components/dynamic-day-table";

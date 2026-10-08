@@ -22,7 +22,7 @@ import {
   Wrench,
   X,
   type LucideIcon,
-} from "lucide-react";
+} from "@/components/ui/icones";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -512,7 +512,7 @@ export function FontesDeDadosPanel({
       >
         {/* ── Cabeçalho: qual conexão, e se ela está de pé ── */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-accent-soft text-accent-text">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-frame-soft text-frame-text">
             <Icone size={16} />
           </span>
 

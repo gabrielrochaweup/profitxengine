@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, X } from "lucide-react";
+import { Trash2, X } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 

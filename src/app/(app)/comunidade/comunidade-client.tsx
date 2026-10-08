@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Hash, Lock, Menu, Settings2, Users, WifiOff, X } from "lucide-react";
+import { Hash, Lock, Menu, Settings2, Users, WifiOff, X } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { EVENTO_LIDA } from "@/components/layout/badge-comunidade";

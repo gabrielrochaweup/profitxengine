@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Clock, LogOut } from "lucide-react";
+import { Clock, LogOut } from "@/components/ui/icones";
 import { getUser, getProfile } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 

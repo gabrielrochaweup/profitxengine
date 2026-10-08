@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 
 /**

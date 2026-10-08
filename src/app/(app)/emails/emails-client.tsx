@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles, Trash2, Plus, Copy } from "lucide-react";
+import { Sparkles, Trash2, Plus, Copy } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

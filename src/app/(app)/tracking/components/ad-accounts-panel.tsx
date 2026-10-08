@@ -2,7 +2,7 @@
 
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { Input } from "@/components/ui/input";
-import { Pencil, KeyRound, Trash2, Megaphone } from "lucide-react";
+import { Pencil, KeyRound, Trash2, Megaphone } from "@/components/ui/icones";
 import { Button } from "@/components/ui/button";
 import { Bloco, Cartao, ItemMenu, MenuMais, Ponto, Vazio } from "./ui";
 import { Modal } from "@/components/ui/modal";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@/components/ui/icones";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";

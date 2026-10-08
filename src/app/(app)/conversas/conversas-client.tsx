@@ -1,7 +1,8 @@
 "use client";
 
+import { FaixaTitulo } from "@/components/ui/faixa";
 import { useEffect, useState } from "react";
-import { Plus, Save, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Save, ChevronDown, ChevronUp } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { pickAvatar } from "@/lib/avatar-library";
 import { Card } from "@/components/ui/card";
@@ -269,7 +270,7 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
               onClick={() => setHeaderOpen((v) => !v)}
               className="flex w-full items-center justify-between"
             >
-              <h3 className="text-[15px] font-semibold text-text-primary">Cabeçalho</h3>
+              <FaixaTitulo as="h3">Cabeçalho</FaixaTitulo>
               {headerOpen ? (
                 <ChevronUp size={16} className="text-text-tertiary" />
               ) : (
@@ -345,7 +346,7 @@ export function ConversasClient({ initialConversations, currentUserId }: Convers
             </Card>
 
             <Card className="h-fit p-4">
-              <h3 className="mb-3 text-[15px] font-semibold text-text-primary">Mensagens</h3>
+              <FaixaTitulo as="h3" className="mb-3">Mensagens</FaixaTitulo>
               <MessageEditor
                 platform={platform}
                 messages={active.messages}

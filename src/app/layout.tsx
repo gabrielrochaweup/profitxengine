@@ -1,8 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
+import { Chakra_Petch } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import "./globals.css";
+
+// Fonte técnica: títulos, faixas de seção, rótulos em caixa-alta e números
+// grandes. O texto corrido e as tabelas continuam em Geist, que lê melhor
+// em leitura longa.
+const fonteTecnica = Chakra_Petch({
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "ENGINE",
@@ -38,7 +49,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${GeistSans.variable} font-sans antialiased bg-app text-text-primary`}>
+      <body className={`${GeistSans.variable} ${fonteTecnica.variable} font-sans antialiased bg-app text-text-primary`}>
         <ToastProvider>
           <ConfirmProvider>{children}</ConfirmProvider>
         </ToastProvider>

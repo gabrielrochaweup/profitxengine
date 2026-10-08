@@ -1,4 +1,4 @@
-import { ArrowLeft, Video, Phone as PhoneIcon, MoreVertical, Plus, Camera, Mic, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Video, Phone as PhoneIcon, MoreVertical, Plus, Camera, Mic, Check, CheckCheck } from "@/components/ui/icones";
 import { StatusBar } from "./status-bar";
 import type { ConversationMessage } from "@/lib/supabase/types";
 

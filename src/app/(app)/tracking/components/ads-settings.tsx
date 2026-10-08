@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { Megaphone } from "lucide-react";
+import { Megaphone } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { BmsPanel } from "./bms-panel";
 import { AdAccountsPanel, type AdAccount } from "./ad-accounts-panel";

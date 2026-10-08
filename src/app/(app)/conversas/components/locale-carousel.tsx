@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@/components/ui/icones";
 import { CLIENT_LOCALES, CLIENT_LOCALE_SHORT_LABELS, CLIENT_LOCALE_LABELS } from "@/lib/supabase/types";
 import type { ClientLocale } from "@/lib/supabase/types";
 

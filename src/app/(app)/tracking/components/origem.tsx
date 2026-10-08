@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight } from "@/components/ui/icones";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { isSpecialBucket, SPECIAL_BUCKET_HELP } from "./baldes";

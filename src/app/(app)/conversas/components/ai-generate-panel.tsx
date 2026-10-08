@@ -1,7 +1,8 @@
 "use client";
 
+import { FaixaTitulo } from "@/components/ui/faixa";
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles, Copy, Check } from "lucide-react";
+import { Sparkles, Copy, Check } from "@/components/ui/icones";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -274,7 +275,7 @@ export function AiGeneratePanel({ platform, onGenerated, hasExistingMessages }: 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[15px] font-semibold text-text-primary">Gerar com IA</h3>
+        <FaixaTitulo as="h3">Gerar com IA</FaixaTitulo>
         {promptMode === "livre" && (
           <PromptPicker
             preferredSlug="conversa"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText } from "@/components/ui/icones";
 import { Tooltip } from "@/components/ui/tooltip";
 import { LoadingState } from "@/components/ui/loading-state";
 import { createClient } from "@/lib/supabase/client";

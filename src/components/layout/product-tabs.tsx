@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { useActiveProduct } from "./active-product-context";
 import { CreateProductModal } from "./product-modals";

@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 
 type BadgeTone = "neutral" | "success" | "warning" | "danger";
 
-// Badge continua arredondado: é rótulo, não controle. O que muda é o peso —
-// borda sutil da própria cor em vez de um bloco chapado.
+// Etiqueta reta, em fonte técnica e caixa-alta, como os rótulos da
+// referência. Borda sutil da própria cor em vez de um bloco chapado.
 const toneClasses: Record<BadgeTone, string> = {
   neutral: "text-text-secondary bg-card-hover border border-border",
   success: "text-success bg-success-soft border border-success/20",
@@ -20,7 +20,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-5",
+        "inline-flex items-center rounded-sm px-1.5 py-0.5 font-display text-[10px] font-semibold uppercase leading-4 tracking-[0.1em]",
         toneClasses[tone],
         className
       )}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Headphones, PhoneOff } from "lucide-react";
+import { Headphones, PhoneOff } from "@/components/ui/icones";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { usePresenca } from "./lib";
@@ -216,7 +216,7 @@ export function ChamadaProvider({
       {destinoPendente && (
         <Modal open onClose={() => setDestinoPendente(null)} title="Deseja sair da chamada?" className="max-w-md">
           <div className="flex gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button bg-accent-soft text-accent-text">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button bg-frame-soft text-frame-text">
               <Headphones size={18} />
             </span>
             <p className="text-[13px] leading-relaxed text-text-secondary">

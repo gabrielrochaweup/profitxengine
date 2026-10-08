@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Info } from "lucide-react";
+import { Info } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 
 // Ícone "ⓘ" pequeno que revela uma explicação curta ao passar o mouse/tocar

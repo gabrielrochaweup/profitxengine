@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

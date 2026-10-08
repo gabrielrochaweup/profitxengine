@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, Check, X, ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, ChevronLeft, ChevronRight, Settings2 } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Section } from "@/components/ui/page";

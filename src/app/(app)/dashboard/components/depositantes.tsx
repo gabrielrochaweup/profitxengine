@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Download, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Download, Search } from "@/components/ui/icones";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";

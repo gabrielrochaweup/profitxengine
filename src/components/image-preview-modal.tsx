@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Check, X } from "lucide-react";
+import { Download, Check, X } from "@/components/ui/icones";
 import { downloadImageUrl } from "@/lib/download-file";
 import type { Database } from "@/lib/supabase/types";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Copy, Trash2, Plus, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Sparkles, Copy, Trash2, Plus, ThumbsUp, ThumbsDown } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { ContentGrid, Field, Section } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";

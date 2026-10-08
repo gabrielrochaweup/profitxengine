@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "@/components/ui/icones";
 import { Button } from "@/components/ui/button";
 import { Bloco, Cartao, ItemMenu, MenuMais, Vazio } from "./ui";
 import { Input } from "@/components/ui/input";

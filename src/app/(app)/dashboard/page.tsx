@@ -1,4 +1,4 @@
-import { Newspaper } from "lucide-react";
+import { Newspaper } from "@/components/ui/icones";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { getNicheNews } from "@/lib/news/niche-feeds";

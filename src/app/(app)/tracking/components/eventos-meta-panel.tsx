@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "@/components/ui/icones";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/toast";

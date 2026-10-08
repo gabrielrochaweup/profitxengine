@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Pencil } from "lucide-react";
+import { Check, Pencil } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";

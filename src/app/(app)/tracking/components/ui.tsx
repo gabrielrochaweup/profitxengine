@@ -2,8 +2,9 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { DentroDePainel, useNivel } from "@/components/ui/nivel";
-import { Check, Copy, Eye, EyeOff, Lock, type LucideIcon } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, Lock, type LucideIcon } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
+import { FaixaTitulo, RotuloSecao } from "@/components/ui/faixa";
 
 /*
   Peças de apresentação do módulo Tracking.
@@ -49,16 +50,16 @@ export function BlocoTitulo({
   return (
     <div className={cn("flex flex-wrap items-start justify-between gap-x-3 gap-y-2", sub ? "mb-2.5" : "mb-4", className)}>
       <div className="min-w-0 flex-1">
-        <h3
-          className={cn(
-            "flex items-center gap-1.5 font-semibold",
-            sub ? "text-[11px] uppercase tracking-wide text-text-tertiary" : "text-[15px] text-text-primary"
-          )}
-        >
-          {titulo}
-          {dica}
-        </h3>
-        {descricao && <p className="mt-1 max-w-[72ch] text-[12px] leading-relaxed text-text-tertiary">{descricao}</p>}
+        {sub ? (
+          <RotuloSecao depois={dica}>{titulo}</RotuloSecao>
+        ) : (
+          <FaixaTitulo as="h3" depois={dica}>
+            {titulo}
+          </FaixaTitulo>
+        )}
+        {descricao && (
+          <p className={cn("max-w-[72ch] text-[12px] leading-relaxed text-text-tertiary", sub ? "mt-1" : "mt-2")}>{descricao}</p>
+        )}
       </div>
       {acoes && <div className="flex shrink-0 flex-wrap items-center gap-2">{acoes}</div>}
     </div>
@@ -96,7 +97,7 @@ export function Bloco({
   }
   return (
     <DentroDePainel>
-      <section className={cn("min-w-0 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5", className)}>
+      <section className={cn("min-w-0 rounded-panel bg-card p-4 shadow-panel sm:p-5", className)}>
         {titulo && <BlocoTitulo titulo={titulo} dica={dica} acoes={acoes} descricao={descricao} />}
         {children}
       </section>
@@ -149,10 +150,9 @@ export function CartaoComTopo({
   return (
     <div className={cn("overflow-hidden", superficie, className)}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+        <RotuloSecao as="p" depois={dica}>
           {titulo}
-          {dica}
-        </p>
+        </RotuloSecao>
         {acoes && <div className="flex shrink-0 items-center gap-2">{acoes}</div>}
       </div>
       <div className={cn("p-4", corpoClassName)}>{children}</div>
@@ -271,9 +271,9 @@ export function Segmentado<T extends string>({
           onClick={() => onChange(o.key)}
           disabled={disabled}
           className={cn(
-            "shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors duration-150 disabled:opacity-50",
+            "shrink-0 rounded-lg px-2.5 py-1 font-display text-[11px] font-semibold tracking-[0.04em] transition-colors duration-150 disabled:opacity-50",
             ativo === o.key
-              ? "bg-card text-text-primary shadow-card"
+              ? "bg-card text-text-primary shadow-[inset_0_-2px_0_var(--frame)]"
               : "text-text-tertiary hover:text-text-secondary"
           )}
         >

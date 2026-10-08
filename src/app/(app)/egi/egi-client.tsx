@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUp, BookOpen, Check, MessagesSquare, PanelLeft, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowUp, BookOpen, Check, MessagesSquare, PanelLeft, Pencil, Plus, Trash2, X } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Settings2 } from "lucide-react";
+import { Settings2 } from "@/components/ui/icones";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getActiveProduct } from "@/lib/products-server";
 import { PageContainer, PageHeader } from "@/components/ui/page";

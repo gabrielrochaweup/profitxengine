@@ -66,8 +66,14 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-[22px] font-semibold leading-tight text-text-primary">{titulo}</h1>
-        {descricao && <p className="mt-1 max-w-[70ch] text-[13px] text-text-secondary">{descricao}</p>}
+        {/* Título da tela na fonte técnica, em caixa-alta e espaçado, com o
+            fio âmbar à esquerda: a "placa" da página, como o nome no topo
+            da ficha da referência. */}
+        <h1 className="flex items-center gap-3 font-display text-[24px] font-bold uppercase leading-tight tracking-[0.08em] text-text-primary">
+          <span aria-hidden className="h-6 w-[3px] shrink-0 bg-frame" />
+          <span className="min-w-0">{titulo}</span>
+        </h1>
+        {descricao && <p className="mt-1.5 max-w-[70ch] pl-[15px] text-[13px] text-text-secondary">{descricao}</p>}
       </div>
       {acoes && <div className="flex shrink-0 flex-wrap items-center gap-2">{acoes}</div>}
     </div>
@@ -129,7 +135,7 @@ export function Field({
   return (
     <div className={cn("col-span-1 min-w-0", SPAN[span], className)}>
       {label && (
-        <label htmlFor={htmlFor} className="mb-1.5 block text-[11px] font-medium text-text-secondary">
+        <label htmlFor={htmlFor} className="mb-1.5 block font-display text-[11px] font-semibold uppercase tracking-[0.1em] text-text-secondary">
           {label}
           {hint && <span className="ml-1 font-normal text-text-tertiary">{hint}</span>}
         </label>

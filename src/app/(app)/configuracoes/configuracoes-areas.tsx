@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { KeyRound, Cpu, Sparkles, CandlestickChart } from "lucide-react";
+import { KeyRound, Cpu, Sparkles, CandlestickChart } from "@/components/ui/icones";
 import { AreaComNavegacao } from "@/components/ui/area-com-navegacao";
 
 /**

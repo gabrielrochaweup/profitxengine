@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { CornerUpLeft, Pencil, Send, Smile, Trash2, X } from "lucide-react";
+import { CornerUpLeft, Pencil, Send, Smile, Trash2, X } from "@/components/ui/icones";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";

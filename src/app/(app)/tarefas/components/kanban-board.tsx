@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Clock, Paperclip, ListChecks, Pencil, ArrowLeft, ArrowRight, Trash2, Inbox, Columns3 } from "lucide-react";
+import { Plus, Clock, Paperclip, ListChecks, Pencil, ArrowLeft, ArrowRight, Trash2, Inbox, Columns3 } from "@/components/ui/icones";
 import { MenuMais, ItemMenu } from "@/components/ui/menu-mais";
 import {
   DndContext,

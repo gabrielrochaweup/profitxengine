@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw } from "lucide-react";
+import { Users, ShoppingCart, GraduationCap, Landmark, Wallet, TrendingUp, Percent, RefreshCw } from "@/components/ui/icones";
 import { SegmentedControl } from "@/components/ui/panel";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Eye, FileText, RefreshCw, Trash2, Upload } from "lucide-react";
+import { Eye, FileText, RefreshCw, Trash2, Upload } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -263,7 +263,7 @@ export function EgiConfigPanel({ isAdmin }: { isAdmin: boolean }) {
           <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
             {arquivos.map((a) => (
               <div key={a.id} className={cn("flex flex-wrap items-center gap-3 px-4 py-3", !a.ativo && "opacity-60")}>
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-accent-soft text-accent-text">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-frame-soft text-frame-text">
                   <FileText size={16} />
                 </span>
                 <div className="min-w-0 flex-1">

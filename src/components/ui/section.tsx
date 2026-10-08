@@ -1,10 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { DentroDePainel, useNivel } from "./nivel";
-import { IconTile } from "./panel";
+import { FaixaTitulo, RotuloSecao } from "./faixa";
 
 /**
  * Bloco com assunto próprio dentro de uma página.
@@ -37,10 +37,8 @@ export function Section({
         {(titulo || acoes) && (
           <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
-              {titulo && (
-                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">{titulo}</h3>
-              )}
-              {descricao && <p className="mt-0.5 text-xs text-text-tertiary">{descricao}</p>}
+              {titulo && <RotuloSecao icone={icone}>{titulo}</RotuloSecao>}
+              {descricao && <p className="mt-1 text-xs text-text-tertiary">{descricao}</p>}
             </div>
             {acoes && <div className="flex shrink-0 items-center gap-2">{acoes}</div>}
           </div>
@@ -53,18 +51,15 @@ export function Section({
   return (
     <DentroDePainel>
       <section
-        className={cn("mb-5 min-w-0 rounded-2xl border border-border bg-card p-4 shadow-card last:mb-0 sm:p-5", className)}
+        className={cn("mb-5 min-w-0 rounded-panel bg-card p-4 shadow-panel last:mb-0 sm:p-5", className)}
       >
         {(titulo || acoes) && (
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-            <div className="flex min-w-0 flex-1 items-start gap-3">
-              {icone && <IconTile icon={icone} />}
-              <div className="min-w-0">
-                {titulo && <h2 className="text-[15px] font-semibold text-text-primary">{titulo}</h2>}
-                {descricao && (
-                  <p className="mt-1 max-w-[72ch] text-[12px] leading-relaxed text-text-tertiary">{descricao}</p>
-                )}
-              </div>
+            <div className="min-w-0 flex-1">
+              {titulo && <FaixaTitulo icone={icone}>{titulo}</FaixaTitulo>}
+              {descricao && (
+                <p className="mt-2 max-w-[72ch] text-[12px] leading-relaxed text-text-tertiary">{descricao}</p>
+              )}
             </div>
             {acoes && <div className="flex shrink-0 flex-wrap items-center gap-2">{acoes}</div>}
           </div>

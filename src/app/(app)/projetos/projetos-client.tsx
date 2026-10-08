@@ -1,8 +1,9 @@
 "use client";
 
+import { FaixaTitulo } from "@/components/ui/faixa";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Pencil, Plus, Power } from "lucide-react";
+import { Lock, Pencil, Plus, Power } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -56,7 +57,7 @@ export function ProjetosClient({ produtosIniciais }: { produtosIniciais: Product
   return (
     <>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-[15px] font-semibold text-text-primary">Projetos ({produtos.length})</h2>
+        <FaixaTitulo>Projetos ({produtos.length})</FaixaTitulo>
         <Button type="button" size="sm" onClick={() => setCriando(true)}>
           <Plus size={14} />
           Novo projeto

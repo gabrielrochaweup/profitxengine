@@ -1,6 +1,6 @@
 "use client";
 
-import { Mic, Monitor, Video, type LucideIcon } from "lucide-react";
+import { Mic, Monitor, Video, type LucideIcon } from "@/components/ui/icones";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 
@@ -87,7 +87,7 @@ export function PermissaoModal({
   return (
     <Modal open onClose={onFechar} title={c.titulo} className="max-w-md">
       <div className="flex gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button bg-accent-soft text-accent-text">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button bg-frame-soft text-frame-text">
           <Icone size={18} />
         </span>
         <div className="min-w-0 flex-1">

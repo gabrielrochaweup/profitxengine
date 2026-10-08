@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { ThumbsUp, ThumbsDown } from "@/components/ui/icones";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import type { Database } from "@/lib/supabase/types";

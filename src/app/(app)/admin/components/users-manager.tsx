@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, RotateCcw } from "lucide-react";
+import { Check, X, RotateCcw } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";

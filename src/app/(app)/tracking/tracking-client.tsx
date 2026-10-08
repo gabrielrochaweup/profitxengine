@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { LayoutDashboard, TrendingUp, Users, Activity, Megaphone, Radar, Plug } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Users, Activity, Megaphone, Radar, Plug } from "@/components/ui/icones";
 import { SegmentedControl, SideNav, SplitLayout, type SideNavItem, type SideNavTone } from "@/components/ui/panel";
 import {
   AnalyticsTab,

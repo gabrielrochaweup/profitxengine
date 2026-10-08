@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Users, Package, Activity } from "lucide-react";
+import { Users, Package, Activity } from "@/components/ui/icones";
 import { AreaComNavegacao } from "@/components/ui/area-com-navegacao";
 
 /** Equipe, produtos e uso de IA — uma área por vez em vez de três cartões empilhados. */

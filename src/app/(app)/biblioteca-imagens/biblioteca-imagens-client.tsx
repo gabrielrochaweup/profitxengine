@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Trash2, Pencil, Check, X, ArrowLeft, ArrowRight, Inbox, GripVertical, ImageOff } from "lucide-react";
+import { Trash2, Pencil, Check, X, ArrowLeft, ArrowRight, Inbox, GripVertical, ImageOff } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { ImagePreviewModal } from "@/components/image-preview-modal";
 import { useToast } from "@/components/ui/toast";

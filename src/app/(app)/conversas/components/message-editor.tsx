@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Plus, Trash2, ArrowUp, ArrowDown, Image as ImageIcon, X, Upload } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Image as ImageIcon, X, Upload } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";

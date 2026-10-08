@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { History, Search, Trash2 } from "lucide-react";
+import { History, Search, Trash2 } from "@/components/ui/icones";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/lib/supabase/types";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BookOpen, Check, Copy, MessageSquareQuote, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { BookOpen, Check, Copy, MessageSquareQuote, Pencil, Plus, Search, Trash2, X } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,7 +169,7 @@ export function FaqPanel({
 
         {filtrados.length === 0 && !editando ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent-text">
+            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-button bg-frame-soft text-frame-text">
               <BookOpen size={20} />
             </span>
             <p className="text-[14px] font-medium text-text-primary">

@@ -43,6 +43,15 @@ const config: Config = {
         "warning-soft": "var(--warning-soft)",
         "danger-soft": "var(--danger-soft)",
         "accent-soft": "var(--accent-soft)",
+        // Âmbar ESTRUTURAL: faixas de seção, rótulos, navegação ativa. Não é
+        // cor de ação (essa continua o azul da marca, em accent).
+        frame: {
+          DEFAULT: "var(--frame)",
+          contrast: "var(--frame-contrast)",
+          text: "var(--frame-text)",
+          soft: "var(--frame-soft)",
+          line: "var(--frame-line)",
+        },
         ok: "var(--ok)",
         "ok-soft": "var(--ok-soft)",
         series: {
@@ -52,21 +61,34 @@ const config: Config = {
           4: "var(--series-4)",
         },
       },
-      // Nada de pílula. O raio grande fazia cada botão parecer um chip
-      // solto; em 8px o controle lê como controle e a tela ganha densidade.
+      // Linhas retas. A escala inteira do Tailwind foi trazida pra perto de
+      // zero, então os "rounded-xl" espalhados pelas telas viram quinas vivas
+      // sem precisar caçar arquivo por arquivo. "full" continua círculo
+      // (avatar, interruptor, ponto de status).
       borderRadius: {
-        card: "10px",
-        panel: "12px",
-        button: "8px",
-        input: "8px",
+        none: "0px",
+        sm: "1px",
+        DEFAULT: "2px",
+        md: "2px",
+        lg: "2px",
+        xl: "3px",
+        "2xl": "3px",
+        "3xl": "4px",
+        card: "3px",
+        panel: "3px",
+        button: "2px",
+        input: "2px",
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-geist-sans)", "sans-serif"],
       },
       boxShadow: {
         popover: "var(--shadow-popover)",
         card: "var(--shadow-card)",
         "card-sm": "var(--shadow-card-sm)",
+        // Painel de nível 1: aresta de 1px + o fio âmbar no topo.
+        panel: "var(--shadow-panel)",
       },
     },
   },

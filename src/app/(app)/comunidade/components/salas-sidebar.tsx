@@ -1,6 +1,6 @@
 "use client";
 
-import { Hash, Headphones, Lock, Plus } from "lucide-react";
+import { Hash, Headphones, Lock, Plus } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import type { Sala } from "../lib";
 

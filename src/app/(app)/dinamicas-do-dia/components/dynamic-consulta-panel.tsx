@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Eye } from "lucide-react";
+import { Eye } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Select } from "@/components/ui/select";
 import { LoadingState } from "@/components/ui/loading-state";

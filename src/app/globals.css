@@ -28,16 +28,22 @@
 :root {
   color-scheme: dark;
 
-  --bg-app: #060507;
-  --bg-sidebar: #0e0e0f;
-  --bg-card: #121212;
-  --bg-card-hover: #181818;
-  --bg-input: #1c1c1c;
+  /* Visual "painel de operações": azul-marinho quase preto, linhas retas e
+     o âmbar como cor de estrutura. As superfícies puxam pro azul pra que o
+     âmbar se destaque por contraste de temperatura, não só de brilho. */
+  --bg-app: #0a0d13;
+  --bg-sidebar: #0d1119;
+  --bg-card: #111723;
+  --bg-card-hover: #18202e;
+  --bg-input: #1a2130;
 
   /* A profundidade vem de borda + diferença de superfície, não de sombra:
      é o que mantém a interface densa sem parecer que tudo flutua. */
-  --border: rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.12);
+  --border: rgba(150, 172, 214, 0.1);
+  --border-strong: rgba(150, 172, 214, 0.2);
+
+  /* Grade de fundo, a mesma da referência: só aparece nas margens. */
+  --grid-line: rgba(150, 172, 214, 0.04);
 
   /* Cinco niveis, do mais forte ao mais apagado. O antigo --text-muted era
      #4c4c4c: 2,18:1 sobre o card, abaixo do minimo ate pra texto grande (3,0)
@@ -48,11 +54,11 @@
        tertiary   5,1:1   data, metadado, complemento
        muted      3,3:1   apagado de proposito
        disabled   2,3:1   SO pra controle indisponivel */
-  --text-primary: #f2f2f2;
-  --text-secondary: #b3b3b3;
-  --text-tertiary: #858585;
-  --text-muted: #666666;
-  --text-disabled: #505050;
+  --text-primary: #eef1f6;
+  --text-secondary: #b5bdcb;
+  --text-tertiary: #8a94a6;
+  --text-muted: #6b7486;
+  --text-disabled: #4d5566;
 
   /* Preenchimento: botão, pílula do produto, anel de foco. Branco em cima
      dá 5,5:1 — o lime antigo dava 1,87:1 no mesmo papel. */
@@ -63,6 +69,19 @@
      clareia o suficiente pra ler (7:1) e continua sendo a mesma cor. */
   --accent-text: #4aa8e8;
   --accent-pink: #d47865;
+
+  /* Âmbar ESTRUTURAL — faixa de seção, rótulo, navegação ativa, o fio no
+     topo dos painéis. Não é cor de ação: botão e link continuam azuis, pra
+     que "clicável" e "título" nunca se confundam.
+       frame          preenche a faixa (texto escuro em cima: 9,6:1)
+       frame-text     o âmbar quando ele ESCREVE, sobre o card (9,3:1)
+       frame-soft     fundo do item de navegação ativo
+       frame-line     fio e marcadores discretos */
+  --frame: #e3a33e;
+  --frame-contrast: #17120a;
+  --frame-text: #ebb45c;
+  --frame-soft: rgba(227, 163, 62, 0.12);
+  --frame-line: rgba(227, 163, 62, 0.45);
 
   --success: #95cf0e;
   --warning: #f3de7f;
@@ -99,6 +118,9 @@
      (modal, popover). */
   --shadow-card: 0 0 0 1px var(--border);
   --shadow-card-sm: 0 0 0 1px var(--border);
+  /* Painel: a aresta de sempre + o fio âmbar de 2px no topo, como as
+     janelas da referência. */
+  --shadow-panel: inset 0 2px 0 var(--frame), 0 0 0 1px var(--border);
   --shadow-popover: 0 16px 40px -12px rgba(0, 0, 0, 0.8);
 }
 
@@ -129,6 +151,15 @@
   --accent-text: #005f9f;
   --accent-pink: #b0563f;
 
+  /* No claro a faixa continua âmbar cheio (texto escuro em cima), mas o
+     âmbar que ESCREVE desce pra um tom que lê sobre branco (5,6:1). */
+  --frame: #e3a33e;
+  --frame-contrast: #17120a;
+  --frame-text: #93600f;
+  --frame-soft: rgba(227, 163, 62, 0.16);
+  --frame-line: rgba(176, 117, 20, 0.45);
+  --grid-line: rgba(20, 40, 80, 0.045);
+
   /* Texto: escurecidos, senão desaparecem no branco. */
   --success: #5b7f08;
   --warning: #8a7410;
@@ -149,6 +180,7 @@
 
   --shadow-card: 0 0 0 1px var(--border);
   --shadow-card-sm: 0 0 0 1px var(--border);
+  --shadow-panel: inset 0 2px 0 var(--frame), 0 0 0 1px var(--border);
   --shadow-popover: 0 16px 40px -12px rgba(10, 10, 10, 0.18);
 }
 
@@ -158,9 +190,29 @@
 
 body {
   color: var(--text-primary);
-  background: var(--bg-app);
+  background-color: var(--bg-app);
+  /* Grade fina de fundo, fixa: aparece nas margens e atrás do que é
+     transparente, nunca por cima do conteúdo. */
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-attachment: fixed;
   /* Densidade: o corpo do app trabalha em 14px, não 16. */
   font-size: 14px;
+}
+
+/*
+  Rótulo técnico. Todo texto pequeno em caixa-alta com espaçamento (o
+  padrão de rótulo do app inteiro: "uppercase tracking-wide") passa a usar a
+  fonte técnica, com o espaçamento largo da referência. Fica aqui, uma regra
+  só, em vez de mexer em cada rótulo de cada tela.
+*/
+.uppercase.tracking-wide,
+.uppercase.tracking-wider,
+.uppercase.tracking-widest {
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  letter-spacing: 0.12em;
 }
 
 ::selection {
@@ -179,7 +231,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
-  border-radius: 6px;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {

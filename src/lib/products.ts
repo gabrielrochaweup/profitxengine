@@ -16,7 +16,7 @@ import {
   Newspaper,
   Phone,
   type LucideIcon,
-} from "lucide-react";
+} from "@/components/ui/icones";
 
 export interface NavItem {
   href: string;

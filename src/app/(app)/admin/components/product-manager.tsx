@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";

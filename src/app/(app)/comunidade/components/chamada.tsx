@@ -14,7 +14,7 @@ import {
   Video,
   VideoOff,
   X,
-} from "lucide-react";
+} from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { Avatar } from "./avatar";
 import { useChamadaDaComunidade } from "../chamada-contexto";

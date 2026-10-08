@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Trash2, Plus, X } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Plus, X } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

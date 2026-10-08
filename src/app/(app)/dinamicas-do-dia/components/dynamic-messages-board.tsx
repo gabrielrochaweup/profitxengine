@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
+import { ChevronDown, ChevronUp, Trophy } from "@/components/ui/icones";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { isResultBlocked, type Depoimento, type MelhorCenario } from "@/lib/dynamics/calc-engine";

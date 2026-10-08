@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download } from "lucide-react";
+import { Download } from "@/components/ui/icones";
 import { Button } from "@/components/ui/button";
 import type { Platform } from "@/lib/supabase/types";
 

@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/ui/icones";
 import { SideNav, SplitLayout, type SideNavTone } from "./panel";
 
 export interface AreaDaNavegacao<T extends string> {

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
+    "@carbon/icons-react": "^11.90.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -22,7 +23,6 @@
     "html-to-image": "^1.11.13",
     "livekit-client": "^2.22.3",
     "livekit-server-sdk": "^2.19.0",
-    "lucide-react": "^1.24.0",
     "next": "14.2.35",
     "openai": "^6.47.0",
     "react": "^18",

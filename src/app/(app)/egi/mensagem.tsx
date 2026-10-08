@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookmarkCheck, BookmarkPlus, Check, Copy, MessageSquareQuote, Sparkles } from "lucide-react";
+import { BookmarkCheck, BookmarkPlus, Check, Copy, MessageSquareQuote, Sparkles } from "@/components/ui/icones";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { extrairRespostaPronta } from "@/lib/egi/texto";

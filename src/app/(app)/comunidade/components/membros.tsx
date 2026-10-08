@@ -1,6 +1,6 @@
 "use client";
 
-import { Headphones } from "lucide-react";
+import { Headphones } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { Avatar } from "./avatar";
 import type { Pessoa, Presenca } from "../lib";

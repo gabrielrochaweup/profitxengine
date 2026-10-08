@@ -1,4 +1,4 @@
-import { ChevronLeft, SmilePlus, Mic } from "lucide-react";
+import { ChevronLeft, SmilePlus, Mic } from "@/components/ui/icones";
 import { StatusBar } from "./status-bar";
 import type { ConversationMessage } from "@/lib/supabase/types";
 

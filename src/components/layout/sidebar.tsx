@@ -19,7 +19,7 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
-} from "lucide-react";
+} from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { BadgeComunidade } from "./badge-comunidade";
 import { ThemeToggle } from "./theme-toggle";
@@ -267,20 +267,15 @@ export function Sidebar({ fullName, email, role }: SidebarProps) {
                       "relative flex items-center gap-2.5 rounded-button transition-colors duration-150",
                       collapsed ? "h-9 w-9 justify-center" : "h-8 px-3",
                       isActive
-                        ? "bg-card-hover text-text-primary"
+                        ? "bg-frame-soft text-text-primary"
                         : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
                     )}
                   >
-                    {/* Marca ativa discreta: um traço verde na borda, em vez
-                        de pintar o item inteiro. */}
-                    {isActive && (
-                      <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-accent" />
-                    )}
-                    <Icon
-                      size={16}
-                      strokeWidth={1.75}
-                      className={cn("shrink-0", isActive && "text-accent-text")}
-                    />
+                    {/* Marca ativa: o fio âmbar na borda, em vez de pintar o
+                        item inteiro. Âmbar porque "onde estou" é estrutura;
+                        azul fica pra ação. */}
+                    {isActive && <span className="absolute inset-y-1.5 left-0 w-[2px] bg-frame" />}
+                    <Icon size={16} className={cn("shrink-0", isActive && "text-frame-text")} />
                     {!collapsed && (
                       <span className="flex-1 truncate whitespace-nowrap text-[13px]">{item.label}</span>
                     )}

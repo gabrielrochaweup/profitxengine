@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { getMonthMatrix, toDateKey, MONTH_LABELS, WEEKDAY_LABELS } from "../lib/date-utils";
 

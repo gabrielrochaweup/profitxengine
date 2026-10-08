@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles, Users, MessageCircle, BarChart3, CheckCircle2 } from "lucide-react";
+import { Sparkles, Users, MessageCircle, BarChart3, CheckCircle2 } from "@/components/ui/icones";
 import { Button } from "@/components/ui/button";
 import { DayNewsPreview } from "./day-news-preview";
 import type { DayIndicator } from "./calendar-grid";

@@ -1,5 +1,5 @@
 import { forwardRef, type SelectHTMLAttributes } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(

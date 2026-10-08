@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Headphones, Mic, MicOff, Monitor, MonitorOff, PhoneOff, Video, VideoOff } from "lucide-react";
+import { Headphones, Mic, MicOff, Monitor, MonitorOff, PhoneOff, Video, VideoOff } from "@/components/ui/icones";
 import { useChamadaDaComunidade } from "../chamada-contexto";
 import { Controle } from "./chamada";
 

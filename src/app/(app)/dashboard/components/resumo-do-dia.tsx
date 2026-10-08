@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, Check, TrendingDown, TrendingUp } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { Section } from "@/components/ui/page";
 import type { Alerta, NivelDeAlerta, ResumoDoDia } from "../resumo";

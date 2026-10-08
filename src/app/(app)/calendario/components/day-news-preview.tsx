@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Newspaper, Flame, TrendingUp, TrendingDown } from "lucide-react";
+import { Newspaper, Flame, TrendingUp, TrendingDown } from "@/components/ui/icones";
 import { LoadingState } from "@/components/ui/loading-state";
 import { toDateKey } from "../lib/date-utils";
 

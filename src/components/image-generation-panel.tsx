@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Image as ImageIcon, Download, X, Paperclip, Copy, Check } from "lucide-react";
+import { Image as ImageIcon, Download, X, Paperclip, Copy, Check } from "@/components/ui/icones";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";

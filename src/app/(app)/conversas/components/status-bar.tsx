@@ -1,4 +1,4 @@
-import { Signal, Wifi, BatteryFull } from "lucide-react";
+import { Signal, Wifi, BatteryFull } from "@/components/ui/icones";
 
 export function StatusBar({ time, dark = true }: { time: string; dark?: boolean }) {
   const color = dark ? "text-white" : "text-black";

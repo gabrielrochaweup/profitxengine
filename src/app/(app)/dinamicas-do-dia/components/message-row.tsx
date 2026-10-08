@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Sparkles, RotateCcw, Check, X, Maximize2, Minimize2 } from "lucide-react";
+import { Copy, Sparkles, RotateCcw, Check, X, Maximize2, Minimize2 } from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

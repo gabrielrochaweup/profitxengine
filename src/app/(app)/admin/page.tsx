@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "@/components/ui/icones";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { UsersManager } from "./components/users-manager";
 import { PageContainer, PageHeader, Section } from "@/components/ui/page";

@@ -12,7 +12,7 @@ import {
   Trash2,
   X,
   type LucideIcon,
-} from "lucide-react";
+} from "@/components/ui/icones";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 
@@ -109,7 +109,7 @@ export function AbasDePastas({
   }
 
   return (
-    <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+    <section className="min-w-0 overflow-hidden rounded-panel bg-card shadow-panel">
       {/* ── Abas ── */}
       {/* As abas QUEBRAM em linhas, não rolam pro lado: com 11 pastas, metade
           ficava escondida atrás de uma rolagem horizontal — justamente o tipo
@@ -141,22 +141,22 @@ export function AbasDePastas({
                 }}
                 title={arrastando ? `Soltar em "${aba.nome}"` : aba.nome}
                 className={cn(
-                  "flex max-w-[15rem] shrink-0 items-center gap-2 rounded-xl border px-3 py-1.5 text-[13px] font-medium transition-colors",
+                  "flex max-w-[15rem] shrink-0 items-center gap-2 rounded-xl border px-3 py-1.5 font-display text-[13px] font-semibold tracking-[0.03em] transition-colors",
                   soltandoAqui
                     ? "border-accent bg-accent-soft text-text-primary"
                     : ehAtiva
-                      ? "border-border-strong bg-app text-text-primary shadow-card"
+                      ? "border-border-strong bg-app text-text-primary shadow-[inset_0_-2px_0_var(--frame)]"
                       : arrastando
                         ? "border-dashed border-border-strong text-text-secondary"
                         : "border-transparent text-text-tertiary hover:bg-card-hover hover:text-text-secondary"
                 )}
               >
-                <Icone size={15} className={cn("shrink-0", ehAtiva ? "text-accent-text" : "text-text-muted")} />
+                <Icone size={15} className={cn("shrink-0", ehAtiva ? "text-frame-text" : "text-text-muted")} />
                 <span className="truncate">{aba.nome}</span>
                 <span
                   className={cn(
                     "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
-                    ehAtiva ? "bg-accent-soft text-accent-text" : "bg-input text-text-tertiary"
+                    ehAtiva ? "bg-frame-soft text-frame-text" : "bg-input text-text-tertiary"
                   )}
                 >
                   {aba.total}
@@ -225,8 +225,8 @@ export function AbasDePastas({
                 </BotaoIcone>
               </div>
             ) : (
-              <h2 className="flex min-w-0 items-center gap-2 text-[15px] font-semibold text-text-primary">
-                <FolderOpen size={17} className="shrink-0 text-accent-text" />
+              <h2 className="flex min-w-0 items-center gap-2 font-display text-[15px] font-bold uppercase tracking-[0.08em] text-text-primary">
+                <FolderOpen size={17} className="shrink-0 text-frame-text" />
                 <span className="truncate">{atual.nome}</span>
               </h2>
             )}

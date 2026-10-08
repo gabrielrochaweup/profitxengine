@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { HelpCircle, X } from "lucide-react";
+import { HelpCircle, X } from "@/components/ui/icones";
 import { tutorialDaTela } from "@/lib/tutoriais";
 import { cn } from "@/lib/utils";
 

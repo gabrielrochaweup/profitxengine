@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "@/components/ui/icones";
 import { createClient, getUser, getProfile } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 

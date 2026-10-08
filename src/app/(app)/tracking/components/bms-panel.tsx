@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Pencil, Trash2, Building2 } from "lucide-react";
+import { ChevronDown, Pencil, Trash2, Building2 } from "@/components/ui/icones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
