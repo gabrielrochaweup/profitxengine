@@ -15,6 +15,7 @@ import {
   KeyRound,
   Newspaper,
   Phone,
+  BookmarkCheck,
   type LucideIcon,
 } from "@/components/ui/icones";
 
@@ -68,6 +69,9 @@ const NAV_CRIACAO: NavItem[] = [
 const NAV_DADOS: NavItem[] = [
   { href: "/tracking", label: "Tracking", icon: Radar },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  // Produtos concorrentes em análise: dado de mercado, não do nosso funil,
+  // mas consultado junto — o que roda lá fora ao lado do que roda aqui.
+  { href: "/swipes", label: "Swipes", icon: BookmarkCheck },
 ];
 
 const NAV_BIBLIOTECA: NavItem[] = [

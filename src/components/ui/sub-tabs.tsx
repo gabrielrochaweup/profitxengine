@@ -32,8 +32,10 @@ export function SubTabs<T extends string>({
           aria-checked={active === t.key}
           onClick={() => onChange(t.key)}
           className={cn(
-            "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-150",
-            active === t.key ? "bg-card text-text-primary shadow-card" : "text-text-tertiary hover:text-text-secondary"
+            "shrink-0 rounded-lg px-3 py-1.5 font-display text-xs font-semibold tracking-[0.04em] transition-colors duration-150",
+            active === t.key
+              ? "bg-card text-text-primary shadow-[inset_0_-2px_0_var(--frame)]"
+              : "text-text-tertiary hover:text-text-secondary"
           )}
         >
           {t.label}

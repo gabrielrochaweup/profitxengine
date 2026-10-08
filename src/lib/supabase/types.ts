@@ -1520,6 +1520,46 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["numeros_de_atendimento"]["Insert"]>;
         Relationships: [];
       };
+      swipes: {
+        Row: {
+          id: string;
+          product_id: string;
+          nome: string;
+          nicho: string | null;
+          subnicho: string | null;
+          pais_idioma: string | null;
+          plataforma: string | null;
+          preco_front: number | null;
+          order_bumps: { nome: string; preco: number | null }[];
+          upsells: { nome: string; preco: number | null }[];
+          link_pagina_vendas: string | null;
+          link_checkout: string | null;
+          link_ad_library: string | null;
+          pagina_fb: string | null;
+          anuncios_ativos: number | null;
+          /** Cada contagem de anúncios ativos, com o dia (AAAA-MM-DD) em que foi vista. */
+          historico_anuncios: { data: string; valor: number }[];
+          rodando_desde: string | null;
+          formato_pagina: string | null;
+          promessa: string | null;
+          mecanismo: string | null;
+          ganchos: string[];
+          tipos_criativo: string[];
+          score: number | null;
+          por_que_achei_boa: string | null;
+          prints: string[];
+          status: "em_analise" | "modelando" | "descartado";
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["swipes"]["Row"], "product_id" | "nome">> & {
+          product_id: string;
+          nome: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["swipes"]["Insert"]>;
+        Relationships: [];
+      };
       ad_business_managers: {
         Row: {
           id: string;
