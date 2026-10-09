@@ -1202,17 +1202,27 @@ export interface Database {
           platform: "meta" | "google";
           campaign_id: string;
           campaign_name: string | null;
+          /** Em reais, sempre (o sync converte da moeda da conta). */
           spend_cents: number;
+          /** O gasto como veio da plataforma, na moeda da conta. Nulo antes da migration 0132. */
+          gasto_original_cents: number | null;
+          /** Moeda da conta de anúncio (USD, BRL...). */
+          moeda: string | null;
+          /** Cotação usada pra chegar em spend_cents (1 quando a conta já é em real). */
+          cambio: number | null;
           spend_date: string;
           synced_at: string;
         };
         Insert: Omit<
           Database["public"]["Tables"]["ad_campaign_spend"]["Row"],
-          "id" | "campaign_name" | "spend_cents" | "synced_at"
+          "id" | "campaign_name" | "spend_cents" | "synced_at" | "gasto_original_cents" | "moeda" | "cambio"
         > & {
           id?: string;
           campaign_name?: string | null;
           spend_cents?: number;
+          gasto_original_cents?: number | null;
+          moeda?: string | null;
+          cambio?: number | null;
           synced_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["ad_campaign_spend"]["Insert"]>;
@@ -1716,11 +1726,21 @@ export interface Database {
           entity_name: string | null;
           campaign_id: string | null;
           adset_id: string | null;
+          /** Em reais, sempre (o sync converte da moeda da conta). */
           spend_cents: number;
+          /** O gasto como veio da plataforma, na moeda da conta. Nulo antes da migration 0132. */
+          gasto_original_cents: number | null;
+          /** Moeda da conta de anúncio (USD, BRL...). */
+          moeda: string | null;
+          /** Cotação usada pra chegar em spend_cents (1 quando a conta já é em real). */
+          cambio: number | null;
           spend_date: string;
           synced_at: string;
         };
         Insert: {
+          gasto_original_cents?: number | null;
+          moeda?: string | null;
+          cambio?: number | null;
           id?: string;
           product_id: string;
           platform: "meta" | "google";

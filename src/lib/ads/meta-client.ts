@@ -35,6 +35,21 @@ export async function testMetaCredentials(creds: MetaCredentials): Promise<TestR
   }
 }
 
+/**
+ * Moeda da conta de anúncio (USD, BRL...). O "spend" dos insights vem
+ * nela, não em real — quem salva o gasto precisa converter.
+ */
+export async function fetchMetaAccountCurrency(creds: MetaCredentials): Promise<string> {
+  const accountId = creds.ad_account_id.replace(/^act_/, "");
+  const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/act_${accountId}?fields=currency&access_token=${encodeURIComponent(creds.access_token)}`;
+  const res = await fetch(url);
+  const json = await res.json();
+  if (!res.ok || json.error || typeof json.currency !== "string") {
+    throw new Error(json.error?.message || `Falha ao ler a moeda da conta do Meta (HTTP ${res.status}).`);
+  }
+  return json.currency.toUpperCase();
+}
+
 export interface EntidadeComNome {
   id: string;
   name: string;
@@ -134,9 +149,9 @@ export interface CampaignSpend {
   date: string;
 }
 
-// Gasto por campanha num intervalo — usado pelo sync (POST /api/ads/sync,
-// ainda não implementado). "spend" vem em unidade monetária da conta, não
-// em cents.
+// Gasto por campanha num intervalo — usado pelo sync (POST /api/ads/sync).
+// "spend" vem em unidade monetária DA CONTA (as nossas são em dólar), não em
+// cents nem em real: o sync converte (ver lib/ads/cambio.ts).
 export async function fetchMetaCampaignSpend(
   creds: MetaCredentials,
   since: string,

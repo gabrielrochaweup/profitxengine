@@ -187,9 +187,16 @@ function AccountRow({
       return;
     }
     onUpsert({ ...account, last_synced_at: new Date().toISOString() });
+    const reais = (json.totalSpendCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    // Conta em moeda estrangeira: mostra também o valor como o Gerenciador
+    // de Anúncios mostra, pra conferir a conversão de cara.
+    const original =
+      json.moeda && json.moeda !== "BRL"
+        ? ` (${(json.totalOriginalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: json.moeda })} pela cotação de cada dia)`
+        : "";
     toast.success(
       json.days > 0
-        ? `Sincronizado — ${json.days} linha(s), R$ ${(json.totalSpendCents / 100).toLocaleString("pt-BR")} de gasto nos últimos 30 dias.`
+        ? `Sincronizado — ${json.days} linha(s), ${reais} de gasto nos últimos 30 dias${original}.`
         : "Sincronizado — nenhum gasto encontrado nos últimos 30 dias."
     );
   }

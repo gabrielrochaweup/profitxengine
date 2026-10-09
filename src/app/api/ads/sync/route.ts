@@ -3,12 +3,14 @@ import { getSessionProfile, ehAprovado } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptSecret } from "@/lib/crypto";
 import {
+  fetchMetaAccountCurrency,
   fetchMetaCampaignSpend,
   fetchMetaEntityNames,
   fetchMetaEntitySpend,
   type MetaCredentials,
 } from "@/lib/ads/meta-client";
 import { fetchGoogleCampaignSpend, type GoogleCredentials } from "@/lib/ads/google-ads-client";
+import { criarConversor, type Conversor } from "@/lib/ads/cambio";
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -49,6 +51,26 @@ export async function POST(request: Request) {
   since.setDate(since.getDate() - 30);
 
   let rows: { campaignId: string; campaignName: string; spendCents: number; date: string }[];
+  // Moeda da conta: o gasto vem nela, e o app inteiro trabalha em real.
+  // Google ainda não lê a moeda da conta — fica como real, como sempre foi.
+  let conversor: Conversor | null;
+  try {
+    const moeda = cred.platform === "meta" ? await fetchMetaAccountCurrency(parsed as MetaCredentials) : "BRL";
+    conversor = await criarConversor(moeda, isoDate(since));
+    if (!conversor) {
+      return NextResponse.json(
+        { error: `A conta é em ${moeda} e a cotação pra real não carregou agora. Nada foi salvo — tente de novo em instantes.` },
+        { status: 502 }
+      );
+    }
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Falha ao ler a moeda da conta." }, { status: 500 });
+  }
+  const emReais = (centavos: number, data: string) => {
+    const { reaisCents, cambio } = conversor!.converter(centavos, data);
+    return { spend_cents: reaisCents, gasto_original_cents: centavos, moeda: conversor!.moeda, cambio };
+  };
+
   try {
     rows =
       cred.platform === "meta"
@@ -65,12 +87,18 @@ export async function POST(request: Request) {
         platform: cred.platform,
         campaign_id: r.campaignId,
         campaign_name: r.campaignName,
-        spend_cents: r.spendCents,
+        ...emReais(r.spendCents, r.date),
         spend_date: r.date,
       })),
       { onConflict: "product_id,platform,campaign_id,spend_date" }
     );
-    if (error) return NextResponse.json({ error: "Falha ao salvar o gasto sincronizado." }, { status: 500 });
+    if (error) {
+      const semMigration = /moeda|gasto_original_cents|cambio/.test(error.message);
+      return NextResponse.json(
+        { error: semMigration ? "Falta rodar a migration 0132." : "Falha ao salvar o gasto sincronizado." },
+        { status: 500 }
+      );
+    }
   }
 
   await admin
@@ -123,7 +151,7 @@ export async function POST(request: Request) {
             entity_name: g.entityName,
             campaign_id: g.campaignId,
             adset_id: g.adsetId,
-            spend_cents: g.spendCents,
+            ...emReais(g.spendCents, g.date),
             spend_date: g.date,
             synced_at: new Date().toISOString(),
           })),
@@ -136,6 +164,18 @@ export async function POST(request: Request) {
     }
   }
 
-  const totalSpendCents = rows.reduce((sum, r) => sum + r.spendCents, 0);
-  return NextResponse.json({ ok: true, days: rows.length, totalSpendCents, nomes, avisoNomes, avisoGastoDetalhado });
+  // Total em real (o que as telas mostram) e na moeda da conta (o que o
+  // Gerenciador de Anúncios mostra), pra quem sincroniza conferir os dois.
+  const totalSpendCents = rows.reduce((sum, r) => sum + emReais(r.spendCents, r.date).spend_cents, 0);
+  const totalOriginalCents = rows.reduce((sum, r) => sum + r.spendCents, 0);
+  return NextResponse.json({
+    ok: true,
+    days: rows.length,
+    totalSpendCents,
+    totalOriginalCents,
+    moeda: conversor.moeda,
+    nomes,
+    avisoNomes,
+    avisoGastoDetalhado,
+  });
 }
