@@ -34,6 +34,7 @@ export interface LinhaDeCampanha {
   deposits: number;
   deposits_total_cents: number;
   spend_cents: number;
+  spend_usd_cents?: number;
 }
 
 /** Qual coluna da tabela corresponde a cada etapa do funil. */
@@ -87,6 +88,11 @@ export function MatrizDeOrigem({
   const [aberta, setAberta] = useState<string | null>(null);
 
   const temGasto = useMemo(() => linhas.some((l) => l.spend_cents > 0), [linhas]);
+  // O gasto aparece na moeda das contas de anúncio (dólar). Sem o valor em
+  // dólar (migration 0133 ainda não rodada), cai no valor em real.
+  const gastoEmDolar = useMemo(() => linhas.some((l) => (l.spend_usd_cents ?? 0) > 0), [linhas]);
+  const fmtGasto = (usd: number, brl: number) =>
+    gastoEmDolar ? (usd > 0 ? fmtUSD(usd) : "—") : brl > 0 ? fmtBRL(brl) : "—";
   const colunaDestacada = etapaSelecionada ? COLUNA_DA_ETAPA[etapaSelecionada] : null;
 
   const fontes = useMemo(() => {
@@ -105,6 +111,7 @@ export function MatrizDeOrigem({
         {} as Record<string, number>
       ),
       gasto: somar(campanhas, "spend_cents"),
+      gastoUsd: campanhas.reduce((t, c) => t + (c.spend_usd_cents ?? 0), 0),
     }));
 
     // A ordem responde à pergunta da vez: com uma etapa escolhida no funil,
@@ -210,7 +217,7 @@ export function MatrizDeOrigem({
                       )}
                     </button>
                   </Td>
-                  {temGasto && <Td num>{f.gasto > 0 ? fmtBRL(f.gasto) : "—"}</Td>}
+                  {temGasto && <Td num>{fmtGasto(f.gastoUsd, f.gasto)}</Td>}
                   {COLUNAS.map((c) => celula(f.total[c.chave] ?? 0, c, true))}
                 </Tr>
 
@@ -223,7 +230,7 @@ export function MatrizDeOrigem({
                           {isSpecialBucket(c.utm_campaign) && <Tooltip text={SPECIAL_BUCKET_HELP[c.utm_campaign]} />}
                         </span>
                       </Td>
-                      {temGasto && <Td num>{c.spend_cents > 0 ? fmtBRL(c.spend_cents) : "—"}</Td>}
+                      {temGasto && <Td num>{fmtGasto(c.spend_usd_cents ?? 0, c.spend_cents)}</Td>}
                       {COLUNAS.map((col) => celula(Number(c[col.chave]) || 0, col))}
                     </Tr>
                   ))}

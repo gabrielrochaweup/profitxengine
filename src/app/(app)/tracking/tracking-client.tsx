@@ -35,6 +35,7 @@ interface CampaignRow {
   deposits: number;
   deposits_total_cents: number;
   spend_cents: number;
+  spend_usd_cents?: number;
 }
 
 interface RecentEvent {

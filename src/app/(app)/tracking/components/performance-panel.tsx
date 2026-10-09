@@ -66,8 +66,10 @@ interface No {
   sub?: string;
   semNome?: boolean;
   m: Metricas;
-  /** null = a plataforma não informou o gasto desse item. */
+  /** null = a plataforma não informou o gasto desse item. Em real: é a base do ROI. */
   gasto: number | null;
+  /** O mesmo gasto em dólar, a moeda das contas — é o que se mostra. */
+  gastoUsd: number | null;
   fontes: string[];
   /** Pra listas planas: "da campanha X / conjunto Y". */
   pai?: string;
@@ -89,6 +91,8 @@ interface GastoCampanha {
   campaign_name: string | null;
   platform: "meta" | "google";
   spend_cents: number;
+  gasto_original_cents: number | null;
+  moeda: string | null;
 }
 
 interface GastoEntidade {
@@ -98,6 +102,8 @@ interface GastoEntidade {
   campaign_id: string | null;
   adset_id: string | null;
   spend_cents: number;
+  gasto_original_cents: number | null;
+  moeda: string | null;
 }
 
 interface GrupoConta {
@@ -105,6 +111,7 @@ interface GrupoConta {
   rotulo: string;
   sub?: string;
   gasto: number | null;
+  gastoUsd: number | null;
   m: Metricas;
   fontes: string[];
   contas: Credencial[];
@@ -170,6 +177,7 @@ interface DadosLinha {
   sub?: string;
   semNome?: boolean;
   gasto: number | null;
+  gastoUsd: number | null;
   m: Metricas;
   fontes: string[];
   pai?: string;
@@ -231,13 +239,13 @@ export function PerformancePanel({
       supabase.from("ad_entity_names").select("entity_id, name").eq("product_id", productId),
       supabase
         .from("ad_campaign_spend")
-        .select("campaign_id, campaign_name, platform, spend_cents")
+        .select("campaign_id, campaign_name, platform, spend_cents, gasto_original_cents, moeda")
         .eq("product_id", productId)
         .gte("spend_date", de)
         .lte("spend_date", ate),
       supabase
         .from("ad_entity_spend")
-        .select("level, entity_id, entity_name, campaign_id, adset_id, spend_cents")
+        .select("level, entity_id, entity_name, campaign_id, adset_id, spend_cents, gasto_original_cents, moeda")
         .eq("product_id", productId)
         .gte("spend_date", de)
         .lte("spend_date", ate),
@@ -276,13 +284,25 @@ export function PerformancePanel({
     for (const g of gastoEnt) if (g.entity_name) nomes.set(g.entity_id, g.entity_name);
     nomesTab.forEach((nome, id) => nomes.set(id, nome));
 
+    // Dois mapas por nível: em real (a base do ROI, que compara com a venda
+    // em real) e em dólar (o que as contas gastaram de fato, e o que se mostra).
+    const emDolar = (g: { gasto_original_cents: number | null; moeda: string | null }) =>
+      g.moeda === "USD" ? (g.gasto_original_cents ?? 0) : 0;
     const gCamp = new Map<string, number>();
-    for (const g of gastoCamp) gCamp.set(g.campaign_id, (gCamp.get(g.campaign_id) ?? 0) + g.spend_cents);
+    const gCampU = new Map<string, number>();
+    for (const g of gastoCamp) {
+      gCamp.set(g.campaign_id, (gCamp.get(g.campaign_id) ?? 0) + g.spend_cents);
+      gCampU.set(g.campaign_id, (gCampU.get(g.campaign_id) ?? 0) + emDolar(g));
+    }
     const gConj = new Map<string, number>();
     const gAnun = new Map<string, number>();
+    const gConjU = new Map<string, number>();
+    const gAnunU = new Map<string, number>();
     for (const g of gastoEnt) {
       const mapa = g.level === "adset" ? gConj : gAnun;
+      const mapaU = g.level === "adset" ? gConjU : gAnunU;
       mapa.set(g.entity_id, (mapa.get(g.entity_id) ?? 0) + g.spend_cents);
+      mapaU.set(g.entity_id, (mapaU.get(g.entity_id) ?? 0) + emDolar(g));
     }
 
     function novo(n: NivelNo, chave: string, idPai: string): No {
@@ -300,6 +320,7 @@ export function PerformancePanel({
         semNome = true;
       }
       const mapa = n === "campanha" ? gCamp : n === "conjunto" ? gConj : gAnun;
+      const mapaU = n === "campanha" ? gCampU : n === "conjunto" ? gConjU : gAnunU;
       return {
         id: `${idPai}|${n}:${chave}`,
         nivel: n,
@@ -309,6 +330,7 @@ export function PerformancePanel({
         semNome,
         m: { ...ZERO },
         gasto: chave && mapa.has(chave) ? (mapa.get(chave) as number) : null,
+        gastoUsd: chave && mapaU.has(chave) ? (mapaU.get(chave) as number) : null,
         fontes: [],
         filhos: [],
       };
@@ -386,17 +408,19 @@ export function PerformancePanel({
     })(raizes);
 
     const gastoTotal = Array.from(gCamp.values()).reduce((s, v) => s + v, 0);
-    return { raizes, planos, total, gastoTotal, temGasto: gCamp.size > 0, semNome, temGastoDetalhado: gastoEnt.length > 0 };
+    const gastoTotalUsd = Array.from(gCampU.values()).reduce((s, v) => s + v, 0);
+    return { raizes, planos, total, gastoTotal, gastoTotalUsd, temGasto: gCamp.size > 0, semNome, temGastoDetalhado: gastoEnt.length > 0 };
   }, [linhas, nomesTab, gastoCamp, gastoEnt]);
 
   const contas = useMemo(() => {
-    const meta: GrupoConta = { chave: "meta", rotulo: "Meta Ads", gasto: null, m: { ...ZERO }, fontes: [], contas: [] };
-    const google: GrupoConta = { chave: "google", rotulo: "Google Ads", gasto: null, m: { ...ZERO }, fontes: [], contas: [] };
+    const meta: GrupoConta = { chave: "meta", rotulo: "Meta Ads", gasto: null, gastoUsd: null, m: { ...ZERO }, fontes: [], contas: [] };
+    const google: GrupoConta = { chave: "google", rotulo: "Google Ads", gasto: null, gastoUsd: null, m: { ...ZERO }, fontes: [], contas: [] };
     const outros: GrupoConta = {
       chave: "outros",
       rotulo: "Sem anúncio pago",
       sub: "direto, orgânico e outras origens",
       gasto: null,
+      gastoUsd: null,
       m: { ...ZERO },
       fontes: [],
       contas: [],
@@ -405,6 +429,7 @@ export function PerformancePanel({
     for (const g of gastoCamp) {
       const alvo = g.platform === "meta" ? meta : google;
       alvo.gasto = (alvo.gasto ?? 0) + g.spend_cents;
+      if (g.moeda === "USD") alvo.gastoUsd = (alvo.gastoUsd ?? 0) + (g.gasto_original_cents ?? 0);
     }
     for (const l of linhas ?? []) {
       const f = l.utm_source.toLowerCase();
@@ -447,10 +472,24 @@ export function PerformancePanel({
     const maxFilhos = filhosOrdenados.reduce((mx, n) => Math.max(mx, valorDe(n.gasto, n.m, metrica)), 0);
     const totalFilhos = filhosOrdenados.reduce((s, n) => s + valorDe(n.gasto, n.m, metrica), 0);
     const v = valorDe(d.gasto, d.m, metrica);
-    const cpl = d.gasto !== null && d.gasto > 0 && d.m.leads > 0 ? Math.round(d.gasto / d.m.leads) : null;
+    // Gasto e CPL aparecem em dólar (a moeda das contas); sem o valor em dólar, em real.
+    const emUsd = d.gastoUsd !== null && d.gastoUsd > 0;
+    const gastoMostrado = emUsd ? d.gastoUsd : d.gasto;
+    const fmtGasto = emUsd ? fmtUSD : fmtBRL;
+    const cpl =
+      gastoMostrado !== null && gastoMostrado > 0 && d.m.leads > 0 ? Math.round(gastoMostrado / d.m.leads) : null;
     const rc = roiCurso(d.gasto, d.m);
     const rb = roiCorretora(d.gasto, d.m);
-    const valorTexto = metrica === "gasto" || metrica === "receita_cents" ? (v > 0 ? fmtBRL(v) : "—") : String(v);
+    const valorTexto =
+      metrica === "gasto"
+        ? gastoMostrado !== null && gastoMostrado > 0
+          ? fmtGasto(gastoMostrado)
+          : "—"
+        : metrica === "receita_cents"
+          ? v > 0
+            ? fmtBRL(v)
+            : "—"
+          : String(v);
 
     return (
       <li key={d.id} className={cn(raiz ? "rounded-xl border border-border bg-app" : "border-l border-border-strong pl-3")}>
@@ -525,11 +564,11 @@ export function PerformancePanel({
           </span>
 
           <span className="grid grid-cols-3 gap-x-4 gap-y-2 sm:grid-cols-5 lg:flex">
-            <Metrica rotulo="Gasto" valor={d.gasto !== null && d.gasto > 0 ? fmtBRL(d.gasto) : "—"} className="lg:w-20" />
+            <Metrica rotulo="Gasto" valor={gastoMostrado !== null && gastoMostrado > 0 ? fmtGasto(gastoMostrado) : "—"} className="lg:w-20" />
             <Metrica
               rotulo="Leads"
               valor={d.m.leads}
-              extra={cpl !== null ? `CPL ${fmtBRL(cpl)}` : undefined}
+              extra={cpl !== null ? `CPL ${fmtGasto(cpl)}` : undefined}
               className="lg:w-24"
             />
             <Metrica
@@ -569,6 +608,7 @@ export function PerformancePanel({
                 sub: f.sub,
                 semNome: f.semNome,
                 gasto: f.gasto,
+                gastoUsd: f.gastoUsd,
                 m: f.m,
                 fontes: [],
                 cor: COR_NIVEL[f.nivel],
@@ -607,8 +647,14 @@ export function PerformancePanel({
   const gastoNivelSemDado = (nivel === "conjunto" || nivel === "anuncio") && !dados.temGastoDetalhado && dados.temGasto;
 
   const roiGeral = roiCurso(dados.temGasto ? dados.gastoTotal : null, dados.total);
+  // Resumo também em dólar quando há gasto em dólar; ROI segue em real.
+  const geralEmUsd = dados.gastoTotalUsd > 0;
+  const gastoGeralMostrado = geralEmUsd ? dados.gastoTotalUsd : dados.gastoTotal;
+  const fmtGastoGeral = geralEmUsd ? fmtUSD : fmtBRL;
   const cplGeral =
-    dados.temGasto && dados.gastoTotal > 0 && dados.total.leads > 0 ? Math.round(dados.gastoTotal / dados.total.leads) : null;
+    dados.temGasto && gastoGeralMostrado > 0 && dados.total.leads > 0
+      ? Math.round(gastoGeralMostrado / dados.total.leads)
+      : null;
 
   const contasOrdenadas = [...contas].sort(porMetrica);
   const maxConta = contas.reduce((mx, c) => Math.max(mx, valorDe(c.gasto, c.m, metrica)), 0);
@@ -659,11 +705,11 @@ export function PerformancePanel({
         <>
           {/* Resumo do período — o gasto aqui é o da plataforma, contado uma vez só. */}
           <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border border-border bg-app px-3.5 py-3 sm:grid-cols-3 lg:grid-cols-6">
-            <Metrica rotulo="Gasto no período" valor={dados.temGasto ? fmtBRL(dados.gastoTotal) : "—"} />
+            <Metrica rotulo="Gasto no período" valor={dados.temGasto ? fmtGastoGeral(gastoGeralMostrado) : "—"} />
             <Metrica
               rotulo="Leads"
               valor={dados.total.leads}
-              extra={cplGeral !== null ? `CPL ${fmtBRL(cplGeral)}` : undefined}
+              extra={cplGeral !== null ? `CPL ${fmtGastoGeral(cplGeral)}` : undefined}
             />
             <Metrica rotulo="Checkout" valor={dados.total.checkouts} />
             <Metrica
@@ -738,6 +784,7 @@ export function PerformancePanel({
                     id: `conta:${c.chave}`,
                     rotulo: c.rotulo,
                     gasto: c.gasto,
+                    gastoUsd: c.gastoUsd,
                     m: c.m,
                     fontes: c.fontes,
                     pai:
@@ -770,6 +817,7 @@ export function PerformancePanel({
                     sub: n.sub,
                     semNome: n.semNome,
                     gasto: n.gasto,
+                    gastoUsd: n.gastoUsd,
                     m: n.m,
                     fontes: n.fontes,
                     pai: n.pai,

@@ -1926,6 +1926,8 @@ export interface Database {
           deposits: number;
           deposits_total_cents: number;
           spend_cents: number;
+          /** Gasto em dólar (a moeda das contas). Só existe depois da migration 0133. */
+          spend_usd_cents?: number;
         }[];
       };
       tracking_sales_by_offer: {

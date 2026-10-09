@@ -187,16 +187,18 @@ function AccountRow({
       return;
     }
     onUpsert({ ...account, last_synced_at: new Date().toISOString() });
-    const reais = (json.totalSpendCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    // Conta em moeda estrangeira: mostra também o valor como o Gerenciador
-    // de Anúncios mostra, pra conferir a conversão de cara.
-    const original =
-      json.moeda && json.moeda !== "BRL"
-        ? ` (${(json.totalOriginalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: json.moeda })} pela cotação de cada dia)`
-        : "";
+    const dinheiro = (centavos: number, moeda: string) =>
+      (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: moeda });
+    // O gasto aparece na moeda da conta (é o número do Gerenciador de Anúncios);
+    // o equivalente em real, usado nas contas de ROI, vai entre parênteses.
+    const moeda: string = json.moeda ?? "BRL";
+    const gasto =
+      moeda === "BRL"
+        ? dinheiro(json.totalSpendCents, "BRL")
+        : `${dinheiro(json.totalOriginalCents, moeda)} (≈ ${dinheiro(json.totalSpendCents, "BRL")} pela cotação de cada dia)`;
     toast.success(
       json.days > 0
-        ? `Sincronizado — ${json.days} linha(s), ${reais} de gasto nos últimos 30 dias${original}.`
+        ? `Sincronizado — ${json.days} linha(s), ${gasto} de gasto nos últimos 30 dias.`
         : "Sincronizado — nenhum gasto encontrado nos últimos 30 dias."
     );
   }

@@ -58,6 +58,8 @@ interface CampaignRow {
   deposits: number;
   deposits_total_cents: number;
   spend_cents: number;
+  /** Em dólar, a moeda das contas de anúncio. Vem da migration 0133. */
+  spend_usd_cents?: number;
 }
 
 interface RecentEvent {
@@ -434,7 +436,10 @@ export function AnalyticsTab({
       brokerSignups: sumBy(filteredReport, "broker_signups"),
       deposits: sumBy(filteredReport, "deposits"),
       depositsTotal: sumBy(filteredReport, "deposits_total_cents"),
+      // Em real: é a base do ROI, do ROAS e do lucro, que comparam com venda em real.
       spend: sumBy(filteredReport, "spend_cents"),
+      // Em dólar: é o que se mostra, igual ao Gerenciador de Anúncios.
+      spendUsd: sumBy(filteredReport, "spend_usd_cents"),
     }),
     [filteredReport]
   );
@@ -445,6 +450,7 @@ export function AnalyticsTab({
   // comparado com o mesmo gasto total (não dá pra saber quanto do gasto foi
   // "pro curso" e quanto foi "pra corretora" — os dois usam a base inteira).
   const hasSpend = kpis.spend > 0;
+  const gastoEmDolar = kpis.spendUsd > 0;
 
   const roasCurso = hasSpend ? kpis.purchaseRevenue / kpis.spend : null;
   const profitCurso = hasSpend ? kpis.purchaseRevenue - kpis.spend : null;
@@ -714,7 +720,7 @@ export function AnalyticsTab({
                   <span className="inline-flex flex-wrap items-center gap-1">
                     {kpis.deposits} {kpis.deposits === 1 ? "depósito" : "depósitos"}
                     {depositsTotalBRL !== null && <span>· ≈ {fmtBRL(depositsTotalBRL)}</span>}
-                    <Tooltip text="Depósito é sempre em dólar — convertido pra real na cotação atual só pra comparar com o gasto em anúncios, que é cobrado em real." />
+                    <Tooltip text="Depósito é sempre em dólar. O gasto em anúncios também é em dólar nas contas; pra calcular ROI, ROAS e lucro contra a venda do curso (em real), o gasto entra em real pela cotação de cada dia e o depósito pela cotação atual." />
                   </span>
                 }
                 lucro={
@@ -727,10 +733,14 @@ export function AnalyticsTab({
               <div className="flex flex-col gap-3">
                 <FinanceTile
                   label="Gasto com anúncios"
-                  value={hasSpend ? fmtBRL(kpis.spend) : "—"}
+                  value={hasSpend ? (gastoEmDolar ? fmtUSD(kpis.spendUsd) : fmtBRL(kpis.spend)) : "—"}
                   hint={
                     hasSpend ? (
-                      "Base dos ROIs ao lado"
+                      gastoEmDolar ? (
+                        `≈ ${fmtBRL(kpis.spend)} pela cotação de cada dia · base dos ROIs`
+                      ) : (
+                        "Base dos ROIs ao lado"
+                      )
                     ) : onIrParaAnuncios ? (
                       <button type="button" onClick={onIrParaAnuncios} className="text-accent-text hover:underline">
                         Sincronizar em Anúncios →
@@ -1168,7 +1178,13 @@ export function AnalyticsTab({
                                 )}
                               </span>
                             </Td>
-                            <Td num>{r.spend_cents > 0 ? fmtBRL(r.spend_cents) : "—"}</Td>
+                            <Td num>
+                              {r.spend_cents > 0
+                                ? (r.spend_usd_cents ?? 0) > 0
+                                  ? fmtUSD(r.spend_usd_cents ?? 0)
+                                  : fmtBRL(r.spend_cents)
+                                : "—"}
+                            </Td>
                             <Td num>{r.leads}</Td>
                             <Td num>{r.purchases}</Td>
                             <Td num forte>
