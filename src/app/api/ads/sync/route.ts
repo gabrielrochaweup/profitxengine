@@ -53,22 +53,23 @@ export async function POST(request: Request) {
   let rows: { campaignId: string; campaignName: string; spendCents: number; date: string }[];
   // Moeda da conta: o gasto vem nela, e o app inteiro trabalha em real.
   // Google ainda não lê a moeda da conta — fica como real, como sempre foi.
-  let conversor: Conversor | null;
+  let conversor: Conversor;
   try {
     const moeda = cred.platform === "meta" ? await fetchMetaAccountCurrency(parsed as MetaCredentials) : "BRL";
-    conversor = await criarConversor(moeda, isoDate(since));
-    if (!conversor) {
+    const resultado = await criarConversor(moeda, isoDate(since));
+    if ("erro" in resultado) {
       return NextResponse.json(
-        { error: `A conta é em ${moeda} e a cotação pra real não carregou agora. Nada foi salvo — tente de novo em instantes.` },
+        { error: `A conta é em ${moeda} e a cotação pra real não carregou (${resultado.erro}). Nada foi salvo — tente de novo em instantes.` },
         { status: 502 }
       );
     }
+    conversor = resultado;
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Falha ao ler a moeda da conta." }, { status: 500 });
   }
   const emReais = (centavos: number, data: string) => {
-    const { reaisCents, cambio } = conversor!.converter(centavos, data);
-    return { spend_cents: reaisCents, gasto_original_cents: centavos, moeda: conversor!.moeda, cambio };
+    const { reaisCents, cambio } = conversor.converter(centavos, data);
+    return { spend_cents: reaisCents, gasto_original_cents: centavos, moeda: conversor.moeda, cambio };
   };
 
   try {
