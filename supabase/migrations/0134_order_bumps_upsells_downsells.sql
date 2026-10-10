@@ -9,11 +9,14 @@
 -- e 5 são order bumps.
 --
 -- O QUE MUDA:
---   * tracking_events ganha 4 colunas: item_tipo, item_nome, pedido_id e
---     pedido_total_cents (o total do pagamento, todos os itens somados).
+--   * tracking_events ganha 5 colunas: item_tipo, item_id (o ID do produto
+--     na Onprofit, que não muda), item_nome, pedido_id e pedido_total_cents
+--     (o total do pagamento, todos os itens somados). O nome muda — o produto
+--     6105 já foi "[TRIAD] COPY TRADER" e "SESSÃO COPY TRADER INDIVIDUAL" —,
+--     então as vendas por produto agrupam pelo ID.
 --   * As compras já gravadas da Onprofit são preenchidas a partir do payload
 --     cru que está guardado em raw_payload. Nada é apagado nem alterado além
---     dessas 4 colunas.
+--     dessas 5 colunas.
 --   * COMPRAS (pedidos) passam a contar só o item principal; a RECEITA
 --     continua somando todos os itens (o dinheiro entrou). Item sem
 --     item_tipo (Hotmart, TorkPay, qualquer outro) vale como principal.
@@ -29,6 +32,7 @@
 -- e conta como item extra, nunca como compra principal.
 
 alter table tracking_events add column if not exists item_tipo text;
+alter table tracking_events add column if not exists item_id text;
 alter table tracking_events add column if not exists item_nome text;
 alter table tracking_events add column if not exists pedido_id text;
 alter table tracking_events add column if not exists pedido_total_cents bigint;
@@ -47,6 +51,7 @@ set
     when lower(e.raw_payload ->> 'item_type') like '%downsell%' then 'downsell'
     else lower(e.raw_payload ->> 'item_type')
   end,
+  item_id = nullif(e.raw_payload -> 'product' ->> 'id', ''),
   item_nome = nullif(e.raw_payload -> 'product' ->> 'name', ''),
   pedido_id = nullif(e.raw_payload -> 'transactions' -> 0 ->> 'gateway_transaction_id', ''),
   pedido_total_cents = case
@@ -86,22 +91,42 @@ begin
   end if;
 
   return query
+    with itens as (
+      select
+        -- O item extra (order bump, upsell...) é uma linha PRÓPRIA, com o nome
+        -- dele: com o nome da oferta que o carregou, o bump de R$ 37 entrava na
+        -- linha do Starter e inflava o "Starter vendeu N" com coisa que não é
+        -- o Starter. A chave é o ID do produto, não o nome: o mesmo produto
+        -- (6105) já apareceu como "[TRIAD] COPY TRADER" e como "SESSÃO COPY
+        -- TRADER INDIVIDUAL", e agrupar por nome dividiria as vendas dele.
+        case
+          when coalesce(e.item_tipo, 'front') = 'front' then 'o:' || coalesce(e.offer_name, '(sem nome)')
+          else 'i:' || coalesce(e.item_id, e.item_nome, e.offer_name, '(sem nome)')
+        end as chave,
+        coalesce(e.item_tipo, 'front') = 'front' as principal,
+        e.offer_name as oferta,
+        coalesce(nullif(e.item_nome, ''), e.offer_name) as nome_do_item,
+        e.amount_cents as valor,
+        e.occurred_at as quando
+      from tracking_events e
+      where e.product_id = p_product_id
+        and e.event_type = 'purchase'
+        and e.occurred_at >= p_from
+        and e.occurred_at <= p_to
+    )
     select
-      -- O item extra (order bump, upsell...) aparece com o NOME DELE. Com o nome
-      -- da oferta que o carregou, o bump de R$ 37 entrava na linha do Starter
-      -- e inflava o "Starter vendeu N" com coisa que não é o Starter.
       coalesce(
-        case when coalesce(e.item_tipo, 'front') = 'front' then e.offer_name else coalesce(nullif(e.item_nome, ''), e.offer_name) end,
+        case
+          when bool_and(i.principal) then max(i.oferta)
+          -- Item que mudou de nome: vale o nome mais recente.
+          else (array_agg(i.nome_do_item order by i.quando desc))[1]
+        end,
         '(sem nome)'
       ) as offer_name,
       count(*) as purchases,
-      coalesce(sum(e.amount_cents), 0) as revenue_cents
-    from tracking_events e
-    where e.product_id = p_product_id
-      and e.event_type = 'purchase'
-      and e.occurred_at >= p_from
-      and e.occurred_at <= p_to
-    group by 1
+      coalesce(sum(i.valor), 0) as revenue_cents
+    from itens i
+    group by i.chave
     order by revenue_cents desc;
 end;
 $$;
@@ -642,7 +667,11 @@ begin
   return query
     select
       coalesce(e.item_tipo, 'front')::text as item_tipo,
-      coalesce(nullif(e.item_nome, ''), e.offer_name, '(sem nome)')::text as item_nome,
+      -- Agrupa pelo ID do produto; o nome mostrado é o mais recente dele.
+      coalesce(
+        (array_agg(coalesce(nullif(e.item_nome, ''), e.offer_name) order by e.occurred_at desc))[1],
+        '(sem nome)'
+      )::text as item_nome,
       count(*)::bigint as vendas,
       coalesce(sum(e.amount_cents), 0)::bigint as receita_cents
     from tracking_events e
@@ -650,7 +679,7 @@ begin
       and e.event_type = 'purchase'
       and e.occurred_at >= p_from
       and e.occurred_at <= p_to
-    group by 1, 2
+    group by coalesce(e.item_tipo, 'front'), coalesce(e.item_id, e.item_nome, e.offer_name, '(sem nome)')
     order by receita_cents desc;
 end;
 $$;

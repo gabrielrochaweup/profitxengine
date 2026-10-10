@@ -106,6 +106,7 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
         ? (PAYMENT_METHOD_LABEL[body.payment_type.toLowerCase()] ?? body.payment_type)
         : null,
     itemType: itemTipo,
+    itemId: idOf(product?.id),
     itemName: typeof product?.name === "string" && product.name.trim() ? product.name.trim() : null,
     orderId,
     orderTotalCents: totalPago > 0 ? Math.round(totalPago) : null,

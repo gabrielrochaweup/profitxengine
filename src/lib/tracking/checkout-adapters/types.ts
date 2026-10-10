@@ -36,6 +36,8 @@ export interface NormalizedCheckoutEvent {
   */
   /** "front" | "order_bump" | "upsell" | "downsell" | texto cru de um tipo ainda não mapeado. */
   itemType?: string | null;
+  /** ID do produto do item na plataforma (ex: 6104). Estável: o nome muda, o ID não. */
+  itemId?: string | null;
   /** Nome do item em si (ex: "[TRIAD] VITALICIO"), diferente do nome da oferta que o comprou. */
   itemName?: string | null;
   /** Identificador do PAGAMENTO — o mesmo em todos os itens pagos juntos. */

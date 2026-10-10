@@ -1025,6 +1025,8 @@ export interface Database {
           received_at: string;
           /** 'front' | 'order_bump' | 'upsell' | 'downsell' (ou texto cru de um tipo não mapeado). Nulo = principal. Migration 0134. */
           item_tipo: string | null;
+          /** ID do produto do item na plataforma (ex: 6104) — estável, ao contrário do nome. */
+          item_id: string | null;
           /** Nome do item em si, ex: "[TRIAD] VITALICIO". */
           item_nome: string | null;
           /** Identificador do pagamento — o mesmo em todos os itens pagos juntos. */
@@ -1034,9 +1036,10 @@ export interface Database {
         };
         Insert: Omit<
           Database["public"]["Tables"]["tracking_events"]["Row"],
-          "id" | "lead_id" | "email" | "amount_cents" | "currency" | "external_id" | "offer_name" | "payment_method" | "raw_payload" | "occurred_at" | "received_at" | "item_tipo" | "item_nome" | "pedido_id" | "pedido_total_cents"
+          "id" | "lead_id" | "email" | "amount_cents" | "currency" | "external_id" | "offer_name" | "payment_method" | "raw_payload" | "occurred_at" | "received_at" | "item_tipo" | "item_id" | "item_nome" | "pedido_id" | "pedido_total_cents"
         > & {
           item_tipo?: string | null;
+          item_id?: string | null;
           item_nome?: string | null;
           pedido_id?: string | null;
           pedido_total_cents?: number | null;

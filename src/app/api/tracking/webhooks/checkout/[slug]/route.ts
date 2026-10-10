@@ -132,11 +132,12 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   let { error } = await gravar({
     ...eventRow,
     item_tipo: normalized.itemType ?? null,
+    item_id: normalized.itemId ?? null,
     item_nome: normalized.itemName ?? null,
     pedido_id: normalized.orderId ?? null,
     pedido_total_cents: normalized.orderTotalCents ?? null,
   });
-  if (error && /item_tipo|item_nome|pedido_id|pedido_total_cents/.test(error.message)) {
+  if (error && /item_tipo|item_id|item_nome|pedido_id|pedido_total_cents/.test(error.message)) {
     ({ error } = await gravar(eventRow));
   }
 
