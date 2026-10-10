@@ -1,5 +1,6 @@
 import type { CheckoutAdapter } from "./types";
 import { normalizarEmail } from "../email";
+import { itemDoCatalogo } from "../catalogo-itens";
 
 // Baseado num payload real de teste mandado pelo produtor (evento "order" da
 // Onprofit, pedido pago via Pix). Só vimos o status "PAID" até agora — outros
@@ -73,7 +74,13 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
     .join(" ")
     .trim();
 
-  const itemTipo = classificarItem(body.item_type);
+  // O catálogo manda no tipo dos itens EXTRAS (bump, upsell, downsell): é por
+  // ele que um upsell que ainda nunca vendeu já é reconhecido, sem depender do
+  // texto que a Onprofit vai mandar em item_type. Plano não é sobrescrito: um
+  // plano pode ser vendido como produto principal ou como upsell, e aí quem
+  // diz é a plataforma.
+  const noCatalogo = itemDoCatalogo(idOf(product?.id));
+  const itemTipo = noCatalogo && noCatalogo.tipo !== "front" ? noCatalogo.tipo : classificarItem(body.item_type);
 
   // O pagamento: todos os itens pagos juntos dividem a mesma transação, e o
   // valor dela é o do pedido inteiro (R$ 77 + R$ 37 + R$ 37 = R$ 151), que é o
@@ -107,7 +114,9 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
         : null,
     itemType: itemTipo,
     itemId: idOf(product?.id),
-    itemName: typeof product?.name === "string" && product.name.trim() ? product.name.trim() : null,
+    // Nome do catálogo (estável) quando o item é conhecido; senão o da plataforma.
+    itemName:
+      noCatalogo?.nome ?? (typeof product?.name === "string" && product.name.trim() ? product.name.trim() : null),
     orderId,
     orderTotalCents: totalPago > 0 ? Math.round(totalPago) : null,
   };

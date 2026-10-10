@@ -649,6 +649,7 @@ create function public.tracking_itens_vendidos(
 )
 returns table (
   item_tipo text,
+  item_id text,
   item_nome text,
   vendas bigint,
   receita_cents bigint
@@ -667,6 +668,7 @@ begin
   return query
     select
       coalesce(e.item_tipo, 'front')::text as item_tipo,
+      max(e.item_id)::text as item_id,
       -- Agrupa pelo ID do produto; o nome mostrado é o mais recente dele.
       coalesce(
         (array_agg(coalesce(nullif(e.item_nome, ''), e.offer_name) order by e.occurred_at desc))[1],

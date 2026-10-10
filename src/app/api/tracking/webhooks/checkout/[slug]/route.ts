@@ -7,6 +7,8 @@ import { CHECKOUT_ADAPTERS } from "@/lib/tracking/checkout-adapters";
 import { logWebhookCall } from "@/lib/tracking/webhook-log";
 import { webhookCorsHeaders } from "@/lib/tracking/cors";
 import { dispararBoasVindas, dispararPosContrato } from "@/lib/sendpulse/dispatch";
+import { itemDoCatalogo } from "@/lib/tracking/catalogo-itens";
+import { ehItemExtra } from "@/lib/tracking/itens";
 
 // O disparo pro SendPulse acontece dentro desta requisição e tem timeout de
 // 8s. Somando cold start e as consultas ao banco, o padrão de 10s do Vercel
@@ -160,7 +162,14 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   // mensagens: na hora do Starter o Elite ainda não existe, e aqui se
   // envia na hora. Quem resolve essa sobreposição é o fluxo do SendPulse,
   // removendo o contato do funil menor quando o maior começa.
-  await Promise.all([
+  //
+  // Order bump, upsell e downsell NÃO disparam: não são um plano, a mensagem
+  // de boas-vindas é do plano que a pessoa comprou (e já saiu pelo item
+  // principal). Sem plano resolvido, o disparo cairia no endereço "geral" e a
+  // pessoa receberia uma mensagem que não é dela. Plano vendido como upsell
+  // (um upgrade) continua disparando: aí o item É um plano.
+  const extraSemPlano = ehItemExtra(normalized.itemType) && !itemDoCatalogo(normalized.itemId)?.plano;
+  if (!extraSemPlano) await Promise.all([
     dispararBoasVindas(admin, {
       productId: endpoint.product_id,
       email: normalized.email ?? "",
@@ -186,9 +195,13 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   // principal, e disparar os dois contaria uma compra a mais na Meta (um
   // pedido de R$ 77 + dois bumps de R$ 37 virava 3 compras). O principal
   // (e o upsell/downsell, que é um pagamento próprio) vai com o valor TOTAL
-  // do pagamento, não só o do item.
-  if (normalized.itemType === "order_bump") {
-    return NextResponse.json({ ok: true, matched: leadId !== null, item: "order_bump" }, { headers });
+  // do pagamento, não só o do item. Tipo de item ainda não mapeado também não
+  // dispara: sem saber se ele veio no mesmo pagamento do principal, enviar
+  // arriscaria contar a mesma compra duas vezes.
+  const dispararPurchase =
+    !normalized.itemType || ["front", "upsell", "downsell"].includes(normalized.itemType);
+  if (!dispararPurchase) {
+    return NextResponse.json({ ok: true, matched: leadId !== null, item: normalized.itemType }, { headers });
   }
   await fireMetaEventForProduct(admin, endpoint.product_id, "purchase", {
     email: normalized.email,

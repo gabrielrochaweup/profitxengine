@@ -1951,7 +1951,7 @@ export interface Database {
       };
       tracking_itens_vendidos: {
         Args: { p_product_id: string; p_from: string; p_to: string };
-        Returns: { item_tipo: string; item_nome: string; vendas: number; receita_cents: number }[];
+        Returns: { item_tipo: string; item_id: string | null; item_nome: string; vendas: number; receita_cents: number }[];
       };
       tracking_sales_by_payment_method: {
         Args: { p_product_id: string; p_from: string; p_to: string };

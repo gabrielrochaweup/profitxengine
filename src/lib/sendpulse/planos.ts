@@ -1,4 +1,5 @@
 import "server-only";
+import { CATALOGO_DE_ITENS } from "@/lib/tracking/catalogo-itens";
 
 export type Plano = "starter" | "pro" | "elite";
 
@@ -11,16 +12,12 @@ export const PLANOS: Plano[] = ["starter", "pro", "elite"];
 // Plano novo lá = uma linha nova aqui + os endereços dele no painel do
 // SendPulse. Sem a linha aqui, a compra ainda cai no endereço "geral" (ver
 // enderecoDoEvento), então ninguém fica sem mensagem em silêncio.
-const OFFER_ID_TO_PLANO: Record<string, Plano> = {
-  // Onprofit
-  "4831": "starter",
-  "4832": "pro",
-  "4833": "elite",
-  // TorkPay (product.id do webhook de cada produto)
-  "8aff59e7-1b25-4789-8eb9-a43f97b742a9": "starter",
-  "7ba60cef-25c0-4235-ad92-2ed1d21143f9": "pro",
-  "929cee1e-607a-429e-a514-1f998bef82dd": "elite",
-};
+//
+// Os IDs moram em lib/tracking/catalogo-itens.ts (planos, order bumps e
+// upsells numa lista só). Plano novo = uma linha lá, com o campo `plano`.
+const OFFER_ID_TO_PLANO: Record<string, Plano> = Object.fromEntries(
+  CATALOGO_DE_ITENS.filter((i) => i.plano).map((i) => [i.id.toLowerCase(), i.plano as Plano])
+);
 
 /**
  * Descobre o plano de uma compra. O id da oferta é a fonte confiável; o
