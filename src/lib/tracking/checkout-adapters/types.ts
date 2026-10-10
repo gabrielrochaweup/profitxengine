@@ -22,6 +22,26 @@ export interface NormalizedCheckoutEvent {
   offerId: string | null;
   /** Forma de pagamento normalizada (ex: "Pix", "Cartão de crédito"), quando a plataforma manda isso. */
   paymentMethod: string | null;
+
+  /*
+    Itens de um pedido. Plataformas como a Onprofit mandam UM webhook por
+    item: o produto principal e cada order bump chegam como compras
+    separadas, no mesmo segundo, cada uma com o preço do próprio item. Sem
+    estes campos, um pedido de R$ 151 virava três "compras" (R$ 77, R$ 37 e
+    R$ 37) e a conta de compras e de CPA saía inflada.
+
+    Todos opcionais: adapter que não distingue item (Hotmart, TorkPay, o
+    genérico) simplesmente não preenche, e o evento vale como compra
+    principal.
+  */
+  /** "front" | "order_bump" | "upsell" | "downsell" | texto cru de um tipo ainda não mapeado. */
+  itemType?: string | null;
+  /** Nome do item em si (ex: "[TRIAD] VITALICIO"), diferente do nome da oferta que o comprou. */
+  itemName?: string | null;
+  /** Identificador do PAGAMENTO — o mesmo em todos os itens pagos juntos. */
+  orderId?: string | null;
+  /** Total cobrado no pagamento (todos os itens somados), em centavos. */
+  orderTotalCents?: number | null;
 }
 
 // Retorna null quando o payload não representa uma compra aprovada pra essa

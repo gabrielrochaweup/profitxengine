@@ -39,6 +39,10 @@ interface CampaignRow {
 }
 
 interface RecentEvent {
+  item_tipo?: string | null;
+  item_nome?: string | null;
+  pedido_id?: string | null;
+  pedido_total_cents?: number | null;
   id: string;
   event_type: string;
   source: string;

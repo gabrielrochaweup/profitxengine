@@ -34,12 +34,24 @@ export default async function TrackingPage() {
       p_from: from.toISOString(),
       p_to: now.toISOString(),
     }),
-    supabase
-      .from("tracking_events")
-      .select("id, event_type, source, email, amount_cents, currency, offer_name, lead_id, occurred_at")
-      .eq("product_id", activeProduct.id)
-      .order("occurred_at", { ascending: false })
-      .limit(50),
+    // Com os itens do pedido (migration 0134). Sem a migration a consulta
+    // falha por coluna inexistente, e a lista cai pra versão de antes em vez
+    // de ficar vazia.
+    (async () => {
+      const comItens = await supabase
+        .from("tracking_events")
+        .select("id, event_type, source, email, amount_cents, currency, offer_name, lead_id, occurred_at, item_tipo, item_nome, pedido_id, pedido_total_cents")
+        .eq("product_id", activeProduct.id)
+        .order("occurred_at", { ascending: false })
+        .limit(50);
+      if (!comItens.error) return comItens;
+      return supabase
+        .from("tracking_events")
+        .select("id, event_type, source, email, amount_cents, currency, offer_name, lead_id, occurred_at")
+        .eq("product_id", activeProduct.id)
+        .order("occurred_at", { ascending: false })
+        .limit(50);
+    })(),
     listarEndpoints(supabase, activeProduct.id),
     supabase
       .from("ad_platform_credentials")

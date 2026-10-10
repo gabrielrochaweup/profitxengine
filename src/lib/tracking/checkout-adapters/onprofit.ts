@@ -25,6 +25,22 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   boleto: "Boleto",
 };
 
+/**
+ * "item_type" da Onprofit → o tipo que o app usa. Confirmados em payload real:
+ * "product" (a compra principal) e "order_bump". Upsell e downsell ainda não
+ * chegaram em nenhum payload, então são reconhecidos pelo texto (qualquer
+ * variação com "upsell" / "downsell"); um valor desconhecido passa cru, e
+ * conta como item extra — não como compra principal — até alguém mapear.
+ */
+export function classificarItem(cru: unknown): string {
+  const t = typeof cru === "string" ? cru.trim().toLowerCase() : "";
+  if (!t || t === "product" || t === "main" || t === "front") return "front";
+  if (t.includes("bump")) return "order_bump";
+  if (t.includes("upsell") || t.includes("up_sell") || t.includes("up-sell")) return "upsell";
+  if (t.includes("downsell") || t.includes("down_sell") || t.includes("down-sell")) return "downsell";
+  return t;
+}
+
 export const onprofitAdapter: CheckoutAdapter = (raw) => {
   if (typeof raw !== "object" || raw === null) return null;
   const body = raw as Record<string, unknown>;
@@ -57,6 +73,19 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
     .join(" ")
     .trim();
 
+  const itemTipo = classificarItem(body.item_type);
+
+  // O pagamento: todos os itens pagos juntos dividem a mesma transação, e o
+  // valor dela é o do pedido inteiro (R$ 77 + R$ 37 + R$ 37 = R$ 151), que é o
+  // que deve ir pra Meta como UMA compra.
+  const transacoes = Array.isArray(body.transactions) ? body.transactions.filter(isRecord) : [];
+  const primeira = transacoes[0] ?? null;
+  const adicionais = primeira && isRecord(primeira.additional_data) ? primeira.additional_data : null;
+  const orderId = idOf(primeira?.gateway_transaction_id) ?? idOf(adicionais?.charge_id);
+  const totalPago = transacoes
+    .filter((t) => t.status === "PAID" && typeof t.amount === "number")
+    .reduce((soma, t) => soma + (t.amount as number), 0);
+
   return {
     email: normalizarEmail(customer?.email),
     phone,
@@ -69,11 +98,17 @@ export const onprofitAdapter: CheckoutAdapter = (raw) => {
     // "product.id" é o plano (4831/4832/4833); "offer_id" é uma oferta
     // específica desse plano (promoção, preço diferente), então varia sem o
     // plano mudar — por isso o plano sai do product.id.
-    offerId: idOf(product?.id) ?? idOf(body.product_id),
+    // Item extra (bump/upsell): "product" é o item em si (ex: 6105), não o plano;
+    // quem diz o plano da compra é "product_id".
+    offerId: itemTipo === "front" ? (idOf(product?.id) ?? idOf(body.product_id)) : (idOf(body.product_id) ?? idOf(product?.id)),
     paymentMethod:
       typeof body.payment_type === "string"
         ? (PAYMENT_METHOD_LABEL[body.payment_type.toLowerCase()] ?? body.payment_type)
         : null,
+    itemType: itemTipo,
+    itemName: typeof product?.name === "string" && product.name.trim() ? product.name.trim() : null,
+    orderId,
+    orderTotalCents: totalPago > 0 ? Math.round(totalPago) : null,
   };
 };
 

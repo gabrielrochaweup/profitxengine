@@ -120,9 +120,25 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     raw_payload: raw as Record<string, unknown>,
   };
 
-  const { error } = normalized.externalId
-    ? await admin.from("tracking_events").upsert(eventRow, { onConflict: "source,external_id", ignoreDuplicates: true })
-    : await admin.from("tracking_events").insert(eventRow);
+  // Itens do pedido (migration 0134). Gravados à parte pra que, se a
+  // migration ainda não rodou, a venda NÃO se perca: sem as colunas novas o
+  // insert falha, e a gente tenta de novo com a linha de sempre (o payload
+  // cru, que guarda tudo isso, fica salvo, e a migration preenche depois).
+  const gravar = (linha: Record<string, unknown>) =>
+    normalized.externalId
+      ? admin.from("tracking_events").upsert(linha as typeof eventRow, { onConflict: "source,external_id", ignoreDuplicates: true })
+      : admin.from("tracking_events").insert(linha as typeof eventRow);
+
+  let { error } = await gravar({
+    ...eventRow,
+    item_tipo: normalized.itemType ?? null,
+    item_nome: normalized.itemName ?? null,
+    pedido_id: normalized.orderId ?? null,
+    pedido_total_cents: normalized.orderTotalCents ?? null,
+  });
+  if (error && /item_tipo|item_nome|pedido_id|pedido_total_cents/.test(error.message)) {
+    ({ error } = await gravar(eventRow));
+  }
 
   if (error) {
     return NextResponse.json({ error: "Falha ao gravar evento." }, { status: 500, headers });
@@ -164,10 +180,19 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   // Tracking > Rastreamento. Fica desligado quando o checkout tem o pixel
   // dele disparando o Purchase: sem event_id em comum, os dois juntos
   // duplicariam a conversão no Gerenciador de Anúncios.
+  //
+  // Order bump NÃO dispara: o dinheiro dele já está no pagamento do produto
+  // principal, e disparar os dois contaria uma compra a mais na Meta (um
+  // pedido de R$ 77 + dois bumps de R$ 37 virava 3 compras). O principal
+  // (e o upsell/downsell, que é um pagamento próprio) vai com o valor TOTAL
+  // do pagamento, não só o do item.
+  if (normalized.itemType === "order_bump") {
+    return NextResponse.json({ ok: true, matched: leadId !== null, item: "order_bump" }, { headers });
+  }
   await fireMetaEventForProduct(admin, endpoint.product_id, "purchase", {
     email: normalized.email,
     phone: normalized.phone,
-    amountCents: normalized.amountCents,
+    amountCents: normalized.orderTotalCents ?? normalized.amountCents,
     currency: "BRL",
     externalId: normalized.externalId,
     occurredAt: eventRow.occurred_at,

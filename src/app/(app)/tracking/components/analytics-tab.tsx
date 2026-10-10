@@ -40,6 +40,8 @@ import { MatrizDeOrigem } from "./origem";
 import { PaginasPanel } from "./paginas-panel";
 import { OrigemPanel } from "./origem-panel";
 import { PerformancePanel } from "./performance-panel";
+import { ItensVendidos, type ItemVendido } from "./itens-vendidos";
+import { ehItemExtra, rotuloDoItem } from "@/lib/tracking/itens";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SimpleBarChart, ConversionFunnel, HorizontalBarList, colorForLabel } from "../../analytics/components/charts";
@@ -63,6 +65,11 @@ interface CampaignRow {
 }
 
 interface RecentEvent {
+  /** Itens do pedido (migration 0134). Ausentes antes dela; nulo = produto principal. */
+  item_tipo?: string | null;
+  item_nome?: string | null;
+  pedido_id?: string | null;
+  pedido_total_cents?: number | null;
   id: string;
   event_type: string;
   source: string;
@@ -240,6 +247,7 @@ export function AnalyticsTab({
   const [recarregarAlunos, setRecarregarAlunos] = useState(0);
   const [usdBrlRate, setUsdBrlRate] = useState<number | null>(null);
   const [usdBrlRateUpdatedAt, setUsdBrlRateUpdatedAt] = useState<string | null>(null);
+  const [itensVendidos, setItensVendidos] = useState<ItemVendido[] | null>([]);
   const [salesByOffer, setSalesByOffer] = useState<{ offer_name: string; purchases: number; revenue_cents: number }[]>(
     []
   );
@@ -297,6 +305,9 @@ export function AnalyticsTab({
 
     const { data: pepeData } = await supabase.rpc("tracking_ferramenta_por_plano", { ...params, p_source: "pepe" });
     setPepePorPlano(pepeData ?? []);
+    // Itens vendidos (order bump, upsell, downsell). null = migration 0134 por rodar.
+    const { data: itensData, error: itensError } = await supabase.rpc("tracking_itens_vendidos", params);
+    setItensVendidos(itensError ? null : (itensData ?? []));
     setSalesByOffer(offerData ?? []);
     setSalesByPayment(paymentData ?? []);
     setSalesByPageType(pageTypeData ?? []);
@@ -332,14 +343,26 @@ export function AnalyticsTab({
   // aos últimos 50 eventos sem filtro de data nenhum como antes) — junta a
   // UTM/campanha do lead do mesmo jeito que a carga inicial da página faz.
   async function fetchEvents(supabase: ReturnType<typeof createClient>, from: Date, now: Date) {
-    const { data: rawEvents } = await supabase
+    // Com os itens do pedido; sem a migration 0134 a coluna não existe, e a
+    // consulta cai pra versão de antes em vez de deixar a lista vazia.
+    const comItens = await supabase
       .from("tracking_events")
-      .select("id, event_type, source, email, amount_cents, currency, offer_name, lead_id, occurred_at")
+      .select("id, event_type, source, email, amount_cents, currency, offer_name, lead_id, occurred_at, item_tipo, item_nome, pedido_id, pedido_total_cents")
       .eq("product_id", productId)
       .gte("occurred_at", from.toISOString())
       .lte("occurred_at", now.toISOString())
       .order("occurred_at", { ascending: false })
       .limit(200);
+    const { data: rawEvents } = comItens.error
+      ? await supabase
+          .from("tracking_events")
+          .select("id, event_type, source, email, amount_cents, currency, offer_name, lead_id, occurred_at")
+          .eq("product_id", productId)
+          .gte("occurred_at", from.toISOString())
+          .lte("occurred_at", now.toISOString())
+          .order("occurred_at", { ascending: false })
+          .limit(200)
+      : comItens;
 
     const leadIds = Array.from(new Set((rawEvents ?? []).map((e) => e.lead_id).filter((id): id is string => !!id)));
     const { data: eventLeads } =
@@ -994,6 +1017,13 @@ export function AnalyticsTab({
               de 260px — um deles pra mostrar uma categoria única. */}
           {secaoVisao === "vendas" && (
           <>
+          <Bloco
+            titulo="Order bumps, upsells e downsells"
+            descricao="Cada item de um pedido chega separado da Onprofit. Aqui eles são mapeados: a compra conta uma vez por pedido, e o que foi vendido junto aparece por item, com a taxa de aceite."
+          >
+            <ItensVendidos itens={itensVendidos} fmtBRL={fmtBRL} />
+          </Bloco>
+
           <Bloco titulo="Detalhes das vendas">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <CartaoComTopo titulo="Por produto">
@@ -1273,8 +1303,10 @@ export function AnalyticsTab({
           className="max-w-5xl"
         >
           <p className="mb-3 text-xs text-text-tertiary">
-            {kpiDetailEvents.length} evento{kpiDetailEvents.length === 1 ? "" : "s"} — mesmo filtro de fonte/atribuição
-            da Visão geral, período {PERIOD_OPTIONS.find((o) => o.key === period)?.label}.
+            {kpiDetailType === "purchase"
+              ? resumoDosPedidos(kpiDetailEvents)
+              : `${kpiDetailEvents.length} evento${kpiDetailEvents.length === 1 ? "" : "s"}`}{" "}
+            — mesmo filtro de fonte/atribuição da Visão geral, período {PERIOD_OPTIONS.find((o) => o.key === period)?.label}.
           </p>
           <EventsTable events={kpiDetailEvents} />
         </Modal>
@@ -1349,12 +1381,51 @@ function KpiTile({
   );
 }
 
+/**
+ * Junta os itens do mesmo pedido, um embaixo do outro: o produto principal
+ * primeiro, depois os extras. Sem isso, três webhooks do mesmo segundo ficavam
+ * espalhados entre outros eventos. A ordem entre pedidos (mais recente em
+ * cima) é mantida; evento sem pedido_id fica onde estava.
+ */
+function agruparPorPedido(eventos: RecentEvent[]): { linhas: RecentEvent[]; itensPorPedido: Map<string, number> } {
+  const itensPorPedido = new Map<string, number>();
+  for (const e of eventos) {
+    if (e.event_type === "purchase" && e.pedido_id) itensPorPedido.set(e.pedido_id, (itensPorPedido.get(e.pedido_id) ?? 0) + 1);
+  }
+  const jaColocado = new Set<string>();
+  const linhas: RecentEvent[] = [];
+  for (const e of eventos) {
+    if (e.event_type !== "purchase" || !e.pedido_id) {
+      linhas.push(e);
+      continue;
+    }
+    if (jaColocado.has(e.pedido_id)) continue;
+    jaColocado.add(e.pedido_id);
+    const doPedido = eventos.filter((x) => x.event_type === "purchase" && x.pedido_id === e.pedido_id);
+    doPedido.sort((a, b) => Number(ehItemExtra(a.item_tipo)) - Number(ehItemExtra(b.item_tipo)));
+    linhas.push(...doPedido);
+  }
+  return { linhas, itensPorPedido };
+}
+
+/** "3 pedidos · 5 itens extras · R$ 1.234 no total" para a lista de compras. */
+function resumoDosPedidos(eventos: RecentEvent[]): string {
+  const extras = eventos.filter((e) => ehItemExtra(e.item_tipo)).length;
+  const pedidos = eventos.length - extras;
+  const total = eventos.reduce((t, e) => t + (e.amount_cents ?? 0), 0);
+  const partes = [`${pedidos} pedido${pedidos === 1 ? "" : "s"}`];
+  if (extras > 0) partes.push(`${extras} ${extras === 1 ? "item extra" : "itens extras"}`);
+  partes.push(`${fmtBRL(total)} no total`);
+  return partes.join(" · ");
+}
+
 // Tabela de eventos compartilhada entre "Eventos recentes" e o popup de
 // detalhe de um KPI da Visão geral (mesmas colunas nos dois lugares).
-function EventsTable({ events }: { events: RecentEvent[] }) {
-  if (events.length === 0) {
+function EventsTable({ events: eventos }: { events: RecentEvent[] }) {
+  if (eventos.length === 0) {
     return <Vazio>Nenhum evento nesse período/tipo.</Vazio>;
   }
+  const { linhas: events, itensPorPedido } = agruparPorPedido(eventos);
   return (
     <TabelaWrap alta>
       <Tabela>
@@ -1378,18 +1449,39 @@ function EventsTable({ events }: { events: RecentEvent[] }) {
               <Td fraco className="font-mono text-[11px]">
                 {new Date(e.occurred_at).toLocaleString("pt-BR")}
               </Td>
-              <Td forte>{EVENT_TYPE_LABEL[e.event_type] ?? e.event_type}</Td>
+              <Td forte>
+                {e.event_type === "purchase" && ehItemExtra(e.item_tipo) ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden className="text-text-muted">↳</span>
+                    <span className="text-frame-text">{rotuloDoItem(e.item_tipo)}</span>
+                  </span>
+                ) : (
+                  (EVENT_TYPE_LABEL[e.event_type] ?? e.event_type)
+                )}
+              </Td>
               <Td>{e.source}</Td>
               <Td className="max-w-[220px] truncate" title={e.email ?? undefined}>
                 {e.email ?? "—"}
               </Td>
-              <Td>{e.offer_name ?? "—"}</Td>
+              {/* Item extra mostra o NOME DELE: o nome da oferta que o carregou
+                  é o do plano, e fazia o bump de R$ 37 parecer o Starter. */}
+              <Td>
+                {e.event_type === "purchase" && ehItemExtra(e.item_tipo)
+                  ? (e.item_nome ?? e.offer_name ?? "—")
+                  : (e.offer_name ?? "—")}
+              </Td>
               <Td num forte={e.amount_cents != null}>
                 {e.amount_cents != null
                   ? e.event_type === "broker_deposit"
                     ? fmtUSD(e.amount_cents)
                     : fmtBRL(e.amount_cents)
                   : "—"}
+                {/* No item principal de um pedido com extras, o total do pedido. */}
+                {e.event_type === "purchase" && !ehItemExtra(e.item_tipo) && e.pedido_id && (itensPorPedido.get(e.pedido_id) ?? 0) > 1 && (
+                  <span className="block text-[10px] font-normal text-text-muted">
+                    pedido {fmtBRL(e.pedido_total_cents ?? 0)} · {itensPorPedido.get(e.pedido_id)} itens
+                  </span>
+                )}
               </Td>
               <Td className="max-w-[240px] truncate" title={e.utm_source ? `${e.utm_source} · ${e.utm_campaign ?? "(sem campanha)"}` : undefined}>
                 {e.utm_source ? `${e.utm_source} · ${e.utm_campaign ?? "(sem campanha)"}` : "—"}

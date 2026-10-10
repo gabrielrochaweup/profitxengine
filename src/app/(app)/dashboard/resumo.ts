@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { carregarAlunos, resumoDeAlunos } from "@/lib/tracking/alunos";
+import { ehItemExtra, rotuloDoItem } from "@/lib/tracking/itens";
 
 /*
   O resumo do dia.
@@ -173,14 +174,31 @@ export async function carregarResumoDoDia(productId: string): Promise<ResumoDoDi
   const [relatorioHoje, relatorioOntem, eventosDeHoje, semAtribuicao, disparos, webhooks] = await Promise.all([
     supabase.rpc("tracking_campaign_report", { p_product_id: productId, p_from: hoje.de, p_to: hoje.ate }),
     supabase.rpc("tracking_campaign_report", { p_product_id: productId, p_from: ontem.de, p_to: ontem.ate }),
-    supabase
-      .from("tracking_events")
-      .select("id, event_type, email, amount_cents, currency, occurred_at")
-      .eq("product_id", productId)
-      .in("event_type", TIPOS_QUE_IMPORTAM)
-      .gte("occurred_at", hoje.de)
-      .order("occurred_at", { ascending: false })
-      .limit(12),
+    // Com o tipo do item (migration 0134); sem ela a coluna não existe e a
+    // consulta cai pra versão de antes, em vez de deixar o painel sem eventos.
+    (async () => {
+      const comItens = await supabase
+        .from("tracking_events")
+        .select("id, event_type, email, amount_cents, currency, occurred_at, item_tipo, item_nome")
+        .eq("product_id", productId)
+        .in("event_type", TIPOS_QUE_IMPORTAM)
+        .gte("occurred_at", hoje.de)
+        .order("occurred_at", { ascending: false })
+        .limit(12);
+      if (!comItens.error) return comItens;
+      const antes = await supabase
+        .from("tracking_events")
+        .select("id, event_type, email, amount_cents, currency, occurred_at")
+        .eq("product_id", productId)
+        .in("event_type", TIPOS_QUE_IMPORTAM)
+        .gte("occurred_at", hoje.de)
+        .order("occurred_at", { ascending: false })
+        .limit(12);
+      return {
+        ...antes,
+        data: (antes.data ?? []).map((e) => ({ ...e, item_tipo: null as string | null, item_nome: null as string | null })),
+      };
+    })(),
     supabase
       .from("tracking_events")
       .select("id", { count: "exact", head: true })
@@ -459,7 +477,10 @@ export async function carregarResumoDoDia(productId: string): Promise<ResumoDoDi
   const movimentos: Movimento[] = (eventosDeHoje.data ?? []).map((e) => ({
     id: e.id,
     quando: hora(e.occurred_at),
-    tipo: ROTULO_DO_EVENTO[e.event_type as (typeof TIPOS_QUE_IMPORTAM)[number]] ?? e.event_type,
+    tipo:
+      e.event_type === "purchase" && ehItemExtra(e.item_tipo)
+        ? `${rotuloDoItem(e.item_tipo)}${e.item_nome ? ` — ${e.item_nome}` : ""}`
+        : (ROTULO_DO_EVENTO[e.event_type as (typeof TIPOS_QUE_IMPORTAM)[number]] ?? e.event_type),
     quem: e.email ?? "sem e-mail",
     valor:
       e.amount_cents == null

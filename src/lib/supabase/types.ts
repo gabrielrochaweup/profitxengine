@@ -1023,11 +1023,23 @@ export interface Database {
           raw_payload: Record<string, unknown> | null;
           occurred_at: string;
           received_at: string;
+          /** 'front' | 'order_bump' | 'upsell' | 'downsell' (ou texto cru de um tipo não mapeado). Nulo = principal. Migration 0134. */
+          item_tipo: string | null;
+          /** Nome do item em si, ex: "[TRIAD] VITALICIO". */
+          item_nome: string | null;
+          /** Identificador do pagamento — o mesmo em todos os itens pagos juntos. */
+          pedido_id: string | null;
+          /** Total do pagamento (todos os itens somados), em centavos. */
+          pedido_total_cents: number | null;
         };
         Insert: Omit<
           Database["public"]["Tables"]["tracking_events"]["Row"],
-          "id" | "lead_id" | "email" | "amount_cents" | "currency" | "external_id" | "offer_name" | "payment_method" | "raw_payload" | "occurred_at" | "received_at"
+          "id" | "lead_id" | "email" | "amount_cents" | "currency" | "external_id" | "offer_name" | "payment_method" | "raw_payload" | "occurred_at" | "received_at" | "item_tipo" | "item_nome" | "pedido_id" | "pedido_total_cents"
         > & {
+          item_tipo?: string | null;
+          item_nome?: string | null;
+          pedido_id?: string | null;
+          pedido_total_cents?: number | null;
           id?: string;
           lead_id?: string | null;
           email?: string | null;
@@ -1933,6 +1945,10 @@ export interface Database {
       tracking_sales_by_offer: {
         Args: { p_product_id: string; p_from: string; p_to: string };
         Returns: { offer_name: string; purchases: number; revenue_cents: number }[];
+      };
+      tracking_itens_vendidos: {
+        Args: { p_product_id: string; p_from: string; p_to: string };
+        Returns: { item_tipo: string; item_nome: string; vendas: number; receita_cents: number }[];
       };
       tracking_sales_by_payment_method: {
         Args: { p_product_id: string; p_from: string; p_to: string };
